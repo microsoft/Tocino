@@ -110,7 +110,7 @@ if [ $daily -eq 1 ] ; then
 fi
 
 if [ $tag -eq 1 ]; then
-    version="ns-3.14"
+    version="ns-3.15"
     say "-t forcing tagged version = $version"
 fi
 
