@@ -36,3 +36,4 @@ massif.*
 \.tr$
 \#[^\#/]+\#$
 syntax: glob
+*.swp
