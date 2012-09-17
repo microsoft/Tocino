@@ -2,7 +2,8 @@
 #ifndef __TOCINO_HELPER_H__
 #define __TOCINO_HELPER_H__
 
-#include "ns3/tocino.h"
+#include "ns3/tocino-net-device.h"
+#include "ns3/tocino-channel.h"
 
 namespace ns3 {
 
