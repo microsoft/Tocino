@@ -2,9 +2,13 @@
 #ifndef __TOCINO_CHANNEL_H__
 #define __TOCINO_CHANNEL_H__
 
+#include "ns3/channel.h"
+
 namespace ns3 {
 
-/* ... */
+class TocinoChannel : public Channel
+{
+};
 
 }
 

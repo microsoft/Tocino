@@ -7,7 +7,7 @@
 #     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
 
 def build(bld):
-    module = bld.create_ns3_module('tocino', ['core'])
+    module = bld.create_ns3_module('tocino', ['network'])
     module.source = [
         'model/tocino-net-device.cc',
         'model/tocino-channel.cc',
@@ -24,6 +24,7 @@ def build(bld):
     headers.source = [
         'model/tocino-net-device.h',
         'model/tocino-channel.h',
+        'model/tocino-address.h',
         'helper/tocino-helper.h',
         ]
 
