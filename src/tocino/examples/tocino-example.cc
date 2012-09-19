@@ -4,7 +4,7 @@
 #include "ns3/tocino-helper.h"
 
 #include "ns3/tocino-net-device.h"
-//#include "ns3/tocino-channel.h"
+#include "ns3/tocino-channel.h"
 
 using namespace ns3;
 
@@ -19,8 +19,12 @@ main (int argc, char *argv[])
 
   cmd.Parse (argc,argv);
 
-  // just declare one for now
-  TocinoNetDevice tnd;
+  TocinoNetDevice tnd0;
+  TocinoNetDevice tnd1;
+  Ptr<TocinoChannel> tc = CreateObject<TocinoChannel>();
+
+  tnd0.AddChannel( tc );
+  tnd1.AddChannel( tc );
 
   Simulator::Run ();
   Simulator::Destroy ();

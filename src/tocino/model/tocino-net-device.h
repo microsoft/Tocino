@@ -12,153 +12,50 @@
 #include "ns3/packet.h"
 
 #include "tocino-address.h"
-#include "tocino-channel.h"
 
 namespace ns3 {
+
+class TocinoChannel;
 
 class TocinoNetDevice : public NetDevice
 {
     public:
 
-    TocinoNetDevice() :
-        m_node( 0 ),
-        m_ifIndex( 0 ),
-        m_mtu( DEFAULT_MTU )
-    {}
-        
-    virtual ~TocinoNetDevice() {};
+    static TypeId GetTypeId( void );
 
-    virtual void SetIfIndex( const uint32_t index )
-    {
-        m_ifIndex = index;
-    }
+    TocinoNetDevice();
+    virtual ~TocinoNetDevice();
 
-    virtual uint32_t GetIfIndex( void ) const
-    { 
-        return m_ifIndex;
-    }
-
-    virtual Ptr<Channel> GetChannel( void ) const
-    {
-        return 0;
-    }
+    virtual void SetIfIndex( const uint32_t index );
+    virtual uint32_t GetIfIndex( void ) const;
+    virtual Ptr<Channel> GetChannel( void ) const;
+    virtual bool SetMtu( const uint16_t mtu );
+    virtual uint16_t GetMtu( void ) const;
+    virtual void SetAddress( Address address );
+    virtual Address GetAddress( void ) const;
+    virtual bool IsLinkUp( void ) const;
+    virtual void AddLinkChangeCallback( Callback<void> callback );
+    virtual bool IsBroadcast( void ) const;
+    virtual Address GetBroadcast( void ) const;
+    virtual bool IsMulticast( void ) const;
+    virtual Address GetMulticast( Ipv4Address a ) const;
+    virtual Address GetMulticast( Ipv6Address a ) const;
+    virtual bool IsPointToPoint( void ) const;
+    virtual bool IsBridge( void ) const;
+    virtual bool Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber );
+    virtual bool SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber );
+    virtual Ptr<Node> GetNode( void ) const;
+    virtual void SetNode( Ptr<Node> node );
+    virtual bool NeedsArp( void ) const;
+    virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb );
+    virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
+    virtual bool SupportsSendFrom( void ) const;
+    void AddChannel( Ptr<TocinoChannel> c );
     
-    virtual bool SetMtu( const uint16_t mtu )
-    {
-        m_mtu = mtu;
-        return true;
-    }
-
-    virtual uint16_t GetMtu( void ) const
-    {
-        return m_mtu;
-    }
-
-    virtual void SetAddress( Address address )
-    {
-        m_address = TocinoAddress::ConvertFrom( address );
-    }
-
-    virtual Address GetAddress( void ) const
-    {
-        return m_address;
-    }
-
-    virtual bool IsLinkUp( void ) const
-    {
-        return true;
-    }
-
-    virtual void AddLinkChangeCallback( Callback<void> callback )
-    {
-        //Do nothing for now 
-    }
-
-    virtual bool IsBroadcast( void ) const
-    {
-        return true;
-    }
-
-    virtual Address GetBroadcast( void ) const
-    {
-        return TocinoAddress::ConvertFrom( Mac48Address ("ff:ff:ff:ff:ff:ff") );
-    }
-
-    virtual bool IsMulticast( void ) const
-    {
-        return true;
-    }
-
-    virtual Address GetMulticast( Ipv4Address a ) const
-    {
-        return TocinoAddress::ConvertFrom( Mac48Address::GetMulticast( a ) );
-    }
-    
-    virtual Address GetMulticast( Ipv6Address a ) const
-    {
-        return TocinoAddress::ConvertFrom( Mac48Address::GetMulticast( a ) );
-    }
-
-    virtual bool IsPointToPoint( void ) const
-    {
-        return false;
-    }
-
-    virtual bool IsBridge( void ) const
-    {
-        return false;
-    }
-    
-    virtual bool Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber )
-    {
-        return SendFrom( packet, m_address, dest, protocolNumber );
-    }
-
-    virtual bool SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber )
-    {
-        // TODO
-        // TODO
-        // TODO
-        return false;
-        // TODO
-        // TODO
-        // TODO
-    }
-
-    virtual Ptr<Node> GetNode( void ) const
-    {
-        return m_node;
-    }
-
-    virtual void SetNode( Ptr<Node> node )
-    {
-        m_node = node;
-    }
-    
-    virtual bool NeedsArp( void ) const
-    {
-        return true;
-    }
-
-    virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb )
-    {
-        m_rxCallback = cb;
-    }
-
-    virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb )
-    {
-        m_promiscRxCallback = cb;
-    }
-
-    virtual bool SupportsSendFrom( void ) const
-    {
-        return true;
-    }
- 
     private:
 
     // disable copy and copy-assignment
-    TocinoNetDevice &operator=( const TocinoNetDevice& );
+    TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
     
     DataRate m_bps;
