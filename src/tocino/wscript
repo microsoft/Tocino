@@ -11,6 +11,7 @@ def build(bld):
     module.source = [
         'model/tocino-net-device.cc',
         'model/tocino-channel.cc',
+        'model/tocino-flit-header.cc',
         'helper/tocino-helper.cc',
         ]
 
@@ -25,6 +26,7 @@ def build(bld):
         'model/tocino-net-device.h',
         'model/tocino-channel.h',
         'model/tocino-address.h',
+        'model/tocino-flit-header.h',
         'helper/tocino-helper.h',
         ]
 
