@@ -1,0 +1,23 @@
+/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+
+#include "tocino-net-device.h"
+
+namespace ns3 {
+
+TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter(Ptr<TocinoNetDevice nd,
+						       unsigned int port,
+						       unsigned int n_ports)
+{
+  m_nd = nd;
+  m_port = port;
+  m_n_ports = n_ports;
+}
+
+void
+TocinoNetDeviceTransmitter::PortLinkage(unsigned int port, 
+				     Ptr<TocinoNetDeviceReceiver> receiver, 
+				     Ptr<TocinoQueue> q)
+{
+  m_receiver[port] = receiver;
+  m_q[port] = q;
+}
