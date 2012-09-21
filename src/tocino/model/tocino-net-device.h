@@ -19,59 +19,61 @@ class TocinoChannel;
 
 class TocinoNetDevice : public NetDevice
 {
-    public:
+public:
 
-    static TypeId GetTypeId( void );
+  static TypeId GetTypeId( void );
 
-    TocinoNetDevice();
-    virtual ~TocinoNetDevice();
+  TocinoNetDevice();
+  virtual ~TocinoNetDevice();
 
-    virtual void SetIfIndex( const uint32_t index );
-    virtual uint32_t GetIfIndex( void ) const;
-    virtual Ptr<Channel> GetChannel( void ) const;
-    virtual bool SetMtu( const uint16_t mtu );
-    virtual uint16_t GetMtu( void ) const;
-    virtual void SetAddress( Address address );
-    virtual Address GetAddress( void ) const;
-    virtual bool IsLinkUp( void ) const;
-    virtual void AddLinkChangeCallback( Callback<void> callback );
-    virtual bool IsBroadcast( void ) const;
-    virtual Address GetBroadcast( void ) const;
-    virtual bool IsMulticast( void ) const;
-    virtual Address GetMulticast( Ipv4Address a ) const;
-    virtual Address GetMulticast( Ipv6Address a ) const;
-    virtual bool IsPointToPoint( void ) const;
-    virtual bool IsBridge( void ) const;
-    virtual bool Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber );
-    virtual bool SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber );
-    virtual Ptr<Node> GetNode( void ) const;
-    virtual void SetNode( Ptr<Node> node );
-    virtual bool NeedsArp( void ) const;
-    virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb );
-    virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
-    virtual bool SupportsSendFrom( void ) const;
+  virtual void SetIfIndex( const uint32_t index );
+  virtual uint32_t GetIfIndex( void ) const;
+  virtual Ptr<Channel> GetChannel( void ) const;
+  virtual bool SetMtu( const uint16_t mtu );
+  virtual uint16_t GetMtu( void ) const;
+  virtual void SetAddress( Address address );
+  virtual Address GetAddress( void ) const;
+  virtual bool IsLinkUp( void ) const;
+  virtual void AddLinkChangeCallback( Callback<void> callback );
+  virtual bool IsBroadcast( void ) const;
+  virtual Address GetBroadcast( void ) const;
+  virtual bool IsMulticast( void ) const;
+  virtual Address GetMulticast( Ipv4Address a ) const;
+  virtual Address GetMulticast( Ipv6Address a ) const;
+  virtual bool IsPointToPoint( void ) const;
+  virtual bool IsBridge( void ) const;
+  virtual bool Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber );
+  virtual bool SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber );
+  virtual Ptr<Node> GetNode( void ) const;
+  virtual void SetNode( Ptr<Node> node );
+  virtual bool NeedsArp( void ) const;
+  virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb );
+  virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
+  virtual bool SupportsSendFrom( void ) const;
 
   void AddTxChannel(Ptr<TocinoChannel> c, unsigned int port);
   void AddRxChannel(Ptr<TocinoChannel> c, unsigned int port);
     
-    private:
+private:
 
-    // disable copy and copy-assignment
-    TocinoNetDevice& operator=( const TocinoNetDevice& );
-    TocinoNetDevice( const TocinoNetDevice& );
+  // disable copy and copy-assignment
+  TocinoNetDevice& operator=( const TocinoNetDevice& );
+  TocinoNetDevice( const TocinoNetDevice& );
   
-    Ptr<Node> m_node;
-    uint32_t m_ifIndex;
+  Ptr<Node> m_node;
+  uint32_t m_ifIndex;
     
-    static const uint16_t DEFAULT_MTU = 1500;
-    uint32_t m_mtu;
+  static const uint16_t DEFAULT_MTU = 1500;
+  uint32_t m_mtu;
 
-    TocinoAddress m_address;
+  TocinoAddress m_address;
   
-    NetDevice::ReceiveCallback m_rxCallback;
-    NetDevice::PromiscReceiveCallback m_promiscRxCallback;
-
-    std::vector< Ptr<TocinoChannel> > m_channel;
+  NetDevice::ReceiveCallback m_rxCallback;
+  NetDevice::PromiscReceiveCallback m_promiscRxCallback;
+  
+  std::vector< Ptr<TocinoQueue> > m_q;
+  std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitter;
+  std::vector< Ptr<TocinoNetDeviceReceiver> > m_receiver;
 };
 
 }

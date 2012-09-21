@@ -21,18 +21,30 @@ TocinoNetDevice::TocinoNetDevice() :
     m_mtu( DEFAULT_MTU )
 {
   const unsigned int N_PORTS = 7;
-  const unsigned int N_BUFFERS = 4;
 
   unsigned int i, j, k;
   unsigned int index;
 
   // create queues - right now 1 per s/d pair
+  for (i = 0; i < (N_PORTS * N_PORTS); i++)
+    {
+      m_q[i] = CreateObject<TocinoQueue> ();
+    }
+
+  // create receivers and transmitters
+  for (i = 0; i < N_PORTS; i++)
+    {
+      m_receiver[i] = CreateObject<TocinoNetDeviceReceiver> (this, i, N_PORTS);
+      m_transmitter[i] = CreateObject<TocinoNetDeviceTransmitter> (this, i, N_PORTS);
+    }
+
+  // build linkage between tx, rx, and q
   for (i = 0; i < N_PORTS; i++)
     {
       for (j = 0; j < N_PORTS; j++)
         {
-          index = (i * N_PORTS) + j;
-          q[index] = new TocinoQueue(N_BUFFERS);
+          m_receiver[i]->PortLinkage(j, m_transmitter[j], m_q[(i * N_PORTS) + j]);
+          m_transmitter[i]->PortLinkage(j, m_receiver[j], m_q[i + (j * N_PORTS)]);
         }
     }
 }
