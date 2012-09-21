@@ -50,15 +50,15 @@ class TocinoNetDevice : public NetDevice
     virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb );
     virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
     virtual bool SupportsSendFrom( void ) const;
-    void AddChannel( Ptr<TocinoChannel> c );
+
+  void AddTxChannel(Ptr<TocinoChannel> c, unsigned int port);
+  void AddRxChannel(Ptr<TocinoChannel> c, unsigned int port);
     
     private:
 
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
-    
-    DataRate m_bps;
   
     Ptr<Node> m_node;
     uint32_t m_ifIndex;
@@ -71,7 +71,7 @@ class TocinoNetDevice : public NetDevice
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
 
-    std::vector< Ptr<TocinoChannel> > m_channels;
+    std::vector< Ptr<TocinoChannel> > m_channel;
 };
 
 }

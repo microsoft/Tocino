@@ -19,7 +19,23 @@ TocinoNetDevice::TocinoNetDevice() :
     m_node( 0 ),
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU )
-{}
+{
+  const unsigned int N_PORTS = 7;
+  const unsigned int N_BUFFERS = 4;
+
+  unsigned int i, j, k;
+  unsigned int index;
+
+  // create queues - right now 1 per s/d pair
+  for (i = 0; i < N_PORTS; i++)
+    {
+      for (j = 0; j < N_PORTS; j++)
+        {
+          index = (i * N_PORTS) + j;
+          q[index] = new TocinoQueue(N_BUFFERS);
+        }
+    }
+}
         
 TocinoNetDevice::~TocinoNetDevice()
 {}
@@ -151,9 +167,13 @@ bool TocinoNetDevice::SupportsSendFrom( void ) const
     return true;
 }
 
-void TocinoNetDevice::AddChannel( Ptr<TocinoChannel> c )
+void TocinoNetDevice::AddTxChannel(Ptr<TocinoChannel> c, unsigned int port)
 {
-    m_channels.push_back( c );
+
+}
+
+void TocinoNetDevice::AddRxChannel(Ptr<TocinoChannel> c, unsigned int port)
+{
 }
 
 }
