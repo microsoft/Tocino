@@ -9,25 +9,25 @@ namespace ns3 {
 class TocinoNetDeviceReceiver
 {
  public:
-  TocinoNetDeviceReceiver(<Ptr>TocinoNetDevice nd, unsigned int port, unsigned int n_ports);
+  TocinoNetDeviceReceiver(<Ptr>TocinoNetDevice nd, uint32_t port, uint32_t nPorts);
   ~TocinoNetDeviceReceiver();
 
   void Receive(Ptr<Packet> p);
-  void PortLinkage(unsigned int port,
-                  Ptr<TocinoNetDeviceTransmitter> transmitter,
-                  Ptr<TocinoQueue> q);
+  void DefinePortLinkage(uint32_t port,
+                         Ptr<TocinoNetDeviceTransmitter> transmitter,
+                         Ptr<TocinoQueue> q);
   void CheckForUnblock();
 
  private:
-  const unsigned int MAX_PORTS = 7;
+  const uint32_t MAX_PORTS = 7;
 
-  unsigned int m_port;
-  unsigned int m_n_ports;
+  uint32_t m_port;
+  uint32_t m_nPorts;
 
-  unsigned int Route(Ptr<Packet> p); // might want this to be a function pointer w/ a setter
+  uint32_t Route(Ptr<Packet> p); // might want this to be a function pointer w/ a setter
   Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
-  Ptr<TocinoNetDeviceTransmitter> m_transmitter[MAX_PORTS]; // links to transmitters
-  Ptr<TocinoQueue> m_q[MAX_PORTS]; // links to queues
+  Ptr<TocinoNetDeviceTransmitter> m_transmitters[MAX_PORTS]; // links to transmitters
+  Ptr<TocinoQueue> m_queues[MAX_PORTS]; // links to queues
 }
 
 }

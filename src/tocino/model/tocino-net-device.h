@@ -51,8 +51,11 @@ public:
   virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
   virtual bool SupportsSendFrom( void ) const;
 
-  void AddTxChannel(Ptr<TocinoChannel> c, unsigned int port);
-  void AddRxChannel(Ptr<TocinoChannel> c, unsigned int port);
+  void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
+  void SetRxChannel(Ptr<TocinoChannel> c, uint32_t port);
+
+  Ptr<TocinoNetDeviceTransmitter> GetTransmitter(uint32_t port);
+  Ptr<TocinoNetDeviceReceiver>  GetReceiver(uint32_t port);
     
 private:
 
@@ -71,9 +74,9 @@ private:
   NetDevice::ReceiveCallback m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
   
-  std::vector< Ptr<TocinoQueue> > m_q;
-  std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitter;
-  std::vector< Ptr<TocinoNetDeviceReceiver> > m_receiver;
+  std::vector< Ptr<TocinoQueue> > m_queues;
+  std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitters;
+  std::vector< Ptr<TocinoNetDeviceReceiver> > m_receivers;
 };
 
 }

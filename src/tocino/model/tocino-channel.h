@@ -16,14 +16,17 @@ public:
 
   static TypeId GetTypeId();
 
-  TocinoChannel(Ptr<TocinoNetDeviceTransmitter> transmitter, Ptr<TocinoNetDeviceReceiver> receiver);
+  TocinoChannel();
+  ~TocinoChannel();
 
   bool TransmitStart (Ptr<Packet> p);
   DataRate GetDataRate() {return m_bps;}
-
+  void SetTransmitter(Ptr<TocinoNetDeviceTransmitter> tx);
+  void SetReceiver(Ptr<TocinoNetDeviceReceiver> rx);
   uint32_t GetNDevices() const {return 2;}
 
-  Ptr<NetDevice> GetDevice( uint32_t i ) {return (i == 0)? m_transmitter->NetDevice:m_receiver->NetDevice;}
+  enum TocinoChannelDevice = {TX, RX};
+  Ptr<NetDevice> GetDevice( TocinoChannelDevice i );
 
 private:
   void TransmitEnd ();
@@ -32,14 +35,14 @@ private:
   Time m_delay;
   DataRate m_bps;
 
-  Ptr<TocinoNetDeviceTransmitter> m_transmitter;
-  Ptr<TocinoNetDeviceReceiver> m_receiver;
+  Ptr<TocinoNetDeviceTransmitter> m_tx;
+  Ptr<TocinoNetDeviceReceiver> m_rx;
 
   enum TocinoChannelState = {IDLE, BUSY};
   TocinoChannelState m_state = IDLE;
 };
 
-}
+} // namespace ns3
 
 #endif /* __TOCINO_CHANNEL_H__ */
 

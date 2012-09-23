@@ -4,67 +4,79 @@
 
 namespace ns3 {
 
+class TocinoNetDeviceTransmitter;
+class TocinoNetDeviceReceiver;
+class TocinoQueue;
+
 TocinoNetDeviceReceiver::TocinoNetDeviceReceiver(Ptr<TocinoNetDevice> nd,
-						 unsigned int port,
-						 unsigned int n_ports)
+						 uint32_t port,
+						 uint32_t nPorts)
 {
   m_nd = nd;
   m_port = port;
-  m_n_ports = n_ports;
+  m_nPorts = nPorts;
 }
 
 void
-TocinoNetDeviceReceiver::PortLinkage(unsigned int port, 
-				     Ptr<TocinoNetDeviceTransmitter> transmitter, 
-				     Ptr<TocinoQueue> q)
+TocinoNetDeviceReceiver::DefinePortLinkage(uint32_t port, 
+                                           Ptr<TocinoNetDeviceTransmitter> transmitter, 
+                                           Ptr<TocinoQueue> q)
 {
-  m_transmitter[port] = transmitter;
-  m_q[port] = q;
+  m_transmitters[port] = transmitter;
+  m_queues[port] = q;
 }
 
 void
 TocinoNetDeviceReceiver::CheckForUnblock()
 {
-  if (m_transmitter[port]->GetXState() == XOFF)
+  if (m_transmitters[port]->GetXState() == XOFF)
     {
       // if NO queues are full, schedule XON
-      for (i = 0; i < n_ports; i++)
+      for (i = 0; i < m_nPorts; i++)
 	{
-	  if (m_q[i]->IsFull()) return;
+	  if (m_queues[i]->IsFull()) return;
 	}
-      m_transmitter[port]->SendXON();
+      m_transmitters[port]->SendXON();
     }
 }
 
 void
 TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
 {
-  unsigned int tx_port;
+  uint32_t tx_port;
 
   // XON packet enables transmission on this port
   if (p->IsXON())
     {
-      m_transmitter[port]->SetXState(XON);
-      m_transmitter[port]->Transmit();
+      m_transmitters[port]->SetXState(XON);
+      m_transmitters[port]->Transmit();
       return;
     }
 
   // XOFF packet disables transmission on this port
   if (p->IsXOFF())
     {
-      m_transmitter[port]->SetXState(XOFF);
+      m_transmitters[port]->SetXState(XOFF);
       return;
     }
 
   // figure out where the packet goes and put it in the transmission queue
   tx_port = Route(p);
-  m_q[tx_port]->Enqueue(p);
+  m_queues[tx_port]->Enqueue(p);
 
   // if the buffer is full, send XOFF - blocks ALL traffic on this port
-  if (m_q[tx_port]->IsFull())
+  if (m_queues[tx_port]->IsFull())
     {
-      m_transmitter[m_port]->SendXOFF();
-      m_transmitter[m_port]->Transmit();
+      m_transmitters[m_port]->SendXOFF();
+      m_transmitters[m_port]->Transmit();
     }
-  m_transmitter[tx_port]->Transmit();
+  m_transmitters[tx_port]->Transmit();
 }
+
+uint32_t
+Route(Ptr<Packet> p)
+{
+  return 6; // implement loopback
+}
+
+} // namespace ns3

@@ -4,22 +4,24 @@
 
 namespace ns3 {
 
+NS_OBJECT_ENSURE_DEFINED (TocinoNetDeviceTransmitter);
+
 TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter(Ptr<TocinoNetDevice nd,
-						       unsigned int port,
-						       unsigned int n_ports)
+						       uint32_t port,
+						       uint32_t nPorts)
 {
   m_nd = nd;
   m_port = port;
-  m_n_ports = n_ports;
+  m_nPorts = nPorts; // m_nPorts includes the injection/ejection port!!!
 }
 
 void
-TocinoNetDeviceTransmitter::PortLinkage(unsigned int port, 
+TocinoNetDeviceTransmitter::DefinePortLinkage(uint32_t port, 
 					Ptr<TocinoNetDeviceReceiver> receiver, 
 					Ptr<TocinoQueue> q)
 {
-  m_receiver[port] = receiver;
-  m_q[port] = q;
+  m_receivers[port] = receiver;
+  m_queues[port] = q;
 }
 
 void
@@ -34,7 +36,7 @@ TocinoNetDeviceTransmitter::Transmit()
 {
   Time t;
   Ptr<Packet> p = NULL;
-  unsigned int winner;
+  uint32_t winner;
 
   if (m_state == BUSY) return;
 
@@ -65,15 +67,21 @@ TocinoNetDeviceTransmitter::Transmit()
   else if (m_xstate == XON) // legal to transmit
     {
       winner = Arbitrate();
-      
-      // if we've unblocked the winner receive port we need to cause an XON
-      // to be scheduled on its corresponding transmit port (hide the crud in
-      // TocinoNetDeviceReceiver)
-      if (m_q[winner]->IsFull())
-	{
-	  p = m_q[winner]->Dequeue();
-	  m_receiver[winner]->CheckForUnblock();
-	}
+      if (winner == m_nPorts)
+        {
+          // queues are empty
+        }
+      else
+        {
+          // if we've unblocked the winner receive port we need to cause an XON
+          // to be scheduled on its corresponding transmit port (hide the crud in
+          // TocinoNetDeviceReceiver)
+          if (m_queues[winner]->IsFull())
+            {
+              p = m_queues[winner]->Dequeue();
+              m_receivers[winner]->CheckForUnblock();
+            }
+        }
     }
   if (p != NULL)
     {
@@ -83,3 +91,20 @@ TocinoNetDeviceTransmitter::Transmit()
       Simulation::Schedule(t, TransmitEnd); // will this invoke the correct context???
       return;
     }
+}
+
+uint32_t
+TocinoNetDeviceTransmitter::Arbitrate
+{
+  uint32_t i;
+
+  // trivial arbitration - obvious starvation concern
+  for (i = 0; i < m_nPorts; i++)
+    {
+      if (m_queues[i].IsEmpty() == false) return i;
+    }
+  return m_nPorts;
+}
+
+} // namespace ns3
+

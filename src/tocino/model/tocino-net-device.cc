@@ -20,22 +20,22 @@ TocinoNetDevice::TocinoNetDevice() :
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU )
 {
-  const unsigned int N_PORTS = 7;
+  const uint32_t N_PORTS = 7;
 
-  unsigned int i, j, k;
-  unsigned int index;
+  uint32_t i, j, k;
+  uint32_t index;
 
   // create queues - right now 1 per s/d pair
   for (i = 0; i < (N_PORTS * N_PORTS); i++)
     {
-      m_q[i] = CreateObject<TocinoQueue> ();
+      m_queues[i] = CreateObject<TocinoQueue> ();
     }
 
   // create receivers and transmitters
   for (i = 0; i < N_PORTS; i++)
     {
-      m_receiver[i] = CreateObject<TocinoNetDeviceReceiver> (this, i, N_PORTS);
-      m_transmitter[i] = CreateObject<TocinoNetDeviceTransmitter> (this, i, N_PORTS);
+      m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> (this, i, N_PORTS);
+      m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> (this, i, N_PORTS);
     }
 
   // build linkage between tx, rx, and q
@@ -43,8 +43,8 @@ TocinoNetDevice::TocinoNetDevice() :
     {
       for (j = 0; j < N_PORTS; j++)
         {
-          m_receiver[i]->PortLinkage(j, m_transmitter[j], m_q[(i * N_PORTS) + j]);
-          m_transmitter[i]->PortLinkage(j, m_receiver[j], m_q[i + (j * N_PORTS)]);
+          m_receiver[i]->DefinePortLinkage(j, m_transmitters[j], m_queues[(i * N_PORTS) + j]);
+          m_transmitter[i]->DefinePortLinkage(j, m_receivers[j], m_queues[i + (j * N_PORTS)]);
         }
     }
 }
@@ -179,14 +179,37 @@ bool TocinoNetDevice::SupportsSendFrom( void ) const
     return true;
 }
 
-void TocinoNetDevice::AddTxChannel(Ptr<TocinoChannel> c, unsigned int port)
+void
+TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 {
-
+  m_transmitters[port].SetChannel(c);
 }
 
-void TocinoNetDevice::AddRxChannel(Ptr<TocinoChannel> c, unsigned int port)
+void
+TocinoNetDevice::SetRxChannel(Ptr<TocinoChannel> c, uint32_t port)
 {
+  m_receivers[port].SetChannel(c);
 }
 
+Ptr<TocinoNetDeviceTransmitter>
+GetTransmitter(uint32_t port)
+{
+  if (port < m_transmitters.Size())
+    {
+      return m_transmitters[port];
+    }
+  return NULL;
 }
+
+Ptr<TocinoNetDeviceReceiver>
+GetReceiver(uint32_t port)
+{
+  if (port < m_receivers.Size())
+    {
+      return m_receivers[port];
+    }
+  return NULL;
+}
+
+} // namespace ns3
 
