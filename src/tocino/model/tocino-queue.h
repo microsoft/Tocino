@@ -16,17 +16,17 @@ public:
   static TypeId GetTypeId(void);
 
   TocinoQueue();
-  virtual ~TocinoQueue();
+  ~TocinoQueue();
 
   bool IsFull();
 
 private:
-  virtual bool DoEnqueue(Ptr<Packet> p);
-  virtual Ptr<Packet> DoDequeue(void);
-  virtual Ptr<const Packet> DoPeek(void) const;
+  bool DoEnqueue(Ptr<Packet> p);
+  Ptr<Packet> DoDequeue(void);
+  Ptr<const Packet> DoPeek(void) const;
 
   uint32_t m_maxDepth; // max depth in packets
-  std:queue<Ptr<Packet>> m_packets;
+  std::queue<Ptr<Packet> > m_packets;
 };
 
 } // namespace ns3

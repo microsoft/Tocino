@@ -1,42 +1,33 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
+#include "tocino-queue.h"
 #include "tocino-net-device.h"
+#include "tocino-net-device-transmitter.h"
+#include "tocino-net-device-receiver.h"
 
 namespace ns3 {
 
+class TocinoNetDevice;
 class TocinoNetDeviceTransmitter;
-class TocinoNetDeviceReceiver;
 class TocinoQueue;
 
-TocinoNetDeviceReceiver::TocinoNetDeviceReceiver(Ptr<TocinoNetDevice> nd,
-						 uint32_t port,
-						 uint32_t nPorts)
+TocinoNetDeviceReceiver::TocinoNetDeviceReceiver()
 {
-  m_nd = nd;
-  m_port = port;
-  m_nPorts = nPorts;
-}
-
-void
-TocinoNetDeviceReceiver::DefinePortLinkage(uint32_t port, 
-                                           Ptr<TocinoNetDeviceTransmitter> transmitter, 
-                                           Ptr<TocinoQueue> q)
-{
-  m_transmitters[port] = transmitter;
-  m_queues[port] = q;
 }
 
 void
 TocinoNetDeviceReceiver::CheckForUnblock()
 {
-  if (m_transmitters[port]->GetXState() == XOFF)
+  uint32_t i;
+
+  if (m_transmitters[m_channelNumber]->GetXState() == TocinoNetDevice::XOFF)
     {
       // if NO queues are full, schedule XON
-      for (i = 0; i < m_nPorts; i++)
+      for (i = 0; i < m_tnd->m_nPorts; i++)
 	{
 	  if (m_queues[i]->IsFull()) return;
 	}
-      m_transmitters[port]->SendXON();
+      m_transmitters[m_channelNumber]->SendXON();
     }
 }
 
@@ -46,17 +37,17 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
   uint32_t tx_port;
 
   // XON packet enables transmission on this port
-  if (p->IsXON())
+  if (/*p->IsXON()*/ 0)
     {
-      m_transmitters[port]->SetXState(XON);
-      m_transmitters[port]->Transmit();
+      m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XON);
+      m_transmitters[m_channelNumber]->Transmit();
       return;
     }
 
   // XOFF packet disables transmission on this port
-  if (p->IsXOFF())
+  if (/*p->IsXOFF()*/ 0)
     {
-      m_transmitters[port]->SetXState(XOFF);
+      m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XOFF);
       return;
     }
 
@@ -67,16 +58,16 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
   // if the buffer is full, send XOFF - blocks ALL traffic on this port
   if (m_queues[tx_port]->IsFull())
     {
-      m_transmitters[m_port]->SendXOFF();
-      m_transmitters[m_port]->Transmit();
+      m_transmitters[m_channelNumber]->SendXOFF();
+      m_transmitters[m_channelNumber]->Transmit();
     }
   m_transmitters[tx_port]->Transmit();
 }
 
 uint32_t
-Route(Ptr<Packet> p)
+TocinoNetDeviceReceiver::Route(Ptr<Packet> p)
 {
-  return 6; // implement loopback
+  return m_tnd->m_nPorts-1; // implement loopback
 }
 
 } // namespace ns3

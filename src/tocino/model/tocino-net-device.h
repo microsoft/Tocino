@@ -12,10 +12,13 @@
 #include "ns3/packet.h"
 
 #include "tocino-address.h"
+#include "tocino-channel.h"
+#include "tocino-queue.h"
 
 namespace ns3 {
 
-class TocinoChannel;
+class TocinoNetDeviceTransmitter;
+class TocinoNetDeviceReceiver;
 
 class TocinoNetDevice : public NetDevice
 {
@@ -51,12 +54,15 @@ public:
   virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
   virtual bool SupportsSendFrom( void ) const;
 
+  enum TocinoFlowControlState {XOFF, XON};
+
   void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
   void SetRxChannel(Ptr<TocinoChannel> c, uint32_t port);
 
-  Ptr<TocinoNetDeviceTransmitter> GetTransmitter(uint32_t port);
-  Ptr<TocinoNetDeviceReceiver>  GetReceiver(uint32_t port);
-    
+  friend class TocinoChannel;
+  friend class TocinoNetDeviceTransmitter;
+  friend class TocinoNetDeviceReceiver;
+
 private:
 
   // disable copy and copy-assignment
@@ -74,6 +80,8 @@ private:
   NetDevice::ReceiveCallback m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
   
+  uint32_t m_nPorts;
+  uint32_t m_nChannels;
   std::vector< Ptr<TocinoQueue> > m_queues;
   std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitters;
   std::vector< Ptr<TocinoNetDeviceReceiver> > m_receivers;

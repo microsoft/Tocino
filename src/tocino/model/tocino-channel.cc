@@ -1,7 +1,10 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
+#include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/trace-source-accessor.h"
+#include "ns3/data-rate.h"
+#include "ns3/packet.h"
 
 #include "tocino-channel.h"
 #include "tocino-net-device-transmitter.h"
@@ -19,8 +22,8 @@ TypeId TocinoChannel::GetTypeId( void )
     .SetParent<Channel>()
     .AddConstructor<TocinoChannel>()
     .AddAttribute ("DataRate", 
-                   "The transmission data rate to be provided to devices connected to the channel",
-                   DataRateValue (DataRate (1000000000)), // 1Gbps
+                   "The data transmission rate of the channel",
+                   DataRateValue (DataRate ("10Gbps")),
                    MakeDataRateAccessor (&TocinoChannel::m_bps),
                    MakeDataRateChecker ())
     .AddAttribute ("Delay", "Transmission delay through the channel",
@@ -30,11 +33,8 @@ TypeId TocinoChannel::GetTypeId( void )
   return tid;
 }
 
-  TocinoChannel::TocinoChannel()
-    : m_nDevices(2)
+TocinoChannel::TocinoChannel()
 {
-  m_tx = NULL;
-  m_rx = NULL;
   m_state = IDLE;
 }
 
@@ -59,17 +59,17 @@ TocinoChannel::SetReceiver(Ptr<TocinoNetDeviceReceiver> rx)
 }
 
 Ptr<NetDevice>
-TocinoChannel::GetDevice (TocinoChannelDevice i)
+TocinoChannel::GetDevice (uint32_t i) const
 {
   if (i == TX)
     {
       if (m_tx == NULL) return NULL;
-      return m_tx->NetDevice;
+      return m_tx->GetNetDevice();
     }
   else
     {
       if (m_rx == NULL) return NULL;
-      return m_rx->NetDevice;
+      return m_rx->GetNetDevice();
     }
 }
 
@@ -83,26 +83,27 @@ TocinoChannel::TransmitStart (Ptr<Packet> p)
       NS_LOG_WARN ("TocinoChannel::TransmitStart(): m_state is not IDLE");
       return false;
     }
+  m_packet = p;
 
-  transmit_time = (p->Size() * 8) / m_bps;
-  Simulator::Schedule(transmit_time, TocinoChannel::TransmitEnd, p);
+  transmit_time = GetTransmissionTime(p);
+  Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
   return true;
 }
 
-void
-TocinoChannel::TransmitEnd(Ptr<Packet> p)
+Time
+TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
 {
-  if (m_rx == NULL)
-    {
-      NS_LOG_WARN ("TocinoChannel missing receiver");
-      return;
-    }
+  return Seconds(m_bps.CalculateTxTime(p->GetSerializedSize()*8));
+}
 
+void
+TocinoChannel::TransmitEnd()
+{
   m_state = IDLE; // wire can be pipelined
-  Simulator::ScheduleWithContext(m_rx->GetNode()->GetId(), // need to look at this
-                                 m_delay,
-                                 m_rx->Receive,
-                                 p);
+  // Simulator::ScheduleWithContext(m_rx->GetNode()->GetId(), // need to look at this
+  //                                m_delay,
+  //                                m_rx->Receive,
+  //                                m_packet);
 }
 
 } // namespace ns3

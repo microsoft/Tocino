@@ -9,24 +9,26 @@ namespace ns3 {
 class Packet;
 class TocinoNetDeviceTransmitter;
 class TocinoNetDeviceReceiver;
+class DataRate;
+class Time;
 
 class TocinoChannel : public Channel
 {
 public:
-
   static TypeId GetTypeId();
 
   TocinoChannel();
   ~TocinoChannel();
 
   bool TransmitStart (Ptr<Packet> p);
-  DataRate GetDataRate() {return m_bps;}
+  Time GetTransmissionTime(Ptr<Packet> p);
+
   void SetTransmitter(Ptr<TocinoNetDeviceTransmitter> tx);
   void SetReceiver(Ptr<TocinoNetDeviceReceiver> rx);
   uint32_t GetNDevices() const {return 2;}
 
-  enum TocinoChannelDevice = {TX, RX};
-  Ptr<NetDevice> GetDevice( TocinoChannelDevice i );
+  enum TocinoChannelDevice {TX, RX};
+  Ptr<NetDevice> GetDevice(uint32_t i) const;
 
 private:
   void TransmitEnd ();
@@ -35,11 +37,13 @@ private:
   Time m_delay;
   DataRate m_bps;
 
+  Ptr<Packet> m_packet;
+
   Ptr<TocinoNetDeviceTransmitter> m_tx;
   Ptr<TocinoNetDeviceReceiver> m_rx;
 
-  enum TocinoChannelState = {IDLE, BUSY};
-  TocinoChannelState m_state = IDLE;
+  enum TocinoChannelState {IDLE, BUSY};
+  TocinoChannelState m_state;
 };
 
 } // namespace ns3

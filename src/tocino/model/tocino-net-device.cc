@@ -1,7 +1,12 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
-#include "tocino-net-device.h"
+#include "ns3/data-rate.h"
+
 #include "tocino-channel.h"
+#include "tocino-queue.h"
+#include "tocino-net-device-receiver.h"
+#include "tocino-net-device-transmitter.h"
+#include "tocino-net-device.h"
 
 namespace ns3 {
 
@@ -11,7 +16,13 @@ TypeId TocinoNetDevice::GetTypeId(void)
 {
   static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
     .SetParent<NetDevice>()
-    .AddConstructor<TocinoNetDevice>();
+    .AddConstructor<TocinoNetDevice>()
+    // .AddAttribute ("Channels", 
+    //                "Number of channels connected to net device.",
+    //                UintegerValue (6),
+    //                MakeUintegerAccessor (&TocinoNetDevice::m_nChannels),
+    //                MakeUintegerChecker<uint32_t> ())
+    ;
   return tid;
 }
 
@@ -20,33 +31,44 @@ TocinoNetDevice::TocinoNetDevice() :
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU )
 {
-  const uint32_t N_PORTS = 7;
+  uint32_t i, j;
 
-  uint32_t i, j, k;
-  uint32_t index;
+  m_nChannels = 6;
+  m_nPorts = m_nChannels + 1;
 
   // create queues - right now 1 per s/d pair
-  for (i = 0; i < (N_PORTS * N_PORTS); i++)
+  for (i = 0; i < (m_nPorts * m_nPorts); i++)
     {
-      m_queues[i] = CreateObject<TocinoQueue> ();
+      m_queues[i] = CreateObject<TocinoQueue>();
     }
 
   // create receivers and transmitters
-  for (i = 0; i < N_PORTS; i++)
+  for (i = 0; i < m_nChannels; i++)
     {
-      m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> (this, i, N_PORTS);
-      m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> (this, i, N_PORTS);
+      m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> ();
+      m_receivers[i]->m_tnd = this;
+      m_receivers[i]->m_channelNumber = i;
+
+      m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> ();
+      m_transmitters[i]->m_tnd = this;
+      m_transmitters[i]->m_channelNumber = i;
     }
 
-  // build linkage between tx, rx, and q
-  for (i = 0; i < N_PORTS; i++)
+  // build linkage between tx, rx, and q for channel interfaces
+  for (i = 0; i < m_nChannels; i++)
     {
-      for (j = 0; j < N_PORTS; j++)
+      for (j = 0; j < m_nChannels; j++)
         {
-          m_receiver[i]->DefinePortLinkage(j, m_transmitters[j], m_queues[(i * N_PORTS) + j]);
-          m_transmitter[i]->DefinePortLinkage(j, m_receivers[j], m_queues[i + (j * N_PORTS)]);
+          m_receivers[i]->m_transmitters[j] = m_transmitters[j];
+          m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
+
+          m_transmitters[i]->m_receivers[j] = m_receivers[j];
+          m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
         }
     }
+
+  // build linkage between injection/ejection port
+  // TBD
 }
         
 TocinoNetDevice::~TocinoNetDevice()
@@ -182,34 +204,34 @@ bool TocinoNetDevice::SupportsSendFrom( void ) const
 void
 TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 {
-  m_transmitters[port].SetChannel(c);
+  m_transmitters[port]->SetChannel(c);
 }
 
 void
 TocinoNetDevice::SetRxChannel(Ptr<TocinoChannel> c, uint32_t port)
 {
-  m_receivers[port].SetChannel(c);
+  //m_receivers[port]->SetChannel(c);
 }
 
-Ptr<TocinoNetDeviceTransmitter>
-GetTransmitter(uint32_t port)
-{
-  if (port < m_transmitters.Size())
-    {
-      return m_transmitters[port];
-    }
-  return NULL;
-}
+// Ptr<TocinoNetDeviceTransmitter>
+// GetTransmitter(uint32_t port)
+// {
+//   if (port < m_transmitters.Size())
+//     {
+//       return m_transmitters[port];
+//     }
+//   return NULL;
+// }
 
-Ptr<TocinoNetDeviceReceiver>
-GetReceiver(uint32_t port)
-{
-  if (port < m_receivers.Size())
-    {
-      return m_receivers[port];
-    }
-  return NULL;
-}
+// Ptr<TocinoNetDeviceReceiver>
+// GetReceiver(uint32_t port)
+// {
+//   if (port < m_receivers.Size())
+//     {
+//       return m_receivers[port];
+//     }
+//   return NULL;
+// }
 
 } // namespace ns3
 

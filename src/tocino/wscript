@@ -7,10 +7,13 @@
 #     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
 
 def build(bld):
-    module = bld.create_ns3_module('tocino', ['network'])
+    module = bld.create_ns3_module('tocino', ['core', 'network'])
     module.source = [
-        'model/tocino-net-device.cc',
+        'model/tocino-queue.cc',
         'model/tocino-channel.cc',
+        'model/tocino-net-device-transmitter.cc',
+        'model/tocino-net-device-receiver.cc',
+        'model/tocino-net-device.cc',
         'helper/tocino-helper.cc',
         ]
 
@@ -22,8 +25,11 @@ def build(bld):
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'tocino'
     headers.source = [
-        'model/tocino-net-device.h',
+        'model/tocino-queue.h',
         'model/tocino-channel.h',
+        'model/tocino-net-device-transmitter.h',
+        'model/tocino-net-device-receiver.h',
+        'model/tocino-net-device.h',
         'model/tocino-address.h',
         'helper/tocino-helper.h',
         ]

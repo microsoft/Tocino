@@ -1,27 +1,38 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
+#include "ns3/log.h"
+#include "ns3/simulator.h"
+#include "ns3/uinteger.h"
+#include "ns3/data-rate.h"
+
+#include "tocino-queue.h"
+#include "tocino-channel.h"
 #include "tocino-net-device.h"
+#include "tocino-net-device-receiver.h"
+#include "tocino-net-device-transmitter.h"
+
+NS_LOG_COMPONENT_DEFINE ("TocinoNetDeviceTransmitter");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_DEFINED (TocinoNetDeviceTransmitter);
+NS_OBJECT_ENSURE_REGISTERED (TocinoNetDeviceTransmitter);
 
-TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter(Ptr<TocinoNetDevice nd,
-						       uint32_t port,
-						       uint32_t nPorts)
+TypeId TocinoNetDeviceTransmitter::GetTypeId(void)
 {
-  m_nd = nd;
-  m_port = port;
-  m_nPorts = nPorts; // m_nPorts includes the injection/ejection port!!!
+  static TypeId tid = TypeId( "ns3::TocinoNetDeviceTransmitter" )
+    .SetParent<Object>()
+    .AddConstructor<TocinoNetDeviceTransmitter>()
+    ;
+  return tid;
 }
 
-void
-TocinoNetDeviceTransmitter::DefinePortLinkage(uint32_t port, 
-					Ptr<TocinoNetDeviceReceiver> receiver, 
-					Ptr<TocinoQueue> q)
+TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter()
 {
-  m_receivers[port] = receiver;
-  m_queues[port] = q;
+  m_channelNumber = 0xffffffff;
+  m_xstate = TocinoNetDevice::XON;
+  m_state = IDLE;
+  m_pending_xon = false;
+  m_pending_xoff = false;
 }
 
 void
@@ -34,8 +45,8 @@ TocinoNetDeviceTransmitter::TransmitEnd()
 void
 TocinoNetDeviceTransmitter::Transmit()
 {
-  Time t;
-  Ptr<Packet> p = NULL;
+  Time transmit_time;
+  Ptr<Packet> p = 0;
   uint32_t winner;
 
   if (m_state == BUSY) return;
@@ -43,31 +54,33 @@ TocinoNetDeviceTransmitter::Transmit()
   if (m_pending_xoff && m_pending_xon)
     {
       // this is a race and probably an error
-      cerr << "race on port " << m_port << "; exiting";
-      exit(1);
+      NS_LOG_ERROR ("Race condition detected");
+      return;
     }
 
   // send an XOFF is one is pending
   if (m_pending_xoff)
     {
       m_pending_xoff = false;
-      if (m_xstate == XON) // only send if we're currently enabled
+      if (m_xstate == TocinoNetDevice::XON) // only send if we're currently enabled
 	{
-	  p = xoff_packet.Copy();
+          NS_LOG_LOGIC ("Scheduling XON");
+	  //p = xoff_packet.Copy();
 	}
     }
   else if (m_pending_xon)
     {
       m_pending_xon = false;
-      if (m_xstate == XOFF) // only send if we're currently disabled
+      if (m_xstate == TocinoNetDevice::XOFF) // only send if we're currently disabled
 	{
-	  p = xon_packet.Copy();
+          NS_LOG_LOGIC ("Scheduling XOFF");
+	  //p = xon_packet.Copy();
 	}
     }
-  else if (m_xstate == XON) // legal to transmit
+  else if (m_xstate == TocinoNetDevice::XON) // legal to transmit
     {
       winner = Arbitrate();
-      if (winner == m_nPorts)
+      if (winner == m_tnd->m_nPorts)
         {
           // queues are empty
         }
@@ -75,7 +88,7 @@ TocinoNetDeviceTransmitter::Transmit()
         {
           // if we've unblocked the winner receive port we need to cause an XON
           // to be scheduled on its corresponding transmit port (hide the crud in
-          // TocinoNetDeviceReceiver)
+          // TocinoNetDeviceReceiver::CheckForUnblock())
           if (m_queues[winner]->IsFull())
             {
               p = m_queues[winner]->Dequeue();
@@ -83,27 +96,27 @@ TocinoNetDeviceTransmitter::Transmit()
             }
         }
     }
-  if (p != NULL)
+  if (p)
     {
       m_state = BUSY;
       m_channel->TransmitStart(p);
-      t = (p->SizeInBytes() * 8) / m_channel->GetDataRate();
-      Simulation::Schedule(t, TransmitEnd); // will this invoke the correct context???
+      transmit_time= m_channel->GetTransmissionTime(p);
+      Simulator::Schedule(transmit_time, &TocinoNetDeviceTransmitter::TransmitEnd, this);
       return;
     }
 }
 
 uint32_t
-TocinoNetDeviceTransmitter::Arbitrate
+TocinoNetDeviceTransmitter::Arbitrate()
 {
   uint32_t i;
 
   // trivial arbitration - obvious starvation concern
-  for (i = 0; i < m_nPorts; i++)
+  for (i = 0; i < m_tnd->m_nPorts; i++)
     {
-      if (m_queues[i].IsEmpty() == false) return i;
+      if (m_queues[i]->IsEmpty() == false) return i;
     }
-  return m_nPorts;
+  return m_tnd->m_nPorts;
 }
 
 } // namespace ns3
