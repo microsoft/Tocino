@@ -19,6 +19,10 @@ public:
 private:
   virtual void DoRun (void);
 
+ Ptr<TocinoChannel> TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
+                                     uint32_t tx_port,
+                                     Ptr<TocinoNetDevice> rx_nd,
+                                     uint32_t rx_port);
   std::vector<Ptr<TocinoChannel>> m_channels;
   std::vector<Ptr<TocinoNetDevice>> m_netDevices;
 };
@@ -30,6 +34,22 @@ Tocino3x3x3::Tocino3x3x3()
 
 ~Tocino3x3x3::Tocino3x3x3()
 {
+}
+
+Ptr<TocinoChannel>
+Tocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
+                              uint32_t tx_port,
+                              Ptr<TocinoNetDevice> rx_nd,
+                              uint32_t rx_port)
+{
+  Ptr<TocinoChannel> c = CreateObject<TocinoChannel>;
+              
+  tx_nd->SetTxChannel(c, tx_port);
+  c->SetTransmitter(tx_nd->GetTransmitter(0));
+
+  rx_nd->SetRxChannel(c, rx_port);
+  c->SetReceiver(rx_tnd->GetReceiver(rx_port));
+  return c;
 }
 
 void
@@ -72,47 +92,23 @@ Tocino3x3x3::DoRun (void)
               tx = (x * 9) + (y * 3) + z;
               c = 6 * tx; // base index of a block of 6 channels that tx transmits on
 
-              m_channels[c + 0] = CreateObject<TocinoChannel>;
-              m_netDevices[tx]->SetTxChannel(m_channels[c+0], 0); // x+ link
-              m_channels[c + 0]->SetTransmitter(m_netDevices[tx]->GetTransmitter(0));
               rx = (xp * 9) + (y * 3) + z;
-              m_netDevices[rx]->SetRxChannel(m_channels[c+0], 1); // x- link
-              m_channels[c + 0]->SetReceiver(m_netDevices[rx]->GetReceiver(1));
+              m_channels[c + 0] = TocinoLinkHelper(m_netDevices[tx], 0, m_netDevices[rx], 1); // x+
 
-              m_channels[c + 1] = CreateObject<TocinoChannel>; 
-              m_netDevices[tx]->SetTxChannel(m_channels[c+1], 1); // x- link
-              m_channels[c + 1]->SetTransmitter(m_netDevices[tx]->GetTransmitter(1));
               rx = (xm * 9) + (y * 3) + z;
-              m_netDevices[rx]->SetRxChannel(m_channels[c+1], 0); // x+ link
-              m_channels[c + 1]->SetReceiver(m_netDevices[rx]->GetReceiver(0));
+              m_channels[c + 1] = TocinoLinkHelper(m_netDevices[tx], 1, m_netDevices[rx], 0); // x-
 
-              m_channels[c + 2] = CreateObject<TocinoChannel>;
-              m_netDevices[tx]->SetTxChannel(m_channels[c+2], 2); // y+ link
-              m_channels[c + 2]->SetTransmitter(m_netDevices[tx]->GetTransmitter(2));
               rx = (x * 9) + (yp * 3) + z;
-              m_netDevices[rx]->SetRxChannel(m_channels[c+2], 3); // y- link
-              m_channels[c + 2]->SetReceiver(m_netDevices[rx]->GetReceiver(3));
+              m_channels[c + 2] = TocinoLinkHelper(m_netDevices[tx], 2, m_netDevices[rx], 3); // y+
 
-              m_channels[c + 3] = CreateObject<TocinoChannel>; 
-              m_netDevices[tx]->SetTxChannel(m_channels[c+3], 3); // y- link
-              m_channels[c + 3]->SetTransmitter(m_netDevices[tx]->GetTransmitter(3));
               rx = (x * 9) + (ym * 3) + z;
-              m_netDevices[rx]->SetRxChannel(m_channels[c+3], 2); // y+ link
-              m_channels[c + 3]->SetReceiver(m_netDevices[rx]->GetReceiver(2));
+              m_channels[c + 3] = TocinoLinkHelper(m_netDevices[tx], 3, m_netDevices[rx], 2); // y-
 
-              m_channels[c + 4] = CreateObject<TocinoChannel>;
-              m_netDevices[tx]->SetTxChannel(m_channels[c+4], 4); // z+ link
-              m_channels[c + 4]->SetTransmitter(m_netDevices[tx]->GetTransmitter(4));
               rx = (x * 9) + (y * 3) + zp;
-              m_netDevices[rx]->SetRxChannel(m_channels[c+4], 5); // z- link
-              m_channels[c + 4]->SetReceiver(m_netDevices[rx]->GetReceiver(5));
+              m_channels[c + 4] = TocinoLinkHelper(m_netDevices[tx], 4, m_netDevices[rx], 5); // z+
 
-              m_channels[c + 5] = CreateObject<TocinoChannel>; 
-              m_netDevices[tx]->SetTxChannel(m_channels[c+5], 5); // z- link
-              m_channels[c + 5]->SetTransmitter(m_netDevices[tx]->GetTransmitter(5));
               rx = (x * 9) + (y * 3) + zm;
-              m_netDevices[rx]->SetRxChannel(m_channels[c+5], 4); // z+ link
-              m_channels[c + 5]->SetReceiver(m_netDevices[rx]->GetReceiver(4));
+              m_channels[c + 5] = TocinoLinkHelper(m_netDevices[tx], 5, m_netDevices[rx], 4); // z-
             }
         }
     }

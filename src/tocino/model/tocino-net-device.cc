@@ -1,6 +1,8 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
+#include "ns3/log.h"
 #include "ns3/data-rate.h"
+#include "ns3/uinteger.h"
 
 #include "tocino-channel.h"
 #include "tocino-queue.h"
@@ -17,12 +19,11 @@ TypeId TocinoNetDevice::GetTypeId(void)
   static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
     .SetParent<NetDevice>()
     .AddConstructor<TocinoNetDevice>()
-    // .AddAttribute ("Channels", 
-    //                "Number of channels connected to net device.",
-    //                UintegerValue (6),
-    //                MakeUintegerAccessor (&TocinoNetDevice::m_nChannels),
-    //                MakeUintegerChecker<uint32_t> ())
-    ;
+     .AddAttribute ("Channels", 
+                    "Number of channels connected to net device.",
+                    UintegerValue (6),
+                    MakeUintegerAccessor (&TocinoNetDevice::m_nChannels),
+                    MakeUintegerChecker<uint32_t> ());
   return tid;
 }
 
@@ -68,7 +69,16 @@ TocinoNetDevice::TocinoNetDevice() :
     }
 
   // build linkage between injection/ejection port
-  // TBD
+  // injection/ejection port is always port# m_nChannels
+  NS_LOG_UNCOND("missing connection to injection port");
+  for (i = 0; i < m_nChannels; i++)
+    {
+      m_receivers[i]->m_transmitters[m_nChannels] = 0; // ejection port
+      m_receivers[i]->m_queues[m_nChannels] = m_queues[(i * m_nPorts) + m_nChannels];
+
+      m_transmitters[i]->m_receivers[m_nChannels] = 0; // injection port
+      m_transmitters[i]->m_queues[m_nChannels] = m_queues[i + (m_nChannels * m_nPorts)];
+    }
 }
         
 TocinoNetDevice::~TocinoNetDevice()

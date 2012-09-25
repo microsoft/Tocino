@@ -2,6 +2,7 @@
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
+#include "ns3/nstime.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/data-rate.h"
 #include "ns3/packet.h"
@@ -36,6 +37,10 @@ TypeId TocinoChannel::GetTypeId( void )
 TocinoChannel::TocinoChannel()
 {
   m_state = IDLE;
+}
+
+TocinoChannel::~TocinoChannel()
+{
 }
 
 void

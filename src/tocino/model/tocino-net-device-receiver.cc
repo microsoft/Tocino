@@ -15,6 +15,10 @@ TocinoNetDeviceReceiver::TocinoNetDeviceReceiver()
 {
 }
 
+TocinoNetDeviceReceiver::~TocinoNetDeviceReceiver()
+{
+}
+
 void
 TocinoNetDeviceReceiver::CheckForUnblock()
 {
