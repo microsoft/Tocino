@@ -11,27 +11,19 @@ class TocinoNetDevice;
 class TocinoNetDeviceTransmitter;
 class TocinoQueue;
 
-TocinoNetDeviceReceiver::TocinoNetDeviceReceiver()
-{
-}
-
-TocinoNetDeviceReceiver::~TocinoNetDeviceReceiver()
-{
-}
-
 void
 TocinoNetDeviceReceiver::CheckForUnblock()
 {
   uint32_t i;
 
-  if (m_transmitters[m_channelNumber]->GetXState() == TocinoNetDevice::XOFF)
+  if (m_tnd->m_transmitters[m_channelNumber]->GetXState() == TocinoNetDevice::XOFF)
     {
       // if NO queues are full, schedule XON
       for (i = 0; i < m_tnd->m_nPorts; i++)
 	{
 	  if (m_queues[i]->IsFull()) return;
 	}
-      m_transmitters[m_channelNumber]->SendXON();
+      m_tnd->m_transmitters[m_channelNumber]->SendXON();
     }
 }
 
@@ -43,15 +35,15 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
   // XON packet enables transmission on this port
   if (/*p->IsXON()*/ 0)
     {
-      m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XON);
-      m_transmitters[m_channelNumber]->Transmit();
+      m_tnd->m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XON);
+      m_tnd->m_transmitters[m_channelNumber]->Transmit();
       return;
     }
 
   // XOFF packet disables transmission on this port
   if (/*p->IsXOFF()*/ 0)
     {
-      m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XOFF);
+      m_tnd->m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XOFF);
       return;
     }
 
@@ -62,10 +54,10 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
   // if the buffer is full, send XOFF - blocks ALL traffic on this port
   if (m_queues[tx_port]->IsFull())
     {
-      m_transmitters[m_channelNumber]->SendXOFF();
-      m_transmitters[m_channelNumber]->Transmit();
+      m_tnd->m_transmitters[m_channelNumber]->SendXOFF();
+      m_tnd->m_transmitters[m_channelNumber]->Transmit();
     }
-  m_transmitters[tx_port]->Transmit();
+  m_tnd->m_transmitters[tx_port]->Transmit();
 }
 
 uint32_t

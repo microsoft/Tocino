@@ -27,7 +27,7 @@ public:
   static TypeId GetTypeId( void );
 
   TocinoNetDevice();
-  virtual ~TocinoNetDevice();
+  ~TocinoNetDevice() {};
 
   virtual void SetIfIndex( const uint32_t index );
   virtual uint32_t GetIfIndex( void ) const;
@@ -59,7 +59,6 @@ public:
   void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
   void SetRxChannel(Ptr<TocinoChannel> c, uint32_t port);
 
-  friend class TocinoChannel;
   friend class TocinoNetDeviceTransmitter;
   friend class TocinoNetDeviceReceiver;
 

@@ -18,14 +18,14 @@ class TocinoChannel : public Channel
 public:
   static TypeId GetTypeId();
 
-  TocinoChannel();
-  ~TocinoChannel();
+  TocinoChannel() { m_state = IDLE;}
+  ~TocinoChannel() {};
 
   bool TransmitStart (Ptr<Packet> p);
   Time GetTransmissionTime(Ptr<Packet> p);
 
-  void SetTransmitter(Ptr<TocinoNetDeviceTransmitter> tx);
-  void SetReceiver(Ptr<TocinoNetDeviceReceiver> rx);
+  void SetTransmitter(Ptr<TocinoNetDeviceTransmitter> tx) {m_tx = tx;}
+  void SetReceiver(Ptr<TocinoNetDeviceReceiver> rx) {m_rx = rx;}
   uint32_t GetNDevices() const {return 2;}
 
   enum TocinoChannelDevice {TX, RX};

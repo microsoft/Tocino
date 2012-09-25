@@ -17,7 +17,7 @@ public:
   static TypeId GetTypeId(void);
 
   TocinoNetDeviceTransmitter();
-  ~TocinoNetDeviceTransmitter();
+  ~TocinoNetDeviceTransmitter() {};
 
   void SetXState(TocinoNetDevice::TocinoFlowControlState s) {m_xstate = s;}
   TocinoNetDevice::TocinoFlowControlState GetXState() {return m_xstate;}
@@ -31,7 +31,6 @@ public:
   void Transmit();
 
   friend class TocinoNetDevice;
-  friend class TocinoChannel;
   
 private:
   uint32_t m_channelNumber;
@@ -47,12 +46,11 @@ private:
 
   Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-  std::vector<Ptr<TocinoNetDeviceReceiver> > m_receivers; // links to receivers
   std::vector<Ptr<TocinoQueue> > m_queues; // links to queues
 
   Ptr<TocinoChannel> m_channel; // link to channel
 
-  void TransmitEnd(); // can this be private? needs to be invoked by Simulation::Schedule()
+  void TransmitEnd(); // can this be private? needs to be invoked by Simulator::Schedule()
   uint32_t Arbitrate();
 };
 

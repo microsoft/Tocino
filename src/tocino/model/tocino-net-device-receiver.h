@@ -14,10 +14,10 @@ class TocinoNetDeviceTransmitter;
 class TocinoNetDeviceReceiver : public Object
 {
  public:
-  TocinoNetDeviceReceiver();
-  ~TocinoNetDeviceReceiver();
+  TocinoNetDeviceReceiver() {};
+  ~TocinoNetDeviceReceiver() {};
 
-  Ptr<NetDevice> GetNetDevice() { /*return m_tnd;*/ return NULL;}
+  Ptr<NetDevice> GetNetDevice() { return m_tnd;}
 
   void Receive(Ptr<Packet> p);
 
@@ -28,12 +28,11 @@ class TocinoNetDeviceReceiver : public Object
   uint32_t m_channelNumber;
   Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-  std::vector<Ptr<TocinoNetDeviceTransmitter> > m_transmitters; // links to transmitters
-  std::vector<Ptr<TocinoQueue> > m_queues; // links to queues
+  std::vector<Ptr<TocinoQueue> > m_queues; // packet queues to write
 
   void CheckForUnblock(); // called from TocinNetDeviceTransmitter
 
-  uint32_t Route(Ptr<Packet> p); // might want this to be a function pointer w/ a setter
+  uint32_t Route(Ptr<Packet> p); // TODO: make this runtime settable
 };
 
 }

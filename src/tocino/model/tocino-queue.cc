@@ -59,19 +59,15 @@ TocinoQueue::DoDequeue()
 
   Ptr<Packet> p = m_packets.front ();
   m_packets.pop ();
- 
- return p;
+  return p;
 }
 
 Ptr<const Packet>
 TocinoQueue::DoPeek() const
 {
-  if (m_packets.empty ())
-    {
-      return 0;
-    }
+  if (m_packets.empty ()) return 0;
 
-  Ptr<Packet> p = m_packets.front ();
+  Ptr<const Packet> p = m_packets.front ();
   return p;
 }
 

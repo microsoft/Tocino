@@ -36,10 +36,6 @@ TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter()
   m_pending_xoff = false;
 }
 
-TocinoNetDeviceTransmitter::~TocinoNetDeviceTransmitter()
-{
-}
-
 void
 TocinoNetDeviceTransmitter::TransmitEnd()
 {
@@ -97,7 +93,7 @@ TocinoNetDeviceTransmitter::Transmit()
           if (m_queues[winner]->IsFull())
             {
               p = m_queues[winner]->Dequeue();
-              m_receivers[winner]->CheckForUnblock();
+              m_tnd->m_receivers[winner]->CheckForUnblock();
             }
         }
     }
@@ -121,7 +117,7 @@ TocinoNetDeviceTransmitter::Arbitrate()
     {
       if (m_queues[i]->IsEmpty() == false) return i;
     }
-  return m_tnd->m_nPorts;
+  return m_tnd->m_nPorts; // nothing pending
 }
 
 } // namespace ns3

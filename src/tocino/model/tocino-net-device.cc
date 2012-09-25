@@ -60,10 +60,7 @@ TocinoNetDevice::TocinoNetDevice() :
     {
       for (j = 0; j < m_nChannels; j++)
         {
-          m_receivers[i]->m_transmitters[j] = m_transmitters[j];
           m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
-
-          m_transmitters[i]->m_receivers[j] = m_receivers[j];
           m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
         }
     }
@@ -73,16 +70,10 @@ TocinoNetDevice::TocinoNetDevice() :
   NS_LOG_UNCOND("missing connection to injection port");
   for (i = 0; i < m_nChannels; i++)
     {
-      m_receivers[i]->m_transmitters[m_nChannels] = 0; // ejection port
       m_receivers[i]->m_queues[m_nChannels] = m_queues[(i * m_nPorts) + m_nChannels];
-
-      m_transmitters[i]->m_receivers[m_nChannels] = 0; // injection port
       m_transmitters[i]->m_queues[m_nChannels] = m_queues[i + (m_nChannels * m_nPorts)];
     }
 }
-        
-TocinoNetDevice::~TocinoNetDevice()
-{}
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
 {
@@ -220,28 +211,9 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 void
 TocinoNetDevice::SetRxChannel(Ptr<TocinoChannel> c, uint32_t port)
 {
+  // not sure we care about this - linkage is TocinoChannel invoking Receive
   //m_receivers[port]->SetChannel(c);
 }
-
-// Ptr<TocinoNetDeviceTransmitter>
-// GetTransmitter(uint32_t port)
-// {
-//   if (port < m_transmitters.Size())
-//     {
-//       return m_transmitters[port];
-//     }
-//   return NULL;
-// }
-
-// Ptr<TocinoNetDeviceReceiver>
-// GetReceiver(uint32_t port)
-// {
-//   if (port < m_receivers.Size())
-//     {
-//       return m_receivers[port];
-//     }
-//   return NULL;
-// }
 
 } // namespace ns3
 

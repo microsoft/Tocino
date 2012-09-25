@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <vector>
 
+#include "ns3/uinteger.h"
+
 // Include a header file from your module to test.
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-channel.h"
@@ -45,7 +47,7 @@ Tocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
   Ptr<TocinoChannel> c = CreateObject<TocinoChannel>;
               
   tx_nd->SetTxChannel(c, tx_port);
-  c->SetTransmitter(tx_nd->GetTransmitter(0));
+  c->SetTransmitter(tx_nd->GetTransmitter(tx_port));
 
   rx_nd->SetRxChannel(c, rx_port);
   c->SetReceiver(rx_tnd->GetReceiver(rx_port));
@@ -62,6 +64,13 @@ Tocino3x3x3::DoRun (void)
  
   Ptr<TocinoNetDevice> m_netDevices[3*3*3];
   Ptr<TocinoChannel> m_channels[3*3*3*6];
+
+  // 6 channels, 7 ports (6 + injection)
+  Config::SetDefault ("ns3::TocinoNetDevice::Channels", UintegerValue (6));
+
+  // channel FIFOs are 4 flits/packets deep
+  Config::SetDefault ("ns3::TocinoQueue::Depth", UintegerValue (4));
+
   // create net devices
   for (x = 0; x < 3; x++)
     { 
