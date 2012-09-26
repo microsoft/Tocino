@@ -11,19 +11,27 @@ class TocinoNetDevice;
 class TocinoNetDeviceTransmitter;
 class TocinoQueue;
 
-void
-TocinoNetDeviceReceiver::CheckForUnblock()
+bool
+TocinoNetDeviceReceiver::IsBlocked()
 {
   uint32_t i;
 
+  // Receiver is blocked if ANY queue is full
+  for (i = 0; i < m_tnd->m_nPorts; i++)
+    {
+      if (m_queues[i]->IsFull()) return true;
+    }
+  return false;
+}
+
+void
+TocinoNetDeviceReceiver::CheckForUnblock()
+{
+
   if (m_tnd->m_transmitters[m_channelNumber]->GetXState() == TocinoNetDevice::XOFF)
     {
-      // if NO queues are full, schedule XON
-      for (i = 0; i < m_tnd->m_nPorts; i++)
-	{
-	  if (m_queues[i]->IsFull()) return;
-	}
-      m_tnd->m_transmitters[m_channelNumber]->SendXON();
+      // if not blocked, schedule XON
+      if (!IsBlocked()) m_tnd->m_transmitters[m_channelNumber]->SendXON();
     }
 }
 
@@ -47,23 +55,23 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
       return;
     }
 
-  // figure out where the packet goes and put it in the transmission queue
+  // figure out where the packet goes
   tx_port = Route(p);
   m_queues[tx_port]->Enqueue(p);
 
-  // if the buffer is full, send XOFF - blocks ALL traffic on this port
+  // if the buffer is full, send XOFF - XOFF blocks ALL traffic on the port
   if (m_queues[tx_port]->IsFull())
     {
       m_tnd->m_transmitters[m_channelNumber]->SendXOFF();
       m_tnd->m_transmitters[m_channelNumber]->Transmit();
     }
-  m_tnd->m_transmitters[tx_port]->Transmit();
+  m_tnd->m_transmitters[tx_port]->Transmit(); // kick the transmitter
 }
 
 uint32_t
 TocinoNetDeviceReceiver::Route(Ptr<Packet> p)
 {
-  return m_tnd->m_nPorts-1; // implement loopback
+  return m_tnd->m_nPorts-1; // loopback - send to ejection port
 }
 
 } // namespace ns3

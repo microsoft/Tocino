@@ -30,6 +30,7 @@ class TocinoNetDeviceReceiver : public Object
 
   std::vector<Ptr<TocinoQueue> > m_queues; // packet queues to write
 
+  bool IsBlocked();
   void CheckForUnblock(); // called from TocinNetDeviceTransmitter
 
   uint32_t Route(Ptr<Packet> p); // TODO: make this runtime settable

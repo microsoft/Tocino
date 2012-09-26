@@ -68,6 +68,9 @@ private:
   TocinoNetDevice& operator=( const TocinoNetDevice& );
   TocinoNetDevice( const TocinoNetDevice& );
   
+  bool InjectPacket(Ptr<Packet>); // this gets called to inject a Packet
+  bool EjectPacket(Ptr<Packet>); // this gets called by a TocinoNetDeviceTransmitter to eject a Packet
+
   Ptr<Node> m_node;
   uint32_t m_ifIndex;
     
@@ -79,8 +82,8 @@ private:
   NetDevice::ReceiveCallback m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
   
-  uint32_t m_nPorts;
-  uint32_t m_nChannels;
+  uint32_t m_nPorts; // ports are potential route targets - including injection/ejection
+  uint32_t m_nChannels; // channels are connections to other TocinoNetDevice objects
   std::vector< Ptr<TocinoQueue> > m_queues;
   std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitters;
   std::vector< Ptr<TocinoNetDeviceReceiver> > m_receivers;

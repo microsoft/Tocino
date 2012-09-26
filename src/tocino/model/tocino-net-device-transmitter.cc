@@ -81,7 +81,7 @@ TocinoNetDeviceTransmitter::Transmit()
   else if (m_xstate == TocinoNetDevice::XON) // legal to transmit
     {
       winner = Arbitrate();
-      if (winner == m_tnd->m_nPorts)
+      if (winner == m_tnd->m_nPorts) // invalid winner -> nothing in queues
         {
           // queues are empty
         }
@@ -97,13 +97,24 @@ TocinoNetDeviceTransmitter::Transmit()
             }
         }
     }
-  if (p)
+  if (p) // send the packet onward
     {
-      m_state = BUSY;
-      m_channel->TransmitStart(p);
-      transmit_time= m_channel->GetTransmissionTime(p);
-      Simulator::Schedule(transmit_time, &TocinoNetDeviceTransmitter::TransmitEnd, this);
-      return;
+      if (m_channelNumber == (m_tnd->m_nPorts-1)) // connected to ejection port
+        {
+          // eject packet
+          if (m_tnd->EjectPacket(p) == false)
+            {
+              NS_LOG_ERROR ("Ejection failed");
+            }
+        }
+      else
+        {
+          // send packet to channel
+          m_state = BUSY;
+          m_channel->TransmitStart(p);
+          transmit_time= m_channel->GetTransmissionTime(p);
+          Simulator::Schedule(transmit_time, &TocinoNetDeviceTransmitter::TransmitEnd, this);
+        }
     }
 }
 

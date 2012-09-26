@@ -34,7 +34,7 @@ TocinoNetDevice::TocinoNetDevice() :
 {
   uint32_t i, j;
 
-  m_nChannels = 6;
+  m_nChannels = 6; // placeholder
   m_nPorts = m_nChannels + 1;
 
   // create queues - right now 1 per s/d pair
@@ -163,6 +163,7 @@ bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t pr
 
 bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber )
 {
+  // eventually call InjectPacket to hand packet to fabric
     // TODO
     // TODO
     // TODO
@@ -172,27 +173,23 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& source, const
     // TODO
 }
 
-Ptr<Node> TocinoNetDevice::GetNode( void ) const
-{
-    return m_node;
-}
+Ptr<Node>
+TocinoNetDevice::GetNode( void ) const {return m_node;}
 
-void TocinoNetDevice::SetNode( Ptr<Node> node )
-{
-    m_node = node;
-}
+void
+TocinoNetDevice::SetNode( Ptr<Node> node ) {m_node = node;}
 
-bool TocinoNetDevice::NeedsArp( void ) const
-{
-    return true;
-}
+bool
+TocinoNetDevice::NeedsArp( void ) const {return true;}
 
-void TocinoNetDevice::SetReceiveCallback( NetDevice::ReceiveCallback cb )
+void
+TocinoNetDevice::SetReceiveCallback( NetDevice::ReceiveCallback cb )
 {
     m_rxCallback = cb;
 }
 
-void TocinoNetDevice::SetPromiscReceiveCallback( PromiscReceiveCallback cb )
+void
+TocinoNetDevice::SetPromiscReceiveCallback( PromiscReceiveCallback cb )
 {
     m_promiscRxCallback = cb;
 }
@@ -206,6 +203,23 @@ void
 TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 {
   m_transmitters[port]->SetChannel(c);
+}
+
+bool
+TocinoNetDevice::InjectPacket(Ptr<Packet> p)
+{
+  uint32_t iport = m_nPorts-1;
+ 
+  if (m_receivers[iport]->IsBlocked()) return false;
+  m_receivers[m_nPorts-1]->Receive(p);
+  return true;
+}
+
+bool
+TocinoNetDevice::EjectPacket(Ptr<Packet>)
+{
+  // marksan to write this
+  return true;
 }
 
 void
