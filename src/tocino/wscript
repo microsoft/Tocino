@@ -9,7 +9,7 @@
 def build(bld):
     module = bld.create_ns3_module('tocino', ['core', 'network'])
     module.source = [
-        'model/tocino-queue.cc',
+        'model/callback-queue.cc',
         'model/tocino-channel.cc',
         'model/tocino-net-device-transmitter.cc',
         'model/tocino-net-device-receiver.cc',
@@ -26,7 +26,7 @@ def build(bld):
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'tocino'
     headers.source = [
-        'model/tocino-queue.h',
+        'model/callback-queue.h',
         'model/tocino-channel.h',
         'model/tocino-net-device-transmitter.h',
         'model/tocino-net-device-receiver.h',

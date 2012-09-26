@@ -5,7 +5,7 @@
 #include "ns3/uinteger.h"
 
 #include "tocino-channel.h"
-#include "tocino-queue.h"
+#include "callback-queue.h"
 #include "tocino-net-device-receiver.h"
 #include "tocino-net-device-transmitter.h"
 #include "tocino-net-device.h"
@@ -48,7 +48,7 @@ TocinoNetDevice::TocinoNetDevice() :
       for (dst = 0; dst < m_nPorts; dst++)
         {
           i = (src * m_nPorts) + dst;
-          m_queues[i] = CreateObject<TocinoQueue>();
+          m_queues[i] = CreateObject<CallbackQueue>();
         }
     }
 

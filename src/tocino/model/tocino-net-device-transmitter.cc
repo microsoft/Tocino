@@ -6,7 +6,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/data-rate.h"
 
-#include "tocino-queue.h"
+#include "callback-queue.h"
 #include "tocino-channel.h"
 #include "tocino-net-device.h"
 #include "tocino-net-device-receiver.h"

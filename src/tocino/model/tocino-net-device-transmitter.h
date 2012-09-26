@@ -7,7 +7,7 @@
 
 namespace ns3 {
 
-class TocinoQueue;
+class CallbackQueue;
 class TocinoChannel;
 class TocinoNetDeviceReceiver;
 
@@ -46,7 +46,7 @@ private:
 
   Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-  std::vector<Ptr<TocinoQueue> > m_queues; // links to queues
+  std::vector<Ptr<CallbackQueue> > m_queues; // links to queues
 
   Ptr<TocinoChannel> m_channel; // link to channel
 

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
-#include "tocino-queue.h"
+#include "callback-queue.h"
 #include "tocino-net-device.h"
 #include "tocino-net-device-transmitter.h"
 #include "tocino-net-device-receiver.h"
@@ -9,7 +9,7 @@ namespace ns3 {
 
 class TocinoNetDevice;
 class TocinoNetDeviceTransmitter;
-class TocinoQueue;
+class CallbackQueue;
 
 bool
 TocinoNetDeviceReceiver::IsBlocked()

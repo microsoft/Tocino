@@ -13,7 +13,7 @@
 
 #include "tocino-address.h"
 #include "tocino-channel.h"
-#include "tocino-queue.h"
+#include "callback-queue.h"
 
 namespace ns3 {
 
@@ -84,7 +84,7 @@ private:
   
   uint32_t m_nPorts; // port count must include injection/ejection port
   uint32_t m_nVCs; // number of virtual channels on each port
-  std::vector< Ptr<TocinoQueue> > m_queues;
+  std::vector< Ptr<CallbackQueue> > m_queues;
   std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitters;
   std::vector< Ptr<TocinoNetDeviceReceiver> > m_receivers;
 };

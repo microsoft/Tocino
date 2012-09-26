@@ -7,7 +7,7 @@
 
 namespace ns3 {
 
-class TocinoQueue;
+class CallbackQueue;
 class TocinoNetDevice;
 class TocinoNetDeviceTransmitter;
 
@@ -28,7 +28,7 @@ class TocinoNetDeviceReceiver : public Object
   uint32_t m_channelNumber;
   Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-  std::vector<Ptr<TocinoQueue> > m_queues; // packet queues to write
+  std::vector<Ptr<CallbackQueue> > m_queues; // packet queues to write
 
   bool IsBlocked();
   void CheckForUnblock(); // called from TocinNetDeviceTransmitter
