@@ -82,8 +82,8 @@ private:
   NetDevice::ReceiveCallback m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
   
-  uint32_t m_nPorts; // ports are potential route targets - including injection/ejection
-  uint32_t m_nChannels; // channels are connections to other TocinoNetDevice objects
+  uint32_t m_nPorts; // port count must include injection/ejection port
+  uint32_t m_nVCs; // number of virtual channels on each port
   std::vector< Ptr<TocinoQueue> > m_queues;
   std::vector< Ptr<TocinoNetDeviceTransmitter> > m_transmitters;
   std::vector< Ptr<TocinoNetDeviceReceiver> > m_receivers;
