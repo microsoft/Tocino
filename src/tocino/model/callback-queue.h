@@ -24,10 +24,11 @@ public:
 
   typedef void (*CBQCallback)(); // CallbackQueue callback
   enum CallbackCondition {FallingBelowMark, AtMark, RisingAboveMark};
-  void RegisterCallback(uint32_t i, CBQCallback fptr, uint32_t mark, CallbackCondition cc);
+  bool RegisterCallback(uint32_t i, CBQCallback fptr, uint32_t mark, CallbackCondition cc);
   void DisableCallback(uint32_t i) {m_cbState[i] = OFF;}
-  void SetHWM(uint32_t n) {m_hwm = n;} // set high water mark
-  void SetLWM(uint32_t n) {m_lwm = n;} // set low water mark
+  void SetFreeWM(uint32_t n) {m_freewm = (n>m_maxDepth)? 0:n;} // set high water mark
+  void SetFullWM(uint32_t n) {m_fullwm = (n>m_maxDepth)? 0:n;} // set low water mark
+  uint32_t Size() {return m_q.size();}
 
 private:
   bool DoEnqueue(Ptr<Packet> p);
@@ -39,11 +40,12 @@ private:
   CBQCallback m_cb[2];
   enum CallbackState {OFF, READY, SENT};
   CallbackState m_cbState[2];
+  bool EvalCallbackCondition(uint32_t i);
   void DoCallbacks();
 
   uint32_t m_maxDepth; // max depth of queue
-  uint32_t m_hwm; // at and above this point is called almostfull
-  uint32_t m_lwm; // at and below this point is called almostempty
+  uint32_t m_freewm; // free queue entries less than or equal to this is called almostfull
+  uint32_t m_fullwm; // full queue entries at and below this point is called almostempty
   std::queue<Ptr<Packet> > m_q;
 };
 

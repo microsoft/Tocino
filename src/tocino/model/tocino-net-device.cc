@@ -39,8 +39,6 @@ TocinoNetDevice::TocinoNetDevice() :
 {
   uint32_t src, dst, i, j;
 
-  m_nPorts = 7; // placeholder - should be set by attribute system
-
   // create queues - right now 1 per s/d pair
   // rewrite when we add virtual channels
   for (src = 0; src < m_nPorts; src++)

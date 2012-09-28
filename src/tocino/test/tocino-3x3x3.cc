@@ -25,8 +25,8 @@ private:
                                      uint32_t tx_port,
                                      Ptr<TocinoNetDevice> rx_nd,
                                      uint32_t rx_port);
-  std::vector<Ptr<TocinoChannel>> m_channels;
-  std::vector<Ptr<TocinoNetDevice>> m_netDevices;
+  std::vector<Ptr<TocinoChannel> > m_channels;
+  std::vector<Ptr<TocinoNetDevice> > m_netDevices;
 };
 
 Tocino3x3x3::Tocino3x3x3()
@@ -79,7 +79,7 @@ Tocino3x3x3::DoRun (void)
           for (z = 0; z < 3; z++)
             {
               i = (x * 9) + (y * 3) + z;
-              m_netDevices[i] = CreateObject<TocinoNetDevice>;
+              m_netDevices[i] = CreateObject<TocinoNetDevice>();
             }
         }
     }

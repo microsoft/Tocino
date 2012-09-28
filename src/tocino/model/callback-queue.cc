@@ -32,8 +32,9 @@ CallbackQueue::CallbackQueue() : Queue(), m_q ()
       m_mark[i] = 0; m_cc[i] = AtMark; m_cb[i] = NULL; m_cbState[i] = OFF;
     }
 
-  m_hwm = m_maxDepth;
-  m_lwm = 0;
+  m_maxDepth = 8; // should be consistent with value in TypeId
+  m_fullwm = 0;
+  m_freewm = 0;
 }
 
 bool
@@ -43,18 +44,33 @@ bool
 CallbackQueue::IsEmpty() {return (m_q.size() == 0);}
 
 bool
-CallbackQueue::IsAlmostFull() {return (m_q.size() >= m_hwm);}
+CallbackQueue::IsAlmostFull() {return ((m_maxDepth - m_q.size()) <= m_freewm);}
 
 bool
-CallbackQueue::IsAlmostEmpty() {return (m_q.size() <= m_lwm);}
+CallbackQueue::IsAlmostEmpty() {return (m_q.size() <= m_fullwm);}
 
-void
+bool
+CallbackQueue::EvalCallbackCondition(uint32_t i)
+{
+  bool c;
+  if (i > 1) return false;
+
+  c = (((m_cc[i] == FallingBelowMark) && (m_q.size() < m_mark[i])) ||
+       ((m_cc[i] == AtMark) && (m_q.size() == m_mark[i])) ||
+       ((m_cc[i] == RisingAboveMark) && (m_q.size() > m_mark[i])));
+  return c;
+}
+
+bool
 CallbackQueue::RegisterCallback(uint32_t i, CBQCallback fptr, uint32_t mark, CallbackCondition cc)
 {
+  if (i > 1) return false;
+
   m_cb[i] = fptr;
   m_mark[i] = mark;
   m_cc[i] = cc;
-  m_cbState[i] = READY;
+  m_cbState[i] = (EvalCallbackCondition(i))? SENT:READY;
+  return true;
 }
 
 void
@@ -70,10 +86,7 @@ CallbackQueue::DoCallbacks()
     {
       if (m_cbState[i] == OFF) continue;
 
-      c = ((m_cc[i] == FallingBelowMark) && (m_mark[i] < m_q.size())) ||
-	((m_cc[i] == AtMark) && (m_mark[i] == m_q.size())) ||
-	((m_cc[i] == RisingAboveMark) && (m_mark[i] > m_q.size()));
-
+      c = EvalCallbackCondition(i);
       if (c)
 	{
 	  if (m_cbState[i] == READY) // callback hasn't been sent yet
