@@ -33,10 +33,10 @@ class TocinoAddress
     Address ConvertTo() const
     {
         return Address( GetType(),
-                reinterpret_cast<const uint8_t*>( &m_address.raw ),
-                sizeof( m_address ) );
+            reinterpret_cast<const uint8_t*>( &m_address.raw ),
+            sizeof( m_address ) );
     }
-    
+
     operator Address() const
     {
         return ConvertTo();
@@ -48,6 +48,16 @@ class TocinoAddress
         NS_ASSERT( a.CheckCompatible( GetType(), sizeof( m_address ) ) );
         a.CopyTo( reinterpret_cast<uint8_t*>( &ta.m_address.raw ) );
         return ta;
+    }
+
+    bool IsMulticast()
+    {
+        return m_address.multicast;
+    }
+
+    void SetMulticast()
+    {
+        m_address.multicast = true; 
     }
 
     private:
@@ -69,7 +79,8 @@ class TocinoAddress
         struct
         {
             uint8_t x, y, z;
-            uint8_t reserved;
+            uint8_t reserved  : 7;
+            uint8_t multicast : 1;
         };
         uint32_t raw;
     }

@@ -9,10 +9,10 @@ NS_OBJECT_ENSURE_REGISTERED (TocinoNetDevice);
 
 TypeId TocinoNetDevice::GetTypeId(void)
 {
-  static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
-    .SetParent<NetDevice>()
-    .AddConstructor<TocinoNetDevice>();
-  return tid;
+    static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
+        .SetParent<NetDevice>()
+        .AddConstructor<TocinoNetDevice>();
+    return tid;
 }
 
 TocinoNetDevice::TocinoNetDevice() :
