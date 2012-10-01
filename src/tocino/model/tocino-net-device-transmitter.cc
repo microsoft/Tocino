@@ -30,7 +30,7 @@ TypeId TocinoNetDeviceTransmitter::GetTypeId(void)
 TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter()
 {
   m_channelNumber = 0xffffffff;
-  m_xstate = TocinoNetDevice::XON;
+  m_xstate = XON;
   m_state = IDLE;
   m_pending_xon = false;
   m_pending_xoff = false;
@@ -63,7 +63,7 @@ TocinoNetDeviceTransmitter::Transmit()
   if (m_pending_xoff)
     {
       m_pending_xoff = false;
-      if (m_xstate == TocinoNetDevice::XON) // only send if we're currently enabled
+      if (m_xstate == XON) // only send if we're currently enabled
 	{
           NS_LOG_LOGIC ("Scheduling XON");
 	  //p = xoff_packet.Copy();
@@ -72,13 +72,13 @@ TocinoNetDeviceTransmitter::Transmit()
   else if (m_pending_xon)
     {
       m_pending_xon = false;
-      if (m_xstate == TocinoNetDevice::XOFF) // only send if we're currently disabled
+      if (m_xstate == XOFF) // only send if we're currently disabled
 	{
           NS_LOG_LOGIC ("Scheduling XOFF");
 	  //p = xon_packet.Copy();
 	}
     }
-  else if (m_xstate == TocinoNetDevice::XON) // legal to transmit
+  else if (m_xstate == XON) // legal to transmit
     {
       winner = Arbitrate();
       if (winner == m_tnd->m_nPorts) // invalid winner -> nothing in queues

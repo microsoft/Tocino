@@ -11,15 +11,14 @@
 #include "ns3/node.h"
 #include "ns3/packet.h"
 
+#include "tocino-enum.h"
 #include "tocino-address.h"
 #include "tocino-channel.h"
 #include "callback-queue.h"
+#include "tocino-net-device-receiver.h"
+#include "tocino-net-device-transmitter.h"
 
 namespace ns3 {
-
-    class TocinoNetDeviceTransmitter;
-    class TocinoNetDeviceReceiver;
-    class TocinoChannel;
     
     class TocinoNetDevice : public NetDevice
     {
@@ -53,8 +52,6 @@ namespace ns3 {
         virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb );
         virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
         virtual bool SupportsSendFrom( void ) const;
-        
-        enum TocinoFlowControlState {XOFF, XON};
         
         void Initialize();
         void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);

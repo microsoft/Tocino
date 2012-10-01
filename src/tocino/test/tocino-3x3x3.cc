@@ -1,19 +1,18 @@
 /* -*- Mode:C++; c-file-style:"stroustrop"; indent-tabs-mode:nil; -*- */
 
-#include "ns3/tocino-net-device.h"
-#include "ns3/tocino-channel.h"
-#include "ns3/test.h"
-
-using namespace ns3;
+#include "ns3/tocino-net-device-receiver.h"
+#include "ns3/tocino-net-device-transmitter.h"
 
 #include "tocino-3x3x3.h"
+
+using namespace ns3;
 
 Tocino3x3x3::Tocino3x3x3()
   : TestCase ("Wire a 3x3x3 torus")
 {
 }
 
-~Tocino3x3x3::Tocino3x3x3()
+Tocino3x3x3::~Tocino3x3x3()
 {
 }
 
@@ -23,7 +22,7 @@ Tocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
                               Ptr<TocinoNetDevice> rx_nd,
                               uint32_t rx_port)
 {
-  Ptr<TocinoChannel> c = CreateObject<TocinoChannel>;
+    Ptr<TocinoChannel> c = CreateObject<TocinoChannel>();
               
   tx_nd->SetTxChannel(c, tx_port);
   c->SetTransmitter(tx_nd->GetTransmitter(tx_port));

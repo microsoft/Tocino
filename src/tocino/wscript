@@ -21,14 +21,16 @@ def build(bld):
     module_test = bld.create_ns3_module_test_library('tocino')
     module_test.source = [
         #'test/tocino-3x3x3.cc',
-        'test/tocino-callbackqueue.cc',
-        'test/test-flit-header.cc',
-        'test/tocino-test-suite.cc',
+        #'test/tocino-callbackqueue.cc',
+        #'test/test-flit-header.cc',
+        #'test/tocino-test-suite.cc',
+        'test/htest.cc',
         ]
 
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'tocino'
     headers.source = [
+        'model/tocino-enum.h',
         'model/callback-queue.h',
         'model/tocino-channel.h',
         'model/tocino-net-device-transmitter.h',

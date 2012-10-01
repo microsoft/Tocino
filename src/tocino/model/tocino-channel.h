@@ -3,19 +3,17 @@
 #define __TOCINO_CHANNEL_H__
 
 #include "ns3/nstime.h"
+#include "ns3/packet.h"
 #include "ns3/channel.h"
+#include "ns3/data-rate.h"
+#include "ns3/net-device.h"
 
-//#include "tocino-net-device-receiver.h"
-//#include "tocino-net-device-transmitter.h"
+#include "tocino-enum.h"
+#include "tocino-net-device.h"
+#include "tocino-net-device-receiver.h"
+#include "tocino-net-device-transmitter.h"
 
 namespace ns3 {
-
-    class Packet;
-    class DataRate;
-    class NetDevice;
-    class TocinoNetDeviceTransmitter;
-    class TocinoNetDeviceReceiver;
-  
     class TocinoChannel : public Channel
     {
     public:
@@ -31,7 +29,6 @@ namespace ns3 {
         void SetReceiver(Ptr<TocinoNetDeviceReceiver> rx) {m_rx = rx;}
         uint32_t GetNDevices() const {return 2;}
         
-        enum TocinoChannelDevice {TX, RX};
         Ptr<NetDevice> GetDevice(uint32_t i) const;
         
     private:
@@ -45,8 +42,6 @@ namespace ns3 {
         
         Ptr<TocinoNetDeviceTransmitter> m_tx;
         Ptr<TocinoNetDeviceReceiver> m_rx;
-        
-        enum TocinoChannelState {IDLE, BUSY};
         TocinoChannelState m_state;
     };
 } // namespace ns3

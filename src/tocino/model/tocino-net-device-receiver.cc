@@ -28,7 +28,7 @@ void
 TocinoNetDeviceReceiver::CheckForUnblock()
 {
 
-  if (m_tnd->m_transmitters[m_channelNumber]->GetXState() == TocinoNetDevice::XOFF)
+  if (m_tnd->m_transmitters[m_channelNumber]->GetXState() == XOFF)
     {
       // if not blocked, schedule XON
       if (!IsBlocked()) m_tnd->m_transmitters[m_channelNumber]->SendXON();
@@ -43,7 +43,7 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
   // XON packet enables transmission on this port
   if (/*p->IsXON()*/ 0)
     {
-      m_tnd->m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XON);
+      m_tnd->m_transmitters[m_channelNumber]->SetXState(XON);
       m_tnd->m_transmitters[m_channelNumber]->Transmit();
       return;
     }
@@ -51,7 +51,7 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
   // XOFF packet disables transmission on this port
   if (/*p->IsXOFF()*/ 0)
     {
-      m_tnd->m_transmitters[m_channelNumber]->SetXState(TocinoNetDevice::XOFF);
+      m_tnd->m_transmitters[m_channelNumber]->SetXState(XOFF);
       return;
     }
 

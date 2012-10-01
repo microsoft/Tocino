@@ -5,6 +5,8 @@
 #include <vector>
 #include "ns3/net-device.h"
 
+#include "tocino-enum.h"
+
 namespace ns3 {
 
 class CallbackQueue;

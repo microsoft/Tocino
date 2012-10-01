@@ -3,13 +3,15 @@
 #define __TOCINO_NET_DEVICE_TRANSMITTER_H__
 
 #include <vector>
+#include "ns3/object.h"
+
+#include "tocino-enum.h"
+#include "callback-queue.h"
+#include "tocino-channel.h"
 #include "tocino-net-device.h"
+#include "tocino-net-device-receiver.h"
 
 namespace ns3 {
-
-class CallbackQueue;
-class TocinoChannel;
-class TocinoNetDeviceReceiver;
 
 class TocinoNetDeviceTransmitter : public Object
 {
@@ -19,8 +21,8 @@ public:
   TocinoNetDeviceTransmitter();
   ~TocinoNetDeviceTransmitter() {};
 
-  void SetXState(TocinoNetDevice::TocinoFlowControlState s) {m_xstate = s;}
-  TocinoNetDevice::TocinoFlowControlState GetXState() {return m_xstate;}
+  void SetXState(TocinoFlowControlState s) {m_xstate = s;}
+  TocinoFlowControlState GetXState() {return m_xstate;}
 
   void SetChannel(Ptr<TocinoChannel> channel) {m_channel = channel;}
   void SendXOFF() {m_pending_xoff = true;}
@@ -35,7 +37,7 @@ public:
 private:
   uint32_t m_channelNumber;
 
-  TocinoNetDevice::TocinoFlowControlState m_xstate;
+  TocinoFlowControlState m_xstate;
   Ptr<Packet> m_packet;
 
   enum TocinoTransmitterState {IDLE, BUSY};

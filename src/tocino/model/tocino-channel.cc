@@ -6,6 +6,7 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/data-rate.h"
 #include "ns3/packet.h"
+#include "ns3/node.h"
 
 #include "tocino-channel.h"
 #include "tocino-net-device-transmitter.h"
