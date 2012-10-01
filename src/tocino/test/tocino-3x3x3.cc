@@ -1,33 +1,12 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"stroustrop"; indent-tabs-mode:nil; -*- */
 
-#include <stdint.h>
-#include <vector>
-
-#include "ns3/uinteger.h"
-
-// Include a header file from your module to test.
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-channel.h"
-
 #include "ns3/test.h"
 
 using namespace ns3;
 
-class Tocino3x3x3 : public TestCase
-{
-public:
-  Tocino3x3x3();
-  virtual ~Tocino3x3x3();
-private:
-  virtual void DoRun (void);
-
- Ptr<TocinoChannel> TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
-                                     uint32_t tx_port,
-                                     Ptr<TocinoNetDevice> rx_nd,
-                                     uint32_t rx_port);
-  std::vector<Ptr<TocinoChannel> > m_channels;
-  std::vector<Ptr<TocinoNetDevice> > m_netDevices;
-};
+#include "tocino-3x3x3.h"
 
 Tocino3x3x3::Tocino3x3x3()
   : TestCase ("Wire a 3x3x3 torus")
@@ -80,6 +59,7 @@ Tocino3x3x3::DoRun (void)
             {
               i = (x * 9) + (y * 3) + z;
               m_netDevices[i] = CreateObject<TocinoNetDevice>();
+              m_netDevices[i]->Initialize();
             }
         }
     }

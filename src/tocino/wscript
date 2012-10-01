@@ -20,6 +20,7 @@ def build(bld):
 
     module_test = bld.create_ns3_module_test_library('tocino')
     module_test.source = [
+        #'test/tocino-3x3x3.cc',
         'test/tocino-callbackqueue.cc',
         'test/test-flit-header.cc',
         'test/tocino-test-suite.cc',

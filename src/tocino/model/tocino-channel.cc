@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"stroustrop"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"

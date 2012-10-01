@@ -21,7 +21,7 @@ TypeId TocinoNetDevice::GetTypeId(void)
     .AddConstructor<TocinoNetDevice>()
     .AddAttribute ("Ports", 
                    "Number of ports on net device.",
-                   UintegerValue (7),
+                   UintegerValue (TocinoNetDevice::NPORTS),
                    MakeUintegerAccessor (&TocinoNetDevice::m_nPorts),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("VirtualChannels", 
@@ -35,52 +35,58 @@ TypeId TocinoNetDevice::GetTypeId(void)
 TocinoNetDevice::TocinoNetDevice() :
     m_node( 0 ),
     m_ifIndex( 0 ),
-    m_mtu( DEFAULT_MTU )
+    m_mtu( DEFAULT_MTU ),
+    m_nPorts (NPORTS)
 {
-  uint32_t src, dst, i, j;
+}
 
-  // create queues - right now 1 per s/d pair
-  // rewrite when we add virtual channels
-  for (src = 0; src < m_nPorts; src++)
-  {
-      for (dst = 0; dst < m_nPorts; dst++)
-      {
-          i = (src * m_nPorts) + dst;
-          m_queues[i] = CreateObject<CallbackQueue>();
-      }
-  }
+void
+TocinoNetDevice::Initialize()
+{
+    uint32_t src, dst, i, j;
+
+    // create queues - right now 1 per s/d pair
+    // rewrite when we add virtual channels
+    for (src = 0; src < m_nPorts; src++)
+    {
+        for (dst = 0; dst < m_nPorts; dst++)
+        {
+            i = (src * m_nPorts) + dst;
+            m_queues[i] = CreateObject<CallbackQueue>();
+        }
+    }
   
-  // create receivers and transmitters
-  for (i = 0; i < m_nPorts; i++)
-  {
-      m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> ();
-      m_receivers[i]->m_tnd = this;
-      m_receivers[i]->m_channelNumber = i;
-      
-      m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> ();
-      m_transmitters[i]->m_tnd = this;
-      m_transmitters[i]->m_channelNumber = i;
-  }
+    // create receivers and transmitters
+    for (i = 0; i < m_nPorts; i++)
+    {
+        m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> ();
+        m_receivers[i]->m_tnd = this;
+        m_receivers[i]->m_channelNumber = i;
+        
+        m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> ();
+        m_transmitters[i]->m_tnd = this;
+        m_transmitters[i]->m_channelNumber = i;
+    }
   
-  // build linkage between tx, rx, and q for channel interfaces
-  // no channel for injection/ejection port
-  uint32_t nChannels = m_nPorts - 1;
-  for (i = 0; i < nChannels; i++)
-  {
-      for (j = 0; j < nChannels; j++)
-      {
-          m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
-          m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
-      }
-  }
-  
-  // build linkage between injection/ejection port
-  // injection/ejection port is always port# m_nPorts-1 (== nChannels)
-  for (i = 0; i < nChannels; i++)
-  {
-      m_receivers[i]->m_queues[nChannels] = m_queues[(i * m_nPorts) + nChannels];
-      m_transmitters[i]->m_queues[nChannels] = m_queues[i + (nChannels * m_nPorts)];
-  }
+    // build linkage between tx, rx, and q for channel interfaces
+    // no channel for injection/ejection port
+    uint32_t nChannels = m_nPorts - 1;
+    for (i = 0; i < nChannels; i++)
+    {
+        for (j = 0; j < nChannels; j++)
+        {
+            m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
+            m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
+        }
+    }
+    
+    // build linkage between injection/ejection port
+    // injection/ejection port is always port# m_nPorts-1 (== nChannels)
+    for (i = 0; i < nChannels; i++)
+    {
+        m_receivers[i]->m_queues[nChannels] = m_queues[(i * m_nPorts) + nChannels];
+        m_transmitters[i]->m_queues[nChannels] = m_queues[i + (nChannels * m_nPorts)];
+    }
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )

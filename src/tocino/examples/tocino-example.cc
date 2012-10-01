@@ -1,10 +1,10 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"stroustrop"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/core-module.h"
-#include "ns3/tocino-helper.h"
+//#include "ns3/tocino-helper.h"
 
-#include "ns3/tocino-net-device.h"
-#include "ns3/tocino-channel.h"
+//#include "ns3/tocino-net-device.h"
+//#include "ns3/tocino-channel.h"
 
 using namespace ns3;
 
@@ -19,16 +19,9 @@ main (int argc, char *argv[])
 
   cmd.Parse (argc,argv);
 
-  TocinoNetDevice tnd0;
-  TocinoNetDevice tnd1;
-  Ptr<TocinoChannel> tc = CreateObject<TocinoChannel>();
-
-  tnd0.AddChannel( tc );
-  tnd1.AddChannel( tc );
+  // add example here
 
   Simulator::Run ();
   Simulator::Destroy ();
   return 0;
 }
-
-
