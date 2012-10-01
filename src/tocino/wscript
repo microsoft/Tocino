@@ -14,13 +14,15 @@ def build(bld):
         'model/tocino-net-device-transmitter.cc',
         'model/tocino-net-device-receiver.cc',
         'model/tocino-net-device.cc',
+        'model/tocino-flit-header.cc',
         'helper/tocino-helper.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('tocino')
     module_test.source = [
         'test/tocino-callbackqueue.cc',
-        'test/tocino-test-suite.cc'
+        'test/test-flit-header.cc',
+        'test/tocino-test-suite.cc',
         ]
 
     headers = bld.new_task_gen(features=['ns3header'])
@@ -32,6 +34,7 @@ def build(bld):
         'model/tocino-net-device-receiver.h',
         'model/tocino-net-device.h',
         'model/tocino-address.h',
+        'model/tocino-flit-header.h',
         'helper/tocino-helper.h',
         ]
 

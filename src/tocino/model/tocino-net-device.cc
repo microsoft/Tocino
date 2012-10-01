@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"stroustrup"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/log.h"
 #include "ns3/data-rate.h"
@@ -42,45 +42,45 @@ TocinoNetDevice::TocinoNetDevice() :
   // create queues - right now 1 per s/d pair
   // rewrite when we add virtual channels
   for (src = 0; src < m_nPorts; src++)
-    {
+  {
       for (dst = 0; dst < m_nPorts; dst++)
-        {
+      {
           i = (src * m_nPorts) + dst;
           m_queues[i] = CreateObject<CallbackQueue>();
-        }
-    }
-
+      }
+  }
+  
   // create receivers and transmitters
   for (i = 0; i < m_nPorts; i++)
-    {
+  {
       m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> ();
       m_receivers[i]->m_tnd = this;
       m_receivers[i]->m_channelNumber = i;
-
+      
       m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> ();
       m_transmitters[i]->m_tnd = this;
       m_transmitters[i]->m_channelNumber = i;
-    }
-
+  }
+  
   // build linkage between tx, rx, and q for channel interfaces
   // no channel for injection/ejection port
   uint32_t nChannels = m_nPorts - 1;
   for (i = 0; i < nChannels; i++)
-    {
+  {
       for (j = 0; j < nChannels; j++)
-        {
+      {
           m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
           m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
-        }
-    }
-
+      }
+  }
+  
   // build linkage between injection/ejection port
   // injection/ejection port is always port# m_nPorts-1 (== nChannels)
   for (i = 0; i < nChannels; i++)
-    {
+  {
       m_receivers[i]->m_queues[nChannels] = m_queues[(i * m_nPorts) + nChannels];
       m_transmitters[i]->m_queues[nChannels] = m_queues[i + (nChannels * m_nPorts)];
-    }
+  }
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
@@ -238,4 +238,3 @@ TocinoNetDevice::SetRxChannel(Ptr<TocinoChannel> c, uint32_t port)
 }
 
 } // namespace ns3
-
