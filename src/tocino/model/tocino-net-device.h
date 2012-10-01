@@ -20,11 +20,10 @@ namespace ns3 {
     class TocinoNetDeviceTransmitter;
     class TocinoNetDeviceReceiver;
     class TocinoChannel;
-  
+    
     class TocinoNetDevice : public NetDevice
     {
     public:
-        static const uint32_t NPORTS = 7;
         static TypeId GetTypeId( void );
         
         TocinoNetDevice();
@@ -65,6 +64,7 @@ namespace ns3 {
         friend class TocinoNetDeviceReceiver;
     
     private:
+        static const uint32_t NPORTS = 7;
     
         // disable copy and copy-assignment
         TocinoNetDevice& operator=( const TocinoNetDevice& );
