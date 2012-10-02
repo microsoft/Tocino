@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"stroustrop"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
@@ -8,9 +8,7 @@
 #include "ns3/packet.h"
 #include "ns3/node.h"
 
-#include "tocino-channel.h"
-#include "tocino-net-device-transmitter.h"
-#include "tocino-net-device-receiver.h"
+#include "tocino-sys.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoChannel");
 
@@ -35,19 +33,16 @@ TypeId TocinoChannel::GetTypeId( void )
   return tid;
 }
 
-Ptr<NetDevice>
-TocinoChannel::GetDevice (uint32_t i) const
+Ptr<NetDevice> 
+TocinoChannel::GetDevice(uint32_t i) const
 {
-  if (i == TX)
-    {
-      if (m_tx == NULL) return 0;
-      return m_tx->GetNetDevice();
-    }
-  else
-    {
-      if (m_rx == NULL) return 0;
-      return m_rx->GetNetDevice();
-    }
+    if (i == TX)
+        {
+            if (m_tx == NULL) return 0;
+            return m_tx->GetNetDevice();
+        }
+    if (m_rx == NULL) return 0;
+    return m_rx->GetNetDevice();
 }
 
 bool
@@ -68,21 +63,15 @@ TocinoChannel::TransmitStart (Ptr<Packet> p)
   return true;
 }
 
-Time
-TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
+void 
+TocinoChannel::TransmitEnd ()
 {
-  return Seconds(m_bps.CalculateTxTime(p->GetSerializedSize()*8));
-}
-
-void
-TocinoChannel::TransmitEnd()
-{
-  m_state = IDLE; // wire can be pipelined
-  Simulator::ScheduleWithContext(m_rx->GetNetDevice()->GetNode()->GetId(), // need to look at this
-                                 m_delay,
-                                 &TocinoNetDeviceReceiver::Receive,
-                                 m_rx,
-                                 m_packet);
+    m_state = IDLE; // wire can be pipelined
+    Simulator::ScheduleWithContext(m_rx->GetNetDevice()->GetNode()->GetId(), // need to look at this
+                                   m_delay,
+                                   &TocinoRx::Receive,
+                                   m_rx,
+                                   m_packet);
 }
 
 } // namespace ns3

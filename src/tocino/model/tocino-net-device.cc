@@ -4,11 +4,8 @@
 #include "ns3/data-rate.h"
 #include "ns3/uinteger.h"
 
-#include "tocino-channel.h"
 #include "callback-queue.h"
-#include "tocino-net-device-receiver.h"
-#include "tocino-net-device-transmitter.h"
-#include "tocino-net-device.h"
+#include "tocino-sys.h"
 
 namespace ns3 {
 
@@ -45,6 +42,11 @@ TocinoNetDevice::Initialize()
 {
     uint32_t src, dst, i, j;
 
+    // size data structures
+    m_queues.resize(m_nPorts*m_nPorts);
+    m_receivers.resize(m_nPorts);
+    m_transmitters.resize(m_nPorts);
+
     // create queues - right now 1 per s/d pair
     // rewrite when we add virtual channels
     for (src = 0; src < m_nPorts; src++)
@@ -52,18 +54,18 @@ TocinoNetDevice::Initialize()
         for (dst = 0; dst < m_nPorts; dst++)
         {
             i = (src * m_nPorts) + dst;
-            m_queues[i] = CreateObject<CallbackQueue>();
+            m_queues.push_back(CreateObject<CallbackQueue>());
         }
     }
   
     // create receivers and transmitters
     for (i = 0; i < m_nPorts; i++)
     {
-        m_receivers[i] = CreateObject<TocinoNetDeviceReceiver> ();
+        m_receivers[i] = new TocinoRx(m_nPorts);
         m_receivers[i]->m_tnd = this;
         m_receivers[i]->m_channelNumber = i;
         
-        m_transmitters[i] = CreateObject<TocinoNetDeviceTransmitter> ();
+        m_transmitters[i] = new TocinoTx(m_nPorts);
         m_transmitters[i]->m_tnd = this;
         m_transmitters[i]->m_channelNumber = i;
     }

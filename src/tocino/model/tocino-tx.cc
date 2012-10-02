@@ -7,44 +7,31 @@
 #include "ns3/data-rate.h"
 
 #include "callback-queue.h"
-#include "tocino-channel.h"
-#include "tocino-net-device.h"
-#include "tocino-net-device-receiver.h"
-#include "tocino-net-device-transmitter.h"
+#include "tocino-sys.h"
 
-NS_LOG_COMPONENT_DEFINE ("TocinoNetDeviceTransmitter");
+NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_REGISTERED (TocinoNetDeviceTransmitter);
-
-TypeId TocinoNetDeviceTransmitter::GetTypeId(void)
-{
-  static TypeId tid = TypeId( "ns3::TocinoNetDeviceTransmitter" )
-    .SetParent<Object>()
-    .AddConstructor<TocinoNetDeviceTransmitter>()
-    ;
-  return tid;
-}
-
-TocinoNetDeviceTransmitter::TocinoNetDeviceTransmitter()
+TocinoTx::TocinoTx(uint32_t nPorts)
 {
   m_channelNumber = 0xffffffff;
   m_xstate = XON;
   m_state = IDLE;
   m_pending_xon = false;
   m_pending_xoff = false;
+  m_queues.resize(nPorts);
 }
 
 void
-TocinoNetDeviceTransmitter::TransmitEnd()
+TocinoTx::TransmitEnd()
 {
   m_state = IDLE;
   Transmit();
 }
 
 void
-TocinoNetDeviceTransmitter::Transmit()
+TocinoTx::Transmit()
 {
   Time transmit_time;
   Ptr<Packet> p = 0;
@@ -113,13 +100,13 @@ TocinoNetDeviceTransmitter::Transmit()
           m_state = BUSY;
           m_channel->TransmitStart(p);
           transmit_time= m_channel->GetTransmissionTime(p);
-          Simulator::Schedule(transmit_time, &TocinoNetDeviceTransmitter::TransmitEnd, this);
+          Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
         }
     }
 }
 
 uint32_t
-TocinoNetDeviceTransmitter::Arbitrate()
+TocinoTx::Arbitrate()
 {
   uint32_t i;
 

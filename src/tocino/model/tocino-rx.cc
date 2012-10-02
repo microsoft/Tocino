@@ -1,9 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
 #include "callback-queue.h"
-#include "tocino-net-device.h"
-#include "tocino-net-device-transmitter.h"
-#include "tocino-net-device-receiver.h"
+#include "tocino-sys.h"
 
 namespace ns3 {
 
@@ -12,7 +10,7 @@ class TocinoNetDeviceTransmitter;
 class CallbackQueue;
 
 bool
-TocinoNetDeviceReceiver::IsBlocked()
+TocinoRx::IsBlocked()
 {
   uint32_t i;
 
@@ -25,7 +23,7 @@ TocinoNetDeviceReceiver::IsBlocked()
 }
 
 void
-TocinoNetDeviceReceiver::CheckForUnblock()
+TocinoRx::CheckForUnblock()
 {
 
   if (m_tnd->m_transmitters[m_channelNumber]->GetXState() == XOFF)
@@ -36,7 +34,7 @@ TocinoNetDeviceReceiver::CheckForUnblock()
 }
 
 void
-TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
+TocinoRx::Receive(Ptr<Packet> p)
 {
   uint32_t tx_port;
 
@@ -69,7 +67,7 @@ TocinoNetDeviceReceiver::Receive(Ptr<Packet> p)
 }
 
 uint32_t
-TocinoNetDeviceReceiver::Route(Ptr<Packet> p)
+TocinoRx::Route(Ptr<Packet> p)
 {
   return m_tnd->m_nPorts-1; // loopback - send to ejection port
 }
