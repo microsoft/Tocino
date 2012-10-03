@@ -8,9 +8,10 @@
 #include "ns3/ptr.h"
 #include "ns3/test.h"
 
-using namespace ns3;
+#include "ns3/tocino-channel.h"
+#include "ns3/tocino-net-device.h"
 
-#include "ns3/tocino-sys.h"
+using namespace ns3;
 
 class Tocino3x3x3 : public TestCase
 {
@@ -20,10 +21,12 @@ public:
 private:
     virtual void DoRun (void);
   
-    Ptr<TocinoChannel> TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
+    Ptr<TocinoChannel>
+        TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
                                         uint32_t tx_port,
                                         Ptr<TocinoNetDevice> rx_nd,
                                         uint32_t rx_port);
+
     std::vector<Ptr<TocinoChannel> > m_channels;
     std::vector<Ptr<TocinoNetDevice> > m_netDevices;
 };

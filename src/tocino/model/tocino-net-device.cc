@@ -3,9 +3,14 @@
 #include "ns3/log.h"
 #include "ns3/data-rate.h"
 #include "ns3/uinteger.h"
+#include "ns3/node.h"
+#include "ns3/channel.h"
 
+#include "tocino-net-device.h"
+#include "tocino-rx.h"
+#include "tocino-tx.h"
 #include "callback-queue.h"
-#include "tocino-sys.h"
+#include "tocino-channel.h"
 
 namespace ns3 {
 
@@ -36,6 +41,9 @@ TocinoNetDevice::TocinoNetDevice() :
     m_nPorts (NPORTS)
 {
 }
+
+TocinoNetDevice::~TocinoNetDevice()
+{}
 
 void
 TocinoNetDevice::Initialize()

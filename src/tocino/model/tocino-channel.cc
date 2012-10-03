@@ -8,7 +8,10 @@
 #include "ns3/packet.h"
 #include "ns3/node.h"
 
-#include "tocino-sys.h"
+#include "tocino-channel.h"
+#include "tocino-rx.h"
+#include "tocino-tx.h"
+#include "tocino-net-device.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoChannel");
 
@@ -33,10 +36,43 @@ TypeId TocinoChannel::GetTypeId( void )
   return tid;
 }
 
+TocinoChannel::TocinoChannel()
+{
+    m_state = IDLE;
+}
+
+TocinoChannel::~TocinoChannel()
+{};
+
+Time TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
+{
+    return Seconds(m_bps.CalculateTxTime(p->GetSerializedSize()*8));
+}
+
+void TocinoChannel::SetNetDevice(Ptr<TocinoNetDevice> tnd)
+{
+    m_tnd = tnd;
+}
+
+void TocinoChannel::SetTransmitter(TocinoTx* tx)
+{
+    m_tx = tx;
+}
+
+void TocinoChannel::SetReceiver(TocinoRx* rx)
+{
+    m_rx = rx;
+}
+
+uint32_t TocinoChannel::GetNDevices() const
+{
+    return 2;
+}
+
 Ptr<NetDevice> 
 TocinoChannel::GetDevice(uint32_t i) const
 {
-    if (i == TX)
+    if (i == TX_DEV)
         {
             if (m_tx == NULL) return 0;
             return m_tx->GetNetDevice();

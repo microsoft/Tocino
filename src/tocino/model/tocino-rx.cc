@@ -1,13 +1,24 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
+#include "tocino-rx.h"
+#include "tocino-net-device.h"
+#include "tocino-tx.h"
 #include "callback-queue.h"
-#include "tocino-sys.h"
 
 namespace ns3 {
 
-class TocinoNetDevice;
-class TocinoNetDeviceTransmitter;
-class CallbackQueue;
+TocinoRx::TocinoRx( uint32_t nPorts )
+{
+    m_queues.resize(nPorts);
+}
+
+TocinoRx::~TocinoRx()
+{}
+    
+Ptr<NetDevice> TocinoRx::GetNetDevice()
+{ 
+    return m_tnd;
+}
 
 bool
 TocinoRx::IsBlocked()

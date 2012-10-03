@@ -30,10 +30,14 @@ def build(bld):
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'tocino'
     headers.source = [
-        'model/tocino-sys.h',
+        'model/tocino-channel.h',
+        'model/tocino-net-device.h',
+        'model/tocino-rx.h',
+        'model/tocino-tx.h',
         'model/callback-queue.h',
         'model/tocino-address.h',
         'model/tocino-flit-header.h',
+        'model/tocino-misc.h',
         'helper/tocino-helper.h',
         ]
 

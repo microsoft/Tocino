@@ -6,8 +6,11 @@
 #include "ns3/uinteger.h"
 #include "ns3/data-rate.h"
 
+#include "tocino-tx.h"
+#include "tocino-rx.h"
 #include "callback-queue.h"
-#include "tocino-sys.h"
+#include "tocino-net-device.h"
+#include "tocino-channel.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
@@ -21,6 +24,39 @@ TocinoTx::TocinoTx(uint32_t nPorts)
   m_pending_xon = false;
   m_pending_xoff = false;
   m_queues.resize(nPorts);
+}
+
+TocinoTx::~TocinoTx()
+{}
+
+void TocinoTx::SetXState(TocinoFlowControlState s)
+{
+    m_xstate = s;
+}
+
+TocinoFlowControlState TocinoTx::GetXState()
+{
+    return m_xstate;
+}
+
+void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
+{
+    m_channel = channel;
+}
+
+void TocinoTx::SendXOFF()
+{
+    m_pending_xoff = true;
+}
+
+void TocinoTx::SendXON()
+{
+    m_pending_xon = true;
+}
+
+Ptr<NetDevice> TocinoTx::GetNetDevice()
+{
+    return m_tnd;
 }
 
 void
