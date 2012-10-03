@@ -1,13 +1,12 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 #ifndef __CALLBACK_QUEUE_H__
 #define __CALLBACK_QUEUE_H__
 
 #include <queue>
 #include "ns3/queue.h"
+#include "ns3/packet.h"
 
 namespace ns3 {
-
-class Packet;
 
 class CallbackQueue : public Queue 
 {

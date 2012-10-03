@@ -6,6 +6,8 @@
 
 #include "tocino-address.h"
 
+class TocinoFlitLoopback;
+
 namespace ns3
 {
 
@@ -55,9 +57,11 @@ public:
     TocinoRx* GetReceiver(uint32_t p) {return m_receivers[p];}
     TocinoTx* GetTransmitter(uint32_t p) {return m_transmitters[p];}
     
+    uint32_t GetEjectedFlitCount() {return m_nEjectedFlits;}
+
     friend class TocinoRx;
     friend class TocinoTx;
-    
+    friend class ::TocinoFlitLoopback; // test needs access to InjectFlit()
 private:
     static const uint32_t NPORTS = 7;
     
@@ -65,8 +69,8 @@ private:
     TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
         
-    bool InjectPacket(Ptr<Packet>); // this gets called to inject a Packet
-    bool EjectPacket(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
+    bool InjectFlit(Ptr<Packet>); // this gets called to inject a Packet
+    bool EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
     
     Ptr<Node> m_node;
     uint32_t m_ifIndex;
@@ -84,6 +88,8 @@ private:
     std::vector< Ptr <CallbackQueue> > m_queues;
     std::vector< TocinoTx* > m_transmitters;
     std::vector< TocinoRx* > m_receivers;
+
+    uint32_t m_nEjectedFlits;
 };
 
 } // namespace ns3

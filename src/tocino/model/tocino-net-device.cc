@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"stroustrup"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/log.h"
 #include "ns3/data-rate.h"
@@ -11,6 +11,8 @@
 #include "tocino-tx.h"
 #include "callback-queue.h"
 #include "tocino-channel.h"
+
+NS_LOG_COMPONENT_DEFINE ("TocinoNetDevice");
 
 namespace ns3 {
 
@@ -40,10 +42,18 @@ TocinoNetDevice::TocinoNetDevice() :
     m_mtu( DEFAULT_MTU ),
     m_nPorts (NPORTS)
 {
+    m_nEjectedFlits = 0;
 }
 
 TocinoNetDevice::~TocinoNetDevice()
-{}
+{
+    uint32_t i;
+    for (i = 0; i < m_nPorts; i++)
+    {
+        delete m_receivers[i];
+        delete m_transmitters[i];
+    }
+}
 
 void
 TocinoNetDevice::Initialize()
@@ -62,7 +72,7 @@ TocinoNetDevice::Initialize()
         for (dst = 0; dst < m_nPorts; dst++)
         {
             i = (src * m_nPorts) + dst;
-            m_queues.push_back(CreateObject<CallbackQueue>());
+            m_queues[i] = CreateObject<CallbackQueue>();
         }
     }
   
@@ -78,24 +88,14 @@ TocinoNetDevice::Initialize()
         m_transmitters[i]->m_channelNumber = i;
     }
   
-    // build linkage between tx, rx, and q for channel interfaces
-    // no channel for injection/ejection port
-    uint32_t nChannels = m_nPorts - 1;
-    for (i = 0; i < nChannels; i++)
+    // build linkage between tx, rx, and q
+    for (i = 0; i < m_nPorts; i++)
     {
-        for (j = 0; j < nChannels; j++)
+        for (j = 0; j < m_nPorts; j++)
         {
             m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
             m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
         }
-    }
-    
-    // build linkage between injection/ejection port
-    // injection/ejection port is always port# m_nPorts-1 (== nChannels)
-    for (i = 0; i < nChannels; i++)
-    {
-        m_receivers[i]->m_queues[nChannels] = m_queues[(i * m_nPorts) + nChannels];
-        m_transmitters[i]->m_queues[nChannels] = m_queues[i + (nChannels * m_nPorts)];
     }
 }
 
@@ -187,7 +187,7 @@ bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t pr
 
 bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber )
 {
-  // eventually call InjectPacket to hand packet to fabric
+  // eventually call InjectFlit to hand packet to fabric
     // TODO
     // TODO
     // TODO
@@ -230,20 +230,21 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 }
 
 bool
-TocinoNetDevice::InjectPacket(Ptr<Packet> p)
+TocinoNetDevice::InjectFlit(Ptr<Packet> p)
 {
-  uint32_t iport = m_nPorts-1;
+  uint32_t injectionPort = m_nPorts-1;
  
-  if (m_receivers[iport]->IsBlocked()) return false;
-  m_receivers[m_nPorts-1]->Receive(p);
+  if (m_receivers[injectionPort]->IsBlocked()) return false;
+  m_receivers[injectionPort]->Receive(p);
   return true;
 }
 
 bool
-TocinoNetDevice::EjectPacket(Ptr<Packet>)
+TocinoNetDevice::EjectFlit(Ptr<Packet> p)
 {
-  // marksan to write this
-  return true;
+    m_nEjectedFlits++;
+    NS_LOG_LOGIC("Flit ejected.");
+    return true;
 }
 
 void

@@ -6,6 +6,7 @@
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
 #include "ns3/config.h"
+#include "ns3/ptr.h"
 #include "ns3/packet.h"
 
 // Include a header file from your module to test.
@@ -56,6 +57,7 @@ TocinoCallbackQueue::DoRun (void)
   Ptr<Packet> p1 = new Packet(64);
   Ptr<Packet> p2 = new Packet(64);
   Ptr<Packet> p3 = new Packet(64);
+  Ptr<Packet> p4 = new Packet(64);
   Ptr<Packet> t;
 
 

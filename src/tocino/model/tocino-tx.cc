@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/log.h"
 #include "ns3/nstime.h"
@@ -69,74 +69,82 @@ TocinoTx::TransmitEnd()
 void
 TocinoTx::Transmit()
 {
-  Time transmit_time;
-  Ptr<Packet> p = 0;
-  uint32_t winner;
-
-  if (m_state == BUSY) return;
-
-  if (m_pending_xoff && m_pending_xon)
+    Time transmit_time;
+    Ptr<Packet> p = 0;
+    uint32_t winner;
+    
+    if (m_state == BUSY) return;
+    
+    if (m_pending_xoff && m_pending_xon)
     {
-      // this is a race and probably an error
-      NS_LOG_ERROR ("Race condition detected");
-      return;
+        // this is a race and probably an error
+        NS_LOG_ERROR ("Race condition detected");
+        return;
     }
-
-  // send an XOFF is one is pending
-  if (m_pending_xoff)
+    
+    // send an XOFF is one is pending
+    if (m_pending_xoff)
     {
-      m_pending_xoff = false;
-      if (m_xstate == XON) // only send if we're currently enabled
+        m_pending_xoff = false;
+        if (m_xstate == XON) // only send if we're currently enabled
 	{
-          NS_LOG_LOGIC ("Scheduling XON");
-	  //p = xoff_packet.Copy();
+            NS_LOG_LOGIC ("Scheduling XON");
+            //p = xoff_packet.Copy();
 	}
     }
-  else if (m_pending_xon)
+    else if (m_pending_xon)
     {
-      m_pending_xon = false;
-      if (m_xstate == XOFF) // only send if we're currently disabled
+        m_pending_xon = false;
+        if (m_xstate == XOFF) // only send if we're currently disabled
 	{
-          NS_LOG_LOGIC ("Scheduling XOFF");
-	  //p = xon_packet.Copy();
+            NS_LOG_LOGIC ("Scheduling XOFF");
+            //p = xon_packet.Copy();
 	}
     }
-  else if (m_xstate == XON) // legal to transmit
+    else if (m_xstate == XON) // legal to transmit
     {
-      winner = Arbitrate();
-      if (winner == m_tnd->m_nPorts) // invalid winner -> nothing in queues
+        winner = Arbitrate();
+        if (winner == m_tnd->m_nPorts) // invalid winner -> nothing in queues
         {
-          // queues are empty
+            // queues are empty
         }
-      else
+        else
         {
-          // if we've unblocked the winner receive port we need to cause an XON
-          // to be scheduled on its corresponding transmit port (hide the crud in
-          // TocinoNetDeviceReceiver::CheckForUnblock())
-          if (m_queues[winner]->IsFull())
+            // if we've unblocked the winner receive port we need to cause an XON
+            // to be scheduled on its corresponding transmit port (hide the crud in
+            // TocinoNetDeviceReceiver::CheckForUnblock())
+            //
+            // check for full must occur before CheckForUnblock but Dequeue must occur
+            // whether the queue was full or not
+            if (m_queues[winner]->IsFull())
             {
-              p = m_queues[winner]->Dequeue();
-              m_tnd->m_receivers[winner]->CheckForUnblock();
+                p = m_queues[winner]->Dequeue();
+                m_tnd->m_receivers[winner]->CheckForUnblock();
             }
+            else
+            {
+                p = m_queues[winner]->Dequeue();
+            }
+
         }
     }
-  if (p) // send the packet onward
+    if (p) // send the packet onward
     {
-      if (m_channelNumber == (m_tnd->m_nPorts-1)) // connected to ejection port
+        if (m_channelNumber == (m_tnd->m_nPorts-1)) // connected to ejection port
         {
-          // eject packet
-          if (m_tnd->EjectPacket(p) == false)
+            // eject packet
+            if (m_tnd->EjectFlit(p) == false)
             {
-              NS_LOG_ERROR ("Ejection failed");
+                NS_LOG_ERROR ("Ejection failed");
             }
         }
-      else
+        else
         {
-          // send packet to channel
-          m_state = BUSY;
-          m_channel->TransmitStart(p);
-          transmit_time= m_channel->GetTransmissionTime(p);
-          Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
+            // send packet to channel
+            m_state = BUSY;
+            m_channel->TransmitStart(p);
+            transmit_time= m_channel->GetTransmissionTime(p);
+            Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
         }
     }
 }
