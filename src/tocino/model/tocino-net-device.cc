@@ -186,7 +186,6 @@ bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t pr
     return SendFrom( packet, m_address, dest, protocolNumber );
 }
 
-
 std::vector< Ptr<Packet> >
 TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const TocinoAddress& dst )
 {
@@ -242,6 +241,47 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
     NS_ASSERT_MSG( v.size() > 0, "Flitter must always produce at least one flit" );
 
     return v;
+}
+
+Ptr<Packet>
+TocinoNetDevice::Deflitter( const std::vector< Ptr<Packet> >& v, TocinoAddress& src, TocinoAddress& dst )
+{
+    NS_ASSERT_MSG( v.size() > 0, "Can't call deflitter on empty vector" );
+
+    Ptr<Packet> p = Create<Packet>();
+
+    for( unsigned i = 0; i < v.size(); ++i )
+    {
+        Ptr<Packet> currentFlit = v[i];
+
+        TocinoFlitHeader h;
+        currentFlit->RemoveHeader( h );
+
+        const bool isFirst = (i == 0);
+        const bool isLast = (i == v.size());
+
+        if( isFirst )
+        {
+            NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
+            src = h.GetSource();
+            dst = h.GetDestination();
+        }
+
+        if( isLast )
+        {
+            NS_ASSERT_MSG( h.IsTail(), "Last flit must be tail flit" );
+        }
+
+        if( !isFirst && !isLast )
+        {
+            NS_ASSERT_MSG( h.IsHead() == false, "Body flit cannot be head flit" );
+            NS_ASSERT_MSG( h.IsTail() == false, "Body flit cannot be tail flit" );
+        }
+
+        p->AddAtEnd( currentFlit );
+    }
+
+    return p;
 }
 
 bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber )

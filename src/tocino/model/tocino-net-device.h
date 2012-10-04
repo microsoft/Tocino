@@ -64,8 +64,15 @@ public:
     friend class TocinoTx;
     friend class ::TocinoFlitLoopback; // test needs access to InjectFlit()
 
-    static std::vector< Ptr<Packet> > Flitter( const Ptr<Packet>, const TocinoAddress&, const TocinoAddress& );
-    //static Ptr<Packet> DeFlitter( const std::vector< Ptr<Packet> >& );
+    static std::vector< Ptr<Packet> > Flitter(
+            const Ptr<Packet>,
+            const TocinoAddress&,
+            const TocinoAddress& );
+    
+    static Ptr<Packet> Deflitter( 
+            const std::vector< Ptr<Packet> >&,
+            /* out */ TocinoAddress&, 
+            /* out */ TocinoAddress& );
     
 private:
     static const uint32_t NPORTS = 7;

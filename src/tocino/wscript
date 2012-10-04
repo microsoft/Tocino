@@ -25,7 +25,7 @@ def build(bld):
         'test/tocino-3x3x3.cc',
         'test/tocino-callbackqueue.cc',
         'test/test-flit-header.cc',
-        'test/test-flitter.cc',
+        'test/test-flitter-deflitter.cc',
         'test/tocino-test-suite.cc',
         ]
 
