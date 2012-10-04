@@ -2,8 +2,9 @@
 
 #include "tocino-3x3x3.h"
 #include "tocino-callbackqueue.h"
-#include "test-flit-header.h"
 #include "tocino-flitloopback.h"
+#include "test-flit-header.h"
+#include "test-flitter.h"
 
 #include "ns3/test.h"
 
@@ -18,10 +19,11 @@ public:
 TocinoTestSuite::TocinoTestSuite ()
     : TestSuite ("tocino", UNIT)
 {
-    AddTestCase(new TocinoFlitLoopback);
-    AddTestCase(new Tocino3x3x3);
-    AddTestCase(new TocinoCallbackQueue);
+    AddTestCase( new TocinoFlitLoopback );
+    AddTestCase( new Tocino3x3x3 );
+    AddTestCase( new TocinoCallbackQueue );
     AddTestCase( new TestFlitHeader );
+    AddTestCase( new TestFlitter );
 }
 
 static TocinoTestSuite tocinoTestSuite;

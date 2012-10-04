@@ -7,6 +7,12 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED( TocinoFlitHeader );
 
+const unsigned TocinoFlitHeader::FLIT_LENGTH = 64;
+const unsigned TocinoFlitHeader::MAX_PAYLOAD_HEAD = 40;
+const unsigned TocinoFlitHeader::MAX_PAYLOAD_OTHER = 62;
+const unsigned TocinoFlitHeader::SIZE_HEAD = FLIT_LENGTH - MAX_PAYLOAD_HEAD;
+const unsigned TocinoFlitHeader::SIZE_OTHER = FLIT_LENGTH - MAX_PAYLOAD_OTHER;
+
 TypeId TocinoFlitHeader::GetTypeId( void )
 {
   static TypeId tid = TypeId( "ns3::TocinoFlitHeader" )
@@ -198,7 +204,7 @@ uint8_t TocinoFlitHeader::GetVirtualChannel()
 {
     return m_virtualChannel;
 }
-
+    
 void TocinoFlitHeader::SetLength( uint8_t l )
 {
     m_length = l;
