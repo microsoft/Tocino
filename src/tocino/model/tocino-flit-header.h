@@ -11,6 +11,12 @@ class TocinoFlitHeader : public Header
 {
     public:
     
+    static const unsigned FLIT_LENGTH;
+    static const unsigned MAX_PAYLOAD_HEAD;
+    static const unsigned MAX_PAYLOAD_OTHER;
+    static const unsigned SIZE_HEAD;
+    static const unsigned SIZE_OTHER;
+    
     static TypeId GetTypeId( void );
     
     TocinoFlitHeader();
@@ -39,12 +45,6 @@ class TocinoFlitHeader : public Header
 
     void SetVirtualChannel( uint8_t );
     uint8_t GetVirtualChannel();
-
-    static const unsigned FLIT_LENGTH = 64;
-    static const unsigned MAX_PAYLOAD_HEAD = 40;
-    static const unsigned MAX_PAYLOAD_OTHER = 62;
-    static const unsigned SIZE_HEAD = FLIT_LENGTH - MAX_PAYLOAD_HEAD;
-    static const unsigned SIZE_OTHER = FLIT_LENGTH - MAX_PAYLOAD_OTHER;
 
     void SetLength( uint8_t );
     uint8_t GetLength();

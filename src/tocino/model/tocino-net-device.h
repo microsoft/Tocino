@@ -16,6 +16,7 @@ class TocinoChannel;
 class TocinoTx;
 class TocinoRx;
 class CallbackQueue;
+class Queue;
 
 class TocinoNetDevice : public NetDevice
 {
@@ -62,6 +63,17 @@ public:
     friend class TocinoRx;
     friend class TocinoTx;
     friend class ::TocinoFlitLoopback; // test needs access to InjectFlit()
+
+    static std::vector< Ptr<Packet> > Flitter(
+            const Ptr<Packet>,
+            const TocinoAddress&,
+            const TocinoAddress& );
+    
+    static Ptr<Packet> Deflitter( 
+            const std::vector< Ptr<Packet> >&,
+            /* out */ TocinoAddress&, 
+            /* out */ TocinoAddress& );
+    
 private:
     static const uint32_t NPORTS = 7;
     
@@ -79,7 +91,9 @@ private:
     uint32_t m_mtu;
     
     TocinoAddress m_address;
-        
+
+    Ptr<Queue> m_packetQueue;
+
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
         

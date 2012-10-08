@@ -1,4 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+#ifndef __TOCINO_TEST_FLIT_HEADER_H__
+#define __TOCINO_TEST_FLIT_HEADER_H__
 
 #include "ns3/test.h"
 
@@ -49,3 +51,5 @@ class TestFlitHeader : public TestCase
 };
 
 }
+
+#endif // __TOCINO_TEST_FLIT_HEADER_H__
