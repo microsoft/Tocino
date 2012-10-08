@@ -37,20 +37,20 @@ TocinoFlitLoopback::DoRun (void)
     tnd->Initialize();
 
     // define the header
-    TocinoFlitHeader* fh = new TocinoFlitHeader();
-    fh->SetSource(0);
-    fh->SetDestination(0);
-    fh->SetHead();
-    fh->SetTail();
-    fh->SetVirtualChannel(0);
-    fh->SetLength(20);
-    fh->SetType(TocinoFlitHeader::LLC);
+    TocinoFlitHeader fh = TocinoFlitHeader();
+    fh.SetSource(0);
+    fh.SetDestination(0);
+    fh.SetHead();
+    fh.SetTail();
+    fh.SetVirtualChannel(0);
+    fh.SetLength(20);
+    fh.SetType(TocinoFlitHeader::LLC);
 
     // create a payload
     Ptr<Packet> flit = Ptr<Packet>(new Packet(20));
   
     // wrap the header around the payload and inject
-    flit->AddHeader(*fh);
+    flit->AddHeader(fh);
     bool rc = tnd->InjectFlit(flit);
     NS_TEST_ASSERT_MSG_EQ(rc, true, "Injection failed");
  

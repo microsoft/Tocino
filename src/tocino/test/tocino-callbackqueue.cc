@@ -16,18 +16,19 @@
 
 using namespace ns3;
 
-uint32_t teststatus = 0;
+uint32_t testBecameAlmostEmptyCB = 0;
+uint32_t testBecameNotFullCB = 0;
 
 void
 BecameAlmostEmptyCB()
 {
-  teststatus += 1000;
+  testBecameAlmostEmptyCB += 1;
 }
 
 void
 BecameNotFullCB()
 {
-  teststatus += 1;
+  testBecameNotFullCB += 1;
 }
 
 #include "tocino-callbackqueue.h"
@@ -109,30 +110,42 @@ TocinoCallbackQueue::DoRun (void)
 
   // configure callbacks
   // callback 0 "BecomeAlmostEmptyCB" should fire when queue size falls below 2
-  // callback 1 "BecomeNotFullCB" should fire when queue size falls below 4
+  // callback 1 "BecomeNotFullCB" should fire on transition from Full to not Full
   // queue size at this point in the test should be 0
-  NS_TEST_ASSERT_MSG_EQ(q->IsEmpty(), true, "failed initial state test");
-  q->RegisterCallback(0, BecameAlmostEmptyCB, 2, CallbackQueue::FallingBelowMark); // +1000
-  q->RegisterCallback(1, BecameNotFullCB, 4, CallbackQueue::FallingBelowMark); // +1
+  Callback<void> cb0, cb1;
+  cb0 = MakeCallback(BecameAlmostEmptyCB);
+  cb1 = MakeCallback(BecameNotFullCB);
 
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 0, "spurious call to callback 1");
+  NS_TEST_ASSERT_MSG_EQ(q->IsEmpty(), true, "failed initial state test");
+  q->RegisterCallback(0, cb0, 2, CallbackQueue::FullEntries, CallbackQueue::FallingBelowMark);
+  q->RegisterCallback(1, cb1, 0, CallbackQueue::EmptyEntries, CallbackQueue::RisingAboveMark);
+
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 0, "spurious call to BecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 0, "spurious call to testBecameNotFullCB");
+
   // validate callbacks
   q->Enqueue(p0); // queue size == 1
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 0, "spurious call to callback 2");
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 0, "spurious call to BecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 0, "spurious call to testBecameNotFullCB");
   q->Enqueue(p1); // == 2
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 0, "spurious call to callback 3");
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 0, "spurious call to BecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 0, "spurious call to testBecameNotFullCB");
   q->Enqueue(p2); // == 3
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 0, "spurious call to callback 4");
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 0, "spurious call to BecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 0, "spurious call to testBecameNotFullCB");
   q->Enqueue(p3); // == 4; now full
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 0, "spurious call to callback 5");
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 0, "spurious call to BecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 0, "spurious call to testBecameNotFullCB");
 
-  // BecameNotFullCB should be invoked after next pop +1
+  // BecameNotFullCB should be invoked after next pop
   t = q->Dequeue();
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 1, "test status 1 failed");
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 0, "spurious call to BecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 1, "bad state on testBecameNotFullCB");
 
   t = q->Dequeue();
 
   // BecameAlmostEmpty should be invoked after next pop +1000
   t = q->Dequeue();
-  NS_TEST_ASSERT_MSG_EQ(teststatus, 1001, "test status 1001 failed");
+  NS_TEST_ASSERT_MSG_EQ(testBecameAlmostEmptyCB, 1, "bad state on testBecameAlmostEmptyCB");
+  NS_TEST_ASSERT_MSG_EQ(testBecameNotFullCB, 1, "bad state on testBecameNotFullCB");
 }

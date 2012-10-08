@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/log.h"
 #include "ns3/trace-source-accessor.h"
@@ -18,7 +18,7 @@ TypeId CallbackQueue::GetTypeId(void)
     .SetParent<Queue>()
     .AddConstructor<CallbackQueue>()
     .AddAttribute ("Depth", "Maximum queue depth.",
-                   UintegerValue (8),
+                   UintegerValue (MAXDEPTH),
                    MakeUintegerAccessor (&CallbackQueue::m_maxDepth),
                    MakeUintegerChecker<uint32_t>());
   return tid;
@@ -29,10 +29,14 @@ CallbackQueue::CallbackQueue() : Queue(), m_q ()
   int32_t i;
   for (i = 0; i < 2; i++)
     {
-      m_mark[i] = 0; m_cc[i] = AtMark; m_cb[i] = NULL; m_cbState[i] = OFF;
+      m_cb[i].m_sense = EmptyEntries;
+      m_cb[i].m_mark = 0;
+      m_cb[i].m_cc = AtMark;
+      //m_cb[i].m_cbo = 0;
+      m_cb[i].m_cbState = OFF;
     }
 
-  m_maxDepth = 8; // should be consistent with value in TypeId
+  m_maxDepth = MAXDEPTH; // should be consistent with value in TypeId
   m_fullwm = 0;
   m_freewm = 0;
 }
@@ -53,24 +57,36 @@ bool
 CallbackQueue::EvalCallbackCondition(uint32_t i)
 {
   bool c;
+  uint32_t n; // value to test against
+
   if (i > 1) return false;
 
-  c = (((m_cc[i] == FallingBelowMark) && (m_q.size() < m_mark[i])) ||
-       ((m_cc[i] == AtMark) && (m_q.size() == m_mark[i])) ||
-       ((m_cc[i] == RisingAboveMark) && (m_q.size() > m_mark[i])));
+  if (m_cb[i].m_sense == FullEntries)
+  {
+      n = m_q.size(); // number of slots is number of full queue entries
+  }
+  else
+  {
+      n = m_maxDepth - m_q.size(); // number of slots is number of empty queue entries
+  }
+
+  c = (((m_cb[i].m_cc == FallingBelowMark) && (n < m_cb[i].m_mark)) ||
+      ((m_cb[i].m_cc == AtMark) && (n == m_cb[i].m_mark)) ||
+      ((m_cb[i].m_cc == RisingAboveMark) && (n > m_cb[i].m_mark)));
   return c;
 }
 
 bool
-CallbackQueue::RegisterCallback(uint32_t i, CBQCallback fptr, uint32_t mark, CallbackCondition cc)
+CallbackQueue::RegisterCallback(uint32_t i, Callback<void> cbo, uint32_t n, CallbackSense s, CallbackCondition cc)
 {
-  if (i > 1) return false;
+    if (i > 1) return false; // only 2 callbacks per queue
 
-  m_cb[i] = fptr;
-  m_mark[i] = mark;
-  m_cc[i] = cc;
-  m_cbState[i] = (EvalCallbackCondition(i))? SENT:READY;
-  return true;
+    m_cb[i].m_sense = s;
+    m_cb[i].m_mark = n;
+    m_cb[i].m_cc = cc;
+    m_cb[i].m_cbState = (EvalCallbackCondition(i))? SENT:READY;
+    m_cb[i].m_cbo = cbo;
+    return true;
 }
 
 void
@@ -84,20 +100,20 @@ CallbackQueue::DoCallbacks()
   bool c;
   for (i = 0; i < 2; i++)
     {
-      if (m_cbState[i] == OFF) continue;
+      if (m_cb[i].m_cbState == OFF) continue;
 
       c = EvalCallbackCondition(i);
       if (c)
 	{
-	  if (m_cbState[i] == READY) // callback hasn't been sent yet
+	  if (m_cb[i].m_cbState == READY) // callback hasn't been sent yet
 	    {
-	      m_cbState[i] = SENT;
-	      m_cb[i](); // invoke callback
+	      m_cb[i].m_cbState = SENT;
+	      m_cb[i].m_cbo(); // invoke callback
 	    }
 	}
       else
 	{
-	  m_cbState[i] = READY; // condition is now false
+	  m_cb[i].m_cbState = READY; // condition is now false
 	}
     }
 }
