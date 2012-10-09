@@ -4,6 +4,12 @@
 #include "ns3/config.h"
 #include "ns3/uinteger.h"
 
+#include "ns3/node.h"
+#include "ns3/node-container.h"
+#include "ns3/net-device-container.h"
+#include "ns3/internet-stack-helper.h"
+#include "ns3/ipv4-address-helper.h"
+
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-channel.h"
 
@@ -39,11 +45,15 @@ main (int argc, char *argv[])
     
     CommandLine cmd;
     cmd.AddValue ("verbose", "Tell application to log if true", verbose);
-
     cmd.Parse (argc,argv);
 
+    Ptr<Node> node;
+    NodeContainer nodes;
+    nodes.Create(3*3*3);
 
-    // create net devices
+    // create net devices and connect them to nodes
+    NetDeviceContainer ndc = NetDeviceContainer();
+
     for (x = 0; x < 3; x++)
     { 
         for (y = 0; y < 3; y++)
@@ -53,6 +63,10 @@ main (int argc, char *argv[])
                 i = (x * 9) + (y * 3) + z;
                 netDevices[i] = CreateObject<TocinoNetDevice>();
                 netDevices[i]->Initialize();
+                ndc.Add(netDevices[i]);
+
+                node = nodes.Get(i);
+                node->AddDevice(netDevices[i]);
             }
         }
     }
@@ -89,7 +103,17 @@ main (int argc, char *argv[])
         }
     }
 
+    // install Internet stacks
+    InternetStackHelper stack;
+    stack.Install(nodes);
+    Ipv4AddressHelper addr;
+    addr.SetBase("10.1.1.0", "255.255.255.0");
+    Ipv4InterfaceContainer interfaces = addr.Assign(ndc);
+
     // configure stacks to source/sink on net devices
+    // Ptr<Application> app = Create(...);
+    //node = nodes.GetNode(i);
+    //node->AddApplication(app);
 
     // cut it loose
     Simulator::Run ();

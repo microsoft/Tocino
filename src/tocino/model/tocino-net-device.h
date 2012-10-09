@@ -84,6 +84,8 @@ private:
     bool InjectFlit(Ptr<Packet>); // this gets called to inject a Packet
     bool EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
     
+    uint32_t injectionPortNumber() {return m_nPorts-1;}
+
     Ptr<Node> m_node;
     uint32_t m_ifIndex;
         
@@ -96,7 +98,8 @@ private:
 
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
-        
+
+    Callback<void> m_injectionPortCallback; // invoked when port transitions from blocked to unblocked
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
     std::vector< Ptr <CallbackQueue> > m_queues;

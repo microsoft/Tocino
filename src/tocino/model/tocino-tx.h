@@ -37,7 +37,7 @@ public:
     friend class TocinoNetDevice;
     
 private:
-    uint32_t m_channelNumber;
+    uint32_t m_portNumber;
     
     TocinoFlowControlState m_xstate;
     Ptr<Packet> m_packet;

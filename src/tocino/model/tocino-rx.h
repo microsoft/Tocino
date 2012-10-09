@@ -29,7 +29,7 @@ public:
     friend class TocinoTx;
 private:
     
-    uint32_t m_channelNumber;
+    uint32_t m_portNumber;
     Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
     
     std::vector< Ptr <CallbackQueue> > m_queues; // packet queues to write

@@ -82,11 +82,11 @@ TocinoNetDevice::Initialize()
     {
         m_receivers[i] = new TocinoRx(m_nPorts);
         m_receivers[i]->m_tnd = this;
-        m_receivers[i]->m_channelNumber = i;
+        m_receivers[i]->m_portNumber = i;
         
         m_transmitters[i] = new TocinoTx(m_nPorts);
         m_transmitters[i]->m_tnd = this;
-        m_transmitters[i]->m_channelNumber = i;
+        m_transmitters[i]->m_portNumber = i;
     }
   
     // build linkage between tx, rx, and q
@@ -98,6 +98,9 @@ TocinoNetDevice::Initialize()
             m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
         }
     }
+
+    // configure injection port callback
+    //m_injectionPortCallback = MakeCallback(your function goes here);
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )

@@ -1,5 +1,6 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
+#include "ns3/assert.h"
 #include "ns3/log.h"
 #include "ns3/nstime.h"
 #include "ns3/simulator.h"
@@ -18,7 +19,7 @@ namespace ns3 {
 
 TocinoTx::TocinoTx(uint32_t nPorts)
 {
-  m_channelNumber = 0xffffffff;
+  m_portNumber = 0xffffffff;
   m_xstate = XON;
   m_state = IDLE;
   m_pending_xon = false;
@@ -78,7 +79,7 @@ TocinoTx::Transmit()
     if (m_pending_xoff && m_pending_xon)
     {
         // this is a race and probably an error
-        NS_LOG_ERROR ("Race condition detected");
+        NS_ASSERT_MSG (false, "race condition detected");
         return;
     }
     
@@ -88,54 +89,60 @@ TocinoTx::Transmit()
         m_pending_xoff = false;
         if (m_xstate == XON) // only send if we're currently enabled
 	{
-            NS_LOG_LOGIC ("Scheduling XON");
-            //p = xoff_packet.Copy();
+            if (m_portNumber == m_tnd->injectionPortNumber())
+            {
+                // trigger callback
+                NS_LOG_LOGIC ("triggering injection port callback");
+                m_tnd->m_injectionPortCallback();
+            }
+            else
+            {
+                NS_LOG_LOGIC ("scheduling XOFF");
+                //p = xoff_packet.Copy();
+            }
 	}
     }
-    else if (m_pending_xon)
+    
+    if (!p && m_pending_xon)
     {
         m_pending_xon = false;
         if (m_xstate == XOFF) // only send if we're currently disabled
 	{
-            NS_LOG_LOGIC ("Scheduling XOFF");
+            NS_LOG_LOGIC ("scheduling XON");
             //p = xon_packet.Copy();
 	}
     }
-    else if (m_xstate == XON) // legal to transmit
+    
+    if (!p && (m_xstate == XON)) // legal to transmit
     {
         winner = Arbitrate();
-        if (winner == m_tnd->m_nPorts) // invalid winner -> nothing in queues
+        NS_ASSERT_MSG(winner < m_tnd->m_nPorts, "invalid winner");
+
+        // if we've unblocked the winner receive port we need to cause an XON
+        // to be scheduled on its corresponding transmit port (hide the crud in
+        // TocinoNetDeviceReceiver::CheckForUnblock())
+        //
+        // check for full must occur before CheckForUnblock but Dequeue must occur
+        // whether the queue was full or not
+        if (m_queues[winner]->IsFull())
         {
-            // queues are empty
+            p = m_queues[winner]->Dequeue();
+            m_tnd->m_receivers[winner]->CheckForUnblock();
         }
         else
         {
-            // if we've unblocked the winner receive port we need to cause an XON
-            // to be scheduled on its corresponding transmit port (hide the crud in
-            // TocinoNetDeviceReceiver::CheckForUnblock())
-            //
-            // check for full must occur before CheckForUnblock but Dequeue must occur
-            // whether the queue was full or not
-            if (m_queues[winner]->IsFull())
-            {
-                p = m_queues[winner]->Dequeue();
-                m_tnd->m_receivers[winner]->CheckForUnblock();
-            }
-            else
-            {
-                p = m_queues[winner]->Dequeue();
-            }
-
+            p = m_queues[winner]->Dequeue();
         }
     }
+
     if (p) // send the packet onward
     {
-        if (m_channelNumber == (m_tnd->m_nPorts-1)) // connected to ejection port
+        if (m_portNumber == m_tnd->injectionPortNumber()) // connected to ejection port
         {
-            // eject packet
+            // eject packet - should never fail
             if (m_tnd->EjectFlit(p) == false)
             {
-                NS_LOG_ERROR ("Ejection failed");
+                NS_ASSERT_MSG(false, "ejection failed");
             }
         }
         else
