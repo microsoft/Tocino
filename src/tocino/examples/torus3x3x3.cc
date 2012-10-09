@@ -9,6 +9,10 @@
 #include "ns3/net-device-container.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
+#include "ns3/application-container.h"
+#include "ns3/udp-echo-helper.h"
+#include "ns3/udp-echo-server.h"
+#include "ns3/udp-echo-client.h"
 
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-channel.h"
@@ -110,10 +114,25 @@ main (int argc, char *argv[])
     addr.SetBase("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer interfaces = addr.Assign(ndc);
 
-    // configure stacks to source/sink on net devices
-    // Ptr<Application> app = Create(...);
-    //node = nodes.GetNode(i);
-    //node->AddApplication(app);
+    // configure applications - echo server on node 0, echo clients everywhere else
+    // cookbook from Tutorial
+    UdpEchoServerHelper echoServer(7); // listening on port 7
+    ApplicationContainer serverApps = echoServer.Install(nodes.Get(0));
+    serverApps.Start(Seconds(1.0));
+    serverApps.Stop(Seconds(10.0));
+
+    UdpEchoClientHelper echoClient (interfaces.GetAddress (0), 7);
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.)));
+    echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+    ApplicationContainer clientApps;    
+    for (i = 1; i < 3*3*3; i++)
+    {
+        clientApps.Add(echoClient.Install (nodes.Get (i)));
+    }
+    clientApps.Start (Seconds (2.0));
+    clientApps.Stop (Seconds (10.0));
 
     // cut it loose
     Simulator::Run ();
