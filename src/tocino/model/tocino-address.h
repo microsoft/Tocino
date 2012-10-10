@@ -59,7 +59,27 @@ class TocinoAddress
     {
         m_address.multicast = true; 
     }
+    
+    Mac48Address AsMac48Address() const
+    {
+        uint8_t buf[6];
+       
+        // Microsoft XCG OUI
+        buf[5] = 0xDC;
+        buf[4] = 0xB4;
+        buf[3] = 0xC4;
 
+        // embed XYZ in lower 3B
+        buf[2] = m_address.x;
+        buf[1] = m_address.y;
+        buf[0] = m_address.z;
+
+        Mac48Address a;
+        a.CopyFrom( buf );
+
+        return a;
+    }
+    
     private:
 
     static uint8_t GetType()
@@ -68,12 +88,6 @@ class TocinoAddress
         return type;
     }
 
-    Mac48Address AsMacAddress() const
-    {
-        // FIXME: stub
-        return Mac48Address(0);
-    }
-    
     union
     {
         struct

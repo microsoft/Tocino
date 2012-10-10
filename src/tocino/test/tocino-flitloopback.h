@@ -12,6 +12,7 @@ public:
     TocinoFlitLoopback();
     virtual ~TocinoFlitLoopback();
 private:
+    void TestHelper( const unsigned, const unsigned );
     virtual void DoRun (void);
 };
 

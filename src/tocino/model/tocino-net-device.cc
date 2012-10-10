@@ -5,6 +5,8 @@
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/channel.h"
+#include "ns3/ethernet-header.h"
+#include "ns3/ethernet-trailer.h"
 
 #include "tocino-net-device.h"
 #include "tocino-rx.h"
@@ -41,10 +43,9 @@ TocinoNetDevice::TocinoNetDevice() :
     m_node( 0 ),
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU ),
+    m_incomingPacket( 0 ),
     m_nPorts (NPORTS)
-{
-    m_nEjectedFlits = 0;
-}
+{}
 
 TocinoNetDevice::~TocinoNetDevice()
 {
@@ -98,9 +99,6 @@ TocinoNetDevice::Initialize()
             m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
         }
     }
-
-    // configure injection port callback
-    //m_injectionPortCallback = MakeCallback(your function goes here);
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
@@ -184,18 +182,13 @@ bool TocinoNetDevice::IsBridge( void ) const
     return false;
 }
 
-bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber )
-{
-    return SendFrom( packet, m_address, dest, protocolNumber );
-}
-
-std::vector< Ptr<Packet> >
-TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const TocinoAddress& dst )
+std::deque< Ptr<Packet> >
+TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const TocinoAddress& dst, const TocinoFlitHeader::Type type )
 {
     uint32_t start = 0;
     bool isFirstFlit = true;
     
-    std::vector< Ptr<Packet> > v;
+    std::deque< Ptr<Packet> > q;
    
     uint32_t remainder = p->GetSize(); // GetSerializedSize?
 
@@ -218,6 +211,7 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
         if( isFirstFlit )
         {
             h.SetHead();
+            h.SetType( type );
         }
         
         if( isLastFlit )
@@ -229,7 +223,7 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
 
         flit->AddHeader(h);
             
-        v.push_back( flit );
+        q.push_back( flit );
 
         if( isFirstFlit )
         {
@@ -241,13 +235,13 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
     }
     while( remainder > 0 );
 
-    NS_ASSERT_MSG( v.size() > 0, "Flitter must always produce at least one flit" );
+    NS_ASSERT_MSG( q.size() > 0, "Flitter must always produce at least one flit" );
 
-    return v;
+    return q;
 }
 
 Ptr<Packet>
-TocinoNetDevice::Deflitter( const std::vector< Ptr<Packet> >& v, TocinoAddress& src, TocinoAddress& dst )
+TocinoNetDevice::Deflitter( const std::deque< Ptr<Packet> >& v, TocinoAddress& src, TocinoAddress& dst, TocinoFlitHeader::Type& type )
 {
     NS_ASSERT_MSG( v.size() > 0, "Can't call deflitter on empty vector" );
 
@@ -268,6 +262,7 @@ TocinoNetDevice::Deflitter( const std::vector< Ptr<Packet> >& v, TocinoAddress& 
             NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
             src = h.GetSource();
             dst = h.GetDestination();
+            type = h.GetType();
         }
 
         if( isLast )
@@ -287,29 +282,46 @@ TocinoNetDevice::Deflitter( const std::vector< Ptr<Packet> >& v, TocinoAddress& 
     return p;
 }
 
-bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber )
+bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber )
 {
-    bool success = m_packetQueue->Enqueue( packet );
+    return SendFrom( packet, m_address, dest, protocolNumber );
+}
 
-    if( !success )
-    {
-        //FIXME: lossless network is dropping?
-        return false;
-    }
+bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Address& dest, uint16_t protocolNumber )
+{
+    // Avoid modifying the passed-in packet.
+    Ptr<Packet> p = packet->Copy();
 
-    if( !m_packetQueue->IsEmpty() )
-    {
-        Ptr<Packet> currentPacket = m_packetQueue->Dequeue();
-        
-        std::vector< Ptr<Packet> > flitVector;
-        
-        flitVector = Flitter( currentPacket,
-                TocinoAddress::ConvertFrom( source ), 
-                TocinoAddress::ConvertFrom( dest ) );
+    TocinoAddress source = TocinoAddress::ConvertFrom(src);
+    TocinoAddress destination = TocinoAddress::ConvertFrom(dest);
 
-        // NOW WHAT?
-    }
+    EthernetHeader eh( false );
+    EthernetTrailer et;
+
+    eh.SetSource( source.AsMac48Address() );
+    eh.SetDestination( destination.AsMac48Address() );
+    eh.SetLengthType( protocolNumber );
+
+    p->AddHeader( eh );
+    p->AddTrailer( et );
     
+    // FIXME: this can grow unbounded?
+    m_packetQueue.push_back( p );
+    NS_ASSERT_MSG( m_packetQueue.size() < 10000, "Crazy large packet queue?" );
+
+    if( m_outgoingFlits.empty() )
+    {
+        NS_ASSERT( m_packetQueue.empty() == false );
+
+        Ptr<Packet> currentPacket = m_packetQueue.front();
+        m_packetQueue.pop_front();
+    
+        m_outgoingFlits = Flitter( currentPacket, source, destination, TocinoFlitHeader::ETHERNET );
+   
+        InjectFlits();
+    }
+
+    // Tocino is a lossless network
     return true;
 }
 
@@ -345,22 +357,45 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
   m_transmitters[port]->SetChannel(c);
 }
 
-bool
-TocinoNetDevice::InjectFlit(Ptr<Packet> p)
+void TocinoNetDevice::InjectFlits()
 {
-  uint32_t injectionPort = m_nPorts-1;
- 
-  if (m_receivers[injectionPort]->IsBlocked()) return false;
-  m_receivers[injectionPort]->Receive(p);
-  return true;
+    while( !m_outgoingFlits.empty() &&
+        !m_receivers[injectionPortNumber()]->IsBlocked() )
+    {
+        m_receivers[injectionPortNumber()]->Receive( m_outgoingFlits.front() );
+        m_outgoingFlits.pop_front();
+    }
 }
 
-bool
-TocinoNetDevice::EjectFlit(Ptr<Packet> p)
+void TocinoNetDevice::EjectFlit( Ptr<Packet> flit )
 {
-    m_nEjectedFlits++;
     NS_LOG_LOGIC("Flit ejected.");
-    return true;
+
+    TocinoFlitHeader h;
+    flit->RemoveHeader( h );
+    
+    if( m_incomingPacket == NULL )
+    {
+        m_incomingPacket = flit;
+        NS_ASSERT( h.IsHead() );
+    }
+    else
+    {
+        m_incomingPacket->AddAtEnd( flit );
+    }
+
+    if( h.IsTail() )
+    {
+        EthernetHeader eh;
+        EthernetTrailer et;
+
+        m_incomingPacket->RemoveHeader( eh );
+        m_incomingPacket->RemoveTrailer( et );
+    
+        m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), eh.GetSource() );
+
+        m_incomingPacket = NULL;
+    }
 }
 
 void

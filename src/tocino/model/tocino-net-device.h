@@ -2,9 +2,12 @@
 #ifndef __TOCINO_NET_DEVICE_H__
 #define __TOCINO_NET_DEVICE_H__
 
+#include <deque>
+
 #include "ns3/net-device.h"
 
 #include "tocino-address.h"
+#include "tocino-flit-header.h"
 
 class TocinoFlitLoopback;
 
@@ -58,21 +61,20 @@ public:
     TocinoRx* GetReceiver(uint32_t p) {return m_receivers[p];}
     TocinoTx* GetTransmitter(uint32_t p) {return m_transmitters[p];}
     
-    uint32_t GetEjectedFlitCount() {return m_nEjectedFlits;}
-
     friend class TocinoRx;
     friend class TocinoTx;
-    friend class ::TocinoFlitLoopback; // test needs access to InjectFlit()
 
-    static std::vector< Ptr<Packet> > Flitter(
+    static std::deque< Ptr<Packet> > Flitter(
             const Ptr<Packet>,
             const TocinoAddress&,
-            const TocinoAddress& );
+            const TocinoAddress&,
+            const TocinoFlitHeader::Type );
     
     static Ptr<Packet> Deflitter( 
-            const std::vector< Ptr<Packet> >&,
+            const std::deque< Ptr<Packet> >&,
             /* out */ TocinoAddress&, 
-            /* out */ TocinoAddress& );
+            /* out */ TocinoAddress&,
+            /* out */ TocinoFlitHeader::Type& );
     
 private:
     static const uint32_t NPORTS = 7;
@@ -81,10 +83,10 @@ private:
     TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
         
-    bool InjectFlit(Ptr<Packet>); // this gets called to inject a Packet
-    bool EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
+    void InjectFlits(); // Attempt to send m_currentFlits
+    void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
     
-    uint32_t injectionPortNumber() {return m_nPorts-1;}
+    uint32_t injectionPortNumber() const { return m_nPorts-1; }
 
     Ptr<Node> m_node;
     uint32_t m_ifIndex;
@@ -94,19 +96,23 @@ private:
     
     TocinoAddress m_address;
 
-    Ptr<Queue> m_packetQueue;
+    // packets incoming via SendFrom
+    std::deque< Ptr<Packet> > m_packetQueue;
+
+    // current flits to be sent 
+    std::deque< Ptr<Packet> > m_outgoingFlits;
+   
+    // incoming flits are accumulated here
+    Ptr<Packet> m_incomingPacket;
 
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
 
-    Callback<void> m_injectionPortCallback; // invoked when port transitions from blocked to unblocked
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
     std::vector< Ptr <CallbackQueue> > m_queues;
     std::vector< TocinoTx* > m_transmitters;
     std::vector< TocinoRx* > m_receivers;
-
-    uint32_t m_nEjectedFlits;
 };
 
 } // namespace ns3

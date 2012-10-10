@@ -221,7 +221,7 @@ void TocinoFlitHeader::SetType( Type t )
     m_type = t;
 }
 
-uint8_t TocinoFlitHeader::GetType()
+TocinoFlitHeader::Type TocinoFlitHeader::GetType()
 {
     return m_type;
 }

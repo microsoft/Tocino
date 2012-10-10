@@ -62,7 +62,7 @@ class TocinoFlitHeader : public Header
     };
 
     void SetType( Type );
-    uint8_t GetType();
+    Type GetType();
     
     static Type CheckedConvertToType( int );
 

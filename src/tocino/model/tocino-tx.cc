@@ -91,9 +91,8 @@ TocinoTx::Transmit()
 	{
             if (m_portNumber == m_tnd->injectionPortNumber())
             {
-                // trigger callback
-                NS_LOG_LOGIC ("triggering injection port callback");
-                m_tnd->m_injectionPortCallback();
+                // kick the net device
+                m_tnd->InjectFlits();
             }
             else
             {
@@ -139,11 +138,8 @@ TocinoTx::Transmit()
     {
         if (m_portNumber == m_tnd->injectionPortNumber()) // connected to ejection port
         {
-            // eject packet - should never fail
-            if (m_tnd->EjectFlit(p) == false)
-            {
-                NS_ASSERT_MSG(false, "ejection failed");
-            }
+            // eject packet
+            m_tnd->EjectFlit(p);
         }
         else
         {
