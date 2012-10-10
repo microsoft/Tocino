@@ -43,7 +43,6 @@ TocinoNetDevice::TocinoNetDevice() :
     m_node( 0 ),
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU ),
-    m_incomingPacket( 0 ),
     m_nPorts (NPORTS)
 {}
 
@@ -240,48 +239,6 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
     return q;
 }
 
-Ptr<Packet>
-TocinoNetDevice::Deflitter( const std::deque< Ptr<Packet> >& v, TocinoAddress& src, TocinoAddress& dst, TocinoFlitHeader::Type& type )
-{
-    NS_ASSERT_MSG( v.size() > 0, "Can't call deflitter on empty vector" );
-
-    Ptr<Packet> p = Create<Packet>();
-
-    for( unsigned i = 0; i < v.size(); ++i )
-    {
-        Ptr<Packet> currentFlit = v[i];
-
-        TocinoFlitHeader h;
-        currentFlit->RemoveHeader( h );
-
-        const bool isFirst = (i == 0);
-        const bool isLast = (i == v.size());
-
-        if( isFirst )
-        {
-            NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
-            src = h.GetSource();
-            dst = h.GetDestination();
-            type = h.GetType();
-        }
-
-        if( isLast )
-        {
-            NS_ASSERT_MSG( h.IsTail(), "Last flit must be tail flit" );
-        }
-
-        if( !isFirst && !isLast )
-        {
-            NS_ASSERT_MSG( h.IsHead() == false, "Body flit cannot be head flit" );
-            NS_ASSERT_MSG( h.IsTail() == false, "Body flit cannot be tail flit" );
-        }
-
-        p->AddAtEnd( currentFlit );
-    }
-
-    return p;
-}
-
 bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber )
 {
     return SendFrom( packet, m_address, dest, protocolNumber );
@@ -371,30 +328,49 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> flit )
 {
     NS_LOG_LOGIC("Flit ejected.");
 
+    static Ptr<Packet> incomingPacket( NULL );
+    static TocinoAddress src;
+
     TocinoFlitHeader h;
     flit->RemoveHeader( h );
     
-    if( m_incomingPacket == NULL )
+    if( incomingPacket == NULL )
     {
-        m_incomingPacket = flit;
-        NS_ASSERT( h.IsHead() );
+        NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
+        NS_ASSERT_MSG( h.GetDestination() == m_address,
+            "Ejected packet for foreign address?" );
+
+        //NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
+        //    "Ejected packet type is not ethernet?" );
+        
+        incomingPacket = flit;
+        src = h.GetSource();
     }
     else
     {
-        m_incomingPacket->AddAtEnd( flit );
+        NS_ASSERT( !h.IsHead() );
+        incomingPacket->AddAtEnd( flit );
     }
 
     if( h.IsTail() )
     {
+        NS_ASSERT( incomingPacket != NULL );
+    
         EthernetHeader eh;
         EthernetTrailer et;
 
-        m_incomingPacket->RemoveHeader( eh );
-        m_incomingPacket->RemoveTrailer( et );
-    
-        m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), eh.GetSource() );
+        incomingPacket->RemoveHeader( eh );
+        incomingPacket->RemoveTrailer( et );
 
-        m_incomingPacket = NULL;
+        NS_ASSERT_MSG( eh.GetSource() == src.AsMac48Address(),
+            "Encapsulated Ethernet frame has a difference source than head flit" );
+        
+        NS_ASSERT_MSG( eh.GetDestination() == m_address.AsMac48Address(),
+            "Encapsulated Ethernet frame has a foreign destination address?" );
+
+        m_rxCallback( this, incomingPacket, eh.GetLengthType(), src );
+
+        incomingPacket = NULL;
     }
 }
 

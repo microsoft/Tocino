@@ -9,8 +9,6 @@
 #include "tocino-address.h"
 #include "tocino-flit-header.h"
 
-class TocinoFlitLoopback;
-
 namespace ns3
 {
 
@@ -20,6 +18,8 @@ class TocinoTx;
 class TocinoRx;
 class CallbackQueue;
 class Queue;
+
+class TestEjectFlit;
 
 class TocinoNetDevice : public NetDevice
 {
@@ -70,12 +70,6 @@ public:
             const TocinoAddress&,
             const TocinoFlitHeader::Type );
     
-    static Ptr<Packet> Deflitter( 
-            const std::deque< Ptr<Packet> >&,
-            /* out */ TocinoAddress&, 
-            /* out */ TocinoAddress&,
-            /* out */ TocinoFlitHeader::Type& );
-    
 private:
     static const uint32_t NPORTS = 7;
     
@@ -84,8 +78,10 @@ private:
     TocinoNetDevice( const TocinoNetDevice& );
         
     void InjectFlits(); // Attempt to send m_currentFlits
-    void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
     
+    friend class TestEjectFlit;
+    void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
+
     uint32_t injectionPortNumber() const { return m_nPorts-1; }
 
     Ptr<Node> m_node;
@@ -102,9 +98,6 @@ private:
     // current flits to be sent 
     std::deque< Ptr<Packet> > m_outgoingFlits;
    
-    // incoming flits are accumulated here
-    Ptr<Packet> m_incomingPacket;
-
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
 

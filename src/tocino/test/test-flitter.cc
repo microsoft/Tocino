@@ -4,9 +4,10 @@
 #include "ns3/ptr.h"
 #include "ns3/packet.h"
 
-#include "test-flitter-deflitter.h"
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
+
+#include "test-flitter.h"
 
 using namespace ns3;
 
@@ -139,102 +140,4 @@ void TestFlitter::DoRun( void )
 
     TestThreeFlits( 1 );
     TestThreeFlits( TocinoFlitHeader::MAX_PAYLOAD_HEAD - 1 );
-}
-
-TestDeflitter::TestDeflitter()
-    : TestCase( "Tocino Deflitter Tests" )
-{}
-
-TestDeflitter::~TestDeflitter()
-{}
-
-void TestDeflitter::TestOneFlit( unsigned LEN )
-{
-    std::deque< Ptr<Packet> > flitQueue;
-    
-    Ptr<Packet> flit = Create<Packet>( LEN );
-    
-    TocinoFlitHeader h;
-    h.SetHead();
-    h.SetTail();
-    h.SetLength( LEN );
-    h.SetSource( TEST_SRC );
-    h.SetDestination( TEST_DST );
-    h.SetType( TEST_TYPE );
-    
-    flit->AddHeader( h );
-
-    flitQueue.push_back( flit );
-
-    TocinoAddress src, dst;
-    TocinoFlitHeader::Type type;
-
-    Ptr<Packet> p = TocinoNetDevice::Deflitter( flitQueue, src, dst, type );
-
-    NS_TEST_ASSERT_MSG_EQ( p->GetSize(), LEN, "Packet has wrong length" );
-    NS_TEST_ASSERT_MSG_EQ( src, TEST_SRC, "Deflitter returned incorrect source" );
-    NS_TEST_ASSERT_MSG_EQ( dst, TEST_DST, "Deflitter returned incorrect destination" );
-    NS_TEST_ASSERT_MSG_EQ( type, TEST_TYPE, "Deflitter returned incorrect flit type" );
-}
-
-void TestDeflitter::TestThreeFlits( unsigned TAIL_LEN )
-{
-    const unsigned HEAD_LEN = TocinoFlitHeader::MAX_PAYLOAD_HEAD;
-    const unsigned BODY_LEN = TocinoFlitHeader::MAX_PAYLOAD_OTHER;
-    const unsigned LEN = HEAD_LEN + BODY_LEN + TAIL_LEN;
-    
-    std::deque< Ptr<Packet> > flitQueue;
-    
-    Ptr<Packet> headFlit = Create<Packet>( HEAD_LEN );
-    Ptr<Packet> bodyFlit = Create<Packet>( BODY_LEN );
-    Ptr<Packet> tailFlit = Create<Packet>( TAIL_LEN );
-    
-    // build head flit
-    {
-        TocinoFlitHeader h;
-        h.SetHead();
-        h.SetTail();
-        h.SetLength( HEAD_LEN );
-        h.SetSource( TEST_SRC );
-        h.SetDestination( TEST_DST );
-        h.SetType( TEST_TYPE );
-        headFlit->AddHeader( h );
-    }
-
-    // build body flit
-    {
-        TocinoFlitHeader h;
-        h.SetLength( BODY_LEN );
-        bodyFlit->AddHeader( h );
-    }
-    
-    // build tail flit
-    {
-        TocinoFlitHeader h;
-        h.SetLength( TAIL_LEN );
-        tailFlit->AddHeader( h );
-    }
-    
-    flitQueue.push_back( headFlit );
-    flitQueue.push_back( bodyFlit );
-    flitQueue.push_back( tailFlit );
-
-    TocinoAddress src, dst;
-    TocinoFlitHeader::Type type;
-
-    Ptr<Packet> p = TocinoNetDevice::Deflitter( flitQueue, src, dst, type );
-
-    NS_TEST_ASSERT_MSG_EQ( p->GetSize(), LEN, "Packet has wrong length" );
-    NS_TEST_ASSERT_MSG_EQ( src, TEST_SRC, "Deflitter returned incorrect source" );
-    NS_TEST_ASSERT_MSG_EQ( dst, TEST_DST, "Deflitter returned incorrect destination" );
-    NS_TEST_ASSERT_MSG_EQ( type, TEST_TYPE, "Deflitter returned incorrect flit type" );
-}
-
-void TestDeflitter::DoRun( void )
-{
-    TestOneFlit( 0 );
-    TestOneFlit( TocinoFlitHeader::MAX_PAYLOAD_HEAD );
-
-    TestThreeFlits( 0 );
-    TestThreeFlits( TocinoFlitHeader::MAX_PAYLOAD_OTHER );
 }
