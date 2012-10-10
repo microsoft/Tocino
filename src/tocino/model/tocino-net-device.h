@@ -78,6 +78,7 @@ public:
     
 private:
     static const uint32_t NPORTS = 7;
+    static const uint32_t NVCS = 2;
     
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );

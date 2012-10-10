@@ -17,14 +17,14 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx(uint32_t nPorts)
+TocinoTx::TocinoTx(uint32_t nPorts, uint32_t nVCs)
 {
   m_portNumber = 0xffffffff;
   m_xstate = XON;
   m_state = IDLE;
   m_pending_xon = false;
   m_pending_xoff = false;
-  m_queues.resize(nPorts);
+  m_queues.resize(nPorts*nVCs);
 }
 
 TocinoTx::~TocinoTx()
@@ -76,12 +76,7 @@ TocinoTx::Transmit()
     
     if (m_state == BUSY) return;
     
-    if (m_pending_xoff && m_pending_xon)
-    {
-        // this is a race and probably an error
-        NS_ASSERT_MSG (false, "race condition detected");
-        return;
-    }
+    NS_ASSERT_MSG(!(m_pending_xoff && m_pending_xon), "race condition detected");
     
     // send an XOFF is one is pending
     if (m_pending_xoff)
@@ -97,7 +92,7 @@ TocinoTx::Transmit()
             else
             {
                 NS_LOG_LOGIC ("scheduling XOFF");
-                //p = xoff_packet.Copy();
+                //FIXME p = xoff_packet.Copy();
             }
 	}
     }
@@ -108,7 +103,7 @@ TocinoTx::Transmit()
         if (m_xstate == XOFF) // only send if we're currently disabled
 	{
             NS_LOG_LOGIC ("scheduling XON");
-            //p = xon_packet.Copy();
+            //FIXME p = xon_packet.Copy();
 	}
     }
     
@@ -157,12 +152,12 @@ TocinoTx::Arbitrate()
 {
   uint32_t i;
 
-  // trivial arbitration - obvious starvation concern
-  for (i = 0; i < m_tnd->m_nPorts; i++)
+    // trivial arbitration - obvious starvation concern
+    for (i = 0; i < m_queues.size(); i++)
     {
-      if (m_queues[i]->IsEmpty() == false) return i;
+        if (m_queues[i]->IsEmpty() == false) return i;
     }
-  return m_tnd->m_nPorts; // nothing pending
+    return m_queues.size(); // nothing pending
 }
 
 } // namespace ns3
