@@ -86,7 +86,10 @@ TocinoRx::Receive(Ptr<Packet> p)
 uint32_t
 TocinoRx::Route(Ptr<Packet> p)
 {
-    return m_tnd->injectionPortNumber(); // loopback - send to ejection port
+    uint32_t r;
+    // return to vc 0 on injection port - Route returns buffer index
+    r = (m_tnd->injectionPortNumber() * m_tnd->m_nVCs) + 0;
+    return r;
 }
 
 } // namespace ns3

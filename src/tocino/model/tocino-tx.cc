@@ -110,7 +110,7 @@ TocinoTx::Transmit()
     if (!p && (m_xstate == XON)) // legal to transmit
     {
         winner = Arbitrate();
-        NS_ASSERT_MSG(winner < m_tnd->m_nPorts, "invalid winner");
+        NS_ASSERT_MSG(winner < (m_tnd->m_nPorts*m_tnd->m_nVCs), "invalid winner");
 
         // if we've unblocked the winner receive port we need to cause an XON
         // to be scheduled on its corresponding transmit port (hide the crud in

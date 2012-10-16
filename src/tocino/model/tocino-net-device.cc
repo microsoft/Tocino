@@ -59,24 +59,18 @@ TocinoNetDevice::~TocinoNetDevice()
 void
 TocinoNetDevice::Initialize()
 {
-    uint32_t src, dst, vc, i, j, k;
+    uint32_t vc, i, j, k, base;
 
     // size data structures
-    m_queues.resize(m_nPorts*m_nPorts);
+    m_queues.resize(m_nPorts*m_nPorts*m_nVCs);
     m_receivers.resize(m_nPorts);
     m_transmitters.resize(m_nPorts);
 
     // create queues
-    for (src = 0; src < m_nPorts; src++)
+    // each port has nVCs queues to each port
+    for (i = 0; i < (m_nPorts * m_nPorts * m_nVCs); i++)
     {
-        for (dst = 0; dst < m_nPorts; dst++)
-        {
-            for (vc = 0; vc < m_nVCs; vc++)
-            {
-                i = (src * m_nPorts) + (dst * m_nVCs) + vc;
-                m_queues[i] = CreateObject<CallbackQueue>();
-            }
-        }
+        m_queues[i] = CreateObject<CallbackQueue>();
     }
   
     // create receivers and transmitters
@@ -91,16 +85,31 @@ TocinoNetDevice::Initialize()
         m_transmitters[i]->m_portNumber = i;
     }
   
-    // build linkage between tx, rx, and q
+    // build linkage between rx and q
+    // each rx uses a block of nPorts*nVCs queues
+    // block for rx i is based at i*nPorts*nVCs
+    for (i = 0; i < m_nPorts; i++)
+    {
+        base = i * m_nPorts * m_nVCs;
+        for (j = 0; j < (m_nPorts * m_nVCs); j++)
+        {
+            m_receivers[i]->m_queues[j] = m_queues[base + j];
+        }
+    }
+
+    // build linkage between tx and q
+    // queues for tx are a set of nPorts blocks
+    // blocks for tx i are based at (i*nVCs)+(j*nPorts*nVCs); 0 < j < nPorts
+    // each block is nVCs in size
     for (i = 0; i < m_nPorts; i++)
     {
         for (j = 0; j < m_nPorts; j++)
         {
+            base = (i * m_nVCs) + (j * m_nPorts * m_nVCs);
+            k = (j * m_nVCs);
             for (vc = 0; vc < m_nVCs; vc++)
             {
-                k = (j * m_nVCs) + vc;
-                m_receivers[i]->m_queues[k] = m_queues[(i * m_nPorts) + k];
-                m_transmitters[i]->m_queues[k] = m_queues[i + (k * m_nPorts)];
+                m_transmitters[i]->m_queues[k + vc] = m_queues[base + vc];
             }
         }
     }
