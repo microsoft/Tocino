@@ -82,10 +82,78 @@ TocinoRx::Receive(Ptr<Packet> p)
     m_tnd->m_transmitters[tx_port]->Transmit(); // kick the transmitter
 }
 
+namespace
+{
+    // silly hack for now
+    const int INVALID = -1;
+    int currentPort = INVALID;
+}
+
 uint32_t
 TocinoRx::Route(Ptr<Packet> p)
 {
-    return m_tnd->injectionPortNumber(); // loopback - send to ejection port
+    TocinoFlitHeader h;
+    p->PeekHeader( h );
+
+    int outputPort = currentPort;
+
+    if( h.IsHead() )
+    {
+        NS_ASSERT( currentPort == INVALID );
+
+        uint8_t x = m_tnd->m_address.GetX();
+        uint8_t dx = h.GetDestination().GetX();
+
+        uint8_t y = m_tnd->m_address.GetY();
+        uint8_t dy = h.GetDestination().GetY();
+
+        uint8_t z = m_tnd->m_address.GetZ();
+        uint8_t dz = h.GetDestination().GetZ();
+
+        // dimension-order routing
+        
+        if( dx > x ) 
+        {
+            outputPort = 0; // x+
+        }
+        else if( dx < x )
+        {
+            outputPort = 1; // x-
+        }
+        else if( dy > y )
+        {
+            outputPort = 2; // y+
+        }
+        else if( dy < y )
+        {
+            outputPort = 3; // y-
+        }
+        else if( dz > z )
+        {
+            outputPort = 4; // z+
+        }
+        else if( dz < z )
+        {
+            outputPort = 5; // z-
+        }
+        else
+        {
+            // deliver successfully-routed flit to host
+            NS_ASSERT( h.GetDestination() == m_tnd->GetAddress() );
+            outputPort = m_tnd->injectionPortNumber(); 
+        }
+
+        currentPort = outputPort;
+    }
+    
+    NS_ASSERT( currentPort != INVALID );
+
+    if( h.IsTail() )
+    {
+        currentPort = INVALID;
+    }
+
+    return outputPort;
 }
 
 } // namespace ns3

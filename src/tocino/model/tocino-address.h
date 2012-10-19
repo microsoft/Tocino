@@ -80,6 +80,21 @@ class TocinoAddress
         return a;
     }
     
+    uint8_t GetX()
+    {
+        return m_address.x;
+    }
+    
+    uint8_t GetY()
+    {
+        return m_address.y;
+    }
+    
+    uint8_t GetZ()
+    {
+        return m_address.z;
+    }
+
     private:
 
     static uint8_t GetType()

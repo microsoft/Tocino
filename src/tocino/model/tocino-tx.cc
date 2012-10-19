@@ -115,22 +115,24 @@ TocinoTx::Transmit()
     if (!p && (m_xstate == XON)) // legal to transmit
     {
         winner = Arbitrate();
-        NS_ASSERT_MSG(winner < m_tnd->m_nPorts, "invalid winner");
-
-        // if we've unblocked the winner receive port we need to cause an XON
-        // to be scheduled on its corresponding transmit port (hide the crud in
-        // TocinoNetDeviceReceiver::CheckForUnblock())
-        //
-        // check for full must occur before CheckForUnblock but Dequeue must occur
-        // whether the queue was full or not
-        if (m_queues[winner]->IsFull())
+        
+        if( winner < m_tnd->m_nPorts )
         {
-            p = m_queues[winner]->Dequeue();
-            m_tnd->m_receivers[winner]->CheckForUnblock();
-        }
-        else
-        {
-            p = m_queues[winner]->Dequeue();
+            // if we've unblocked the winner receive port we need to cause an XON
+            // to be scheduled on its corresponding transmit port (hide the crud in
+            // TocinoNetDeviceReceiver::CheckForUnblock())
+            //
+            // check for full must occur before CheckForUnblock but Dequeue must occur
+            // whether the queue was full or not
+            if (m_queues[winner]->IsFull())
+            {
+                p = m_queues[winner]->Dequeue();
+                m_tnd->m_receivers[winner]->CheckForUnblock();
+            }
+            else
+            {
+                p = m_queues[winner]->Dequeue();
+            }
         }
     }
 
@@ -143,6 +145,8 @@ TocinoTx::Transmit()
         }
         else
         {
+            NS_ASSERT_MSG( m_channel != NULL, "Trying to send on a NULL channel" );
+
             // send packet to channel
             m_state = BUSY;
             m_channel->TransmitStart(p);

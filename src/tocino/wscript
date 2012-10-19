@@ -26,6 +26,7 @@ def build(bld):
         'test/tocino-callbackqueue.cc',
         'test/test-flit-header.cc',
         'test/test-flitter.cc',
+        'test/test-point-to-point.cc',
         'test/tocino-test-suite.cc',
         ]
 

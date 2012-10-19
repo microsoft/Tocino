@@ -17,7 +17,7 @@
 using namespace ns3;
 
 TocinoFlitLoopback::TocinoFlitLoopback()
-  : TestCase ("Transmit and receive 1 flit on loopback")
+  : TestCase( "Send flits from a single net device to itself" )
 {
 }
 
@@ -45,12 +45,14 @@ void TocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES 
     
     tnd->Initialize();
     tnd->SetReceiveCallback( MakeCallback( AcceptPacket ) );
-    
+    tnd->SetAddress( TocinoAddress() );
+
     totalCount = 0;
     totalBytes = 0;
 
     for( unsigned i = 0; i < COUNT; ++i )
     {
+        // send to self
         tnd->Send( p, TocinoAddress(), 0 );
     }
 
