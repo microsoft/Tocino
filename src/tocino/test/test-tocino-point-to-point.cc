@@ -15,16 +15,16 @@
 #include "ns3/simulator.h"
 #include "ns3/node.h"
 
-#include "test-point-to-point.h"
+#include "test-tocino-point-to-point.h"
 
 using namespace ns3;
 
-TestPointToPoint::TestPointToPoint()
+TestTocinoPointToPoint::TestTocinoPointToPoint()
   : TestCase( "Send between two directly-connected net devices" )
 {
 }
 
-TestPointToPoint::~TestPointToPoint() {}
+TestTocinoPointToPoint::~TestTocinoPointToPoint() {}
 
 namespace
 {
@@ -49,7 +49,7 @@ namespace
     }
 }
 
-Ptr<TocinoNetDevice> TestPointToPoint::CreateNetDeviceHelper( const TocinoAddress& a )
+Ptr<TocinoNetDevice> TestTocinoPointToPoint::CreateNetDeviceHelper( const TocinoAddress& a )
 {
     Ptr<TocinoNetDevice> netDevice = CreateObject<TocinoNetDevice>();
     
@@ -65,7 +65,7 @@ Ptr<TocinoNetDevice> TestPointToPoint::CreateNetDeviceHelper( const TocinoAddres
     return netDevice;
 }
 
-void TestPointToPoint::CreateChannelHelper( Ptr<TocinoNetDevice> tnda, uint32_t pa, Ptr<TocinoNetDevice> tndb, uint32_t pb )
+void TestTocinoPointToPoint::CreateChannelHelper( Ptr<TocinoNetDevice> tnda, uint32_t pa, Ptr<TocinoNetDevice> tndb, uint32_t pb )
 {
     Ptr<TocinoChannel> c = CreateObject<TocinoChannel>();
 
@@ -76,7 +76,7 @@ void TestPointToPoint::CreateChannelHelper( Ptr<TocinoNetDevice> tnda, uint32_t 
     c->SetReceiver( tndb->GetReceiver( pb ) );
 }
 
-void TestPointToPoint::TestHelper( const unsigned COUNT, const unsigned BYTES )
+void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
     Ptr<Packet> p = Create<Packet>( BYTES );
     
@@ -118,7 +118,7 @@ void TestPointToPoint::TestHelper( const unsigned COUNT, const unsigned BYTES )
 }
 
 void
-TestPointToPoint::DoRun (void)
+TestTocinoPointToPoint::DoRun (void)
 {
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );

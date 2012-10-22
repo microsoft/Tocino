@@ -4,18 +4,18 @@
 
 #include "ns3/tocino-flit-header.h"
 
-#include "test-flit-header.h"
+#include "test-tocino-flit-header.h"
 
 using namespace ns3;
 
-TestFlitHeader::TestFlitHeader()
+TestTocinoFlitHeader::TestTocinoFlitHeader()
     : TestCase( "Tocino Flit Header Tests" )
 {}
 
-TestFlitHeader::~TestFlitHeader()
+TestTocinoFlitHeader::~TestTocinoFlitHeader()
 {}
 
-bool TestFlitHeader::TestSerializeHelper( const TocinoFlitHeader &h, const uint8_t *data, const unsigned SIZE )
+bool TestTocinoFlitHeader::TestSerializeHelper( const TocinoFlitHeader &h, const uint8_t *data, const unsigned SIZE )
 {
     if( h.GetSerializedSize() != SIZE )
     {
@@ -41,13 +41,13 @@ bool TestFlitHeader::TestSerializeHelper( const TocinoFlitHeader &h, const uint8
     return true;
 }
 
-void TestFlitHeader::TestDefaultLength()
+void TestTocinoFlitHeader::TestDefaultLength()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.GetLength(), 0, "New header has incorrect length?" );
 }
 
-void TestFlitHeader::TestSerializeLength()
+void TestTocinoFlitHeader::TestSerializeLength()
 {
     TocinoFlitHeader h;
     h.SetLength( ~0 );
@@ -58,7 +58,7 @@ void TestFlitHeader::TestSerializeLength()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetLength" );
 }
 
-void TestFlitHeader::TestDeserializeLength()
+void TestTocinoFlitHeader::TestDeserializeLength()
 {
     uint8_t input[] = { 0x00, 0x3F };
 
@@ -71,13 +71,13 @@ void TestFlitHeader::TestDeserializeLength()
     NS_TEST_ASSERT_MSG_EQ( h.GetLength(), 0x3F, "Deserialized header has incorrect length?" );
 }
 
-void TestFlitHeader::TestDefaultType()
+void TestTocinoFlitHeader::TestDefaultType()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.GetType(), TocinoFlitHeader::INVALID, "New header has incorrect type?" );
 }
 
-void TestFlitHeader::TestSerializeType()
+void TestTocinoFlitHeader::TestSerializeType()
 {
     TocinoFlitHeader h;
 
@@ -89,7 +89,7 @@ void TestFlitHeader::TestSerializeType()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetType" );
 }
 
-void TestFlitHeader::TestDeserializeType()
+void TestTocinoFlitHeader::TestDeserializeType()
 {
     uint8_t input[] = { TocinoFlitHeader::MAX_TYPE << 4, 0x00 };
 
@@ -102,13 +102,13 @@ void TestFlitHeader::TestDeserializeType()
     NS_TEST_ASSERT_MSG_EQ( h.GetType(), TocinoFlitHeader::MAX_TYPE, "Deserialized header has incorrect type?" );
 }
 
-void TestFlitHeader::TestDefaultVirtualChannel()
+void TestTocinoFlitHeader::TestDefaultVirtualChannel()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.GetVirtualChannel(), 0, "New header has non-zero virtual channel?" );
 }
 
-void TestFlitHeader::TestSerializeVirtualChannel()
+void TestTocinoFlitHeader::TestSerializeVirtualChannel()
 {
     TocinoFlitHeader h;
 
@@ -120,7 +120,7 @@ void TestFlitHeader::TestSerializeVirtualChannel()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetVirtualChannel" );
 }
 
-void TestFlitHeader::TestDeserializeVirtualChannel()
+void TestTocinoFlitHeader::TestDeserializeVirtualChannel()
 {
     uint8_t input[] = { 0x0F, 0x00 };
 
@@ -133,13 +133,13 @@ void TestFlitHeader::TestDeserializeVirtualChannel()
     NS_TEST_ASSERT_MSG_EQ( h.GetVirtualChannel(), 0xF, "Deserialized header has incorrect virtual channel?" );
 }
 
-void TestFlitHeader::TestDefaultTail()
+void TestTocinoFlitHeader::TestDefaultTail()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.IsTail(), false, "New header is tail?" );
 }
 
-void TestFlitHeader::TestSerializeTail()
+void TestTocinoFlitHeader::TestSerializeTail()
 {
     TocinoFlitHeader h;
 
@@ -151,7 +151,7 @@ void TestFlitHeader::TestSerializeTail()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetTail" );
 }
 
-void TestFlitHeader::TestDeserializeTail()
+void TestTocinoFlitHeader::TestDeserializeTail()
 {
     uint8_t input[] = { 0x00, 0x40 };
 
@@ -164,13 +164,13 @@ void TestFlitHeader::TestDeserializeTail()
     NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "Deserialized header not tail?" );
 }
 
-void TestFlitHeader::TestDefaultHead()
+void TestTocinoFlitHeader::TestDefaultHead()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.IsHead(), false, "New header is head?" );
 } 
 
-void TestFlitHeader::TestSerializeHead()
+void TestTocinoFlitHeader::TestSerializeHead()
 {
     TocinoFlitHeader h;
 
@@ -189,7 +189,7 @@ void TestFlitHeader::TestSerializeHead()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetHead" );
 }
 
-void TestFlitHeader::TestDeserializeHead()
+void TestTocinoFlitHeader::TestDeserializeHead()
 {
     uint8_t input[] = 
     {
@@ -209,13 +209,13 @@ void TestFlitHeader::TestDeserializeHead()
     NS_TEST_ASSERT_MSG_EQ( h.IsHead(), true, "Deserialized header not head?" );
 }
 
-void TestFlitHeader::TestDefaultSource()
+void TestTocinoFlitHeader::TestDefaultSource()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.GetSource(), TocinoAddress( 0 ), "New header has non-zero source?" );
 }
 
-void TestFlitHeader::TestSerializeSource()
+void TestTocinoFlitHeader::TestSerializeSource()
 {
     TocinoFlitHeader h;
 
@@ -235,7 +235,7 @@ void TestFlitHeader::TestSerializeSource()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetSource" );
 }
 
-void TestFlitHeader::TestDeserializeSource()
+void TestTocinoFlitHeader::TestDeserializeSource()
 {
     uint8_t input[] = 
     {
@@ -255,13 +255,13 @@ void TestFlitHeader::TestDeserializeSource()
     NS_TEST_ASSERT_MSG_EQ( h.GetSource(), TocinoAddress( ~0 ), "Deserialized header has incorrect source?" );
 }
 
-void TestFlitHeader::TestDefaultDestination()
+void TestTocinoFlitHeader::TestDefaultDestination()
 {
     TocinoFlitHeader h;
     NS_TEST_ASSERT_MSG_EQ( h.GetDestination(), TocinoAddress( 0 ), "New header has non-zero dest?" );
 }
 
-void TestFlitHeader::TestSerializeDestination()
+void TestTocinoFlitHeader::TestSerializeDestination()
 {
     TocinoFlitHeader h;
 
@@ -281,7 +281,7 @@ void TestFlitHeader::TestSerializeDestination()
     NS_TEST_ASSERT_MSG_EQ( pass, true, "Bad serialize after SetDestination" );
 }
 
-void TestFlitHeader::TestDeserializeDestination()
+void TestTocinoFlitHeader::TestDeserializeDestination()
 {
     uint8_t input[] = 
     {
@@ -301,7 +301,7 @@ void TestFlitHeader::TestDeserializeDestination()
     NS_TEST_ASSERT_MSG_EQ( h.GetDestination(), TocinoAddress( ~0 ), "Deserialized header has incorrect destination?" );
 }
 
-void TestFlitHeader::DoRun( void )
+void TestTocinoFlitHeader::DoRun( void )
 {
     TestDefaultLength();
     TestSerializeLength();
