@@ -7,7 +7,7 @@
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
 
-#include "test-flitter.h"
+#include "test-tocino-flitter.h"
 
 using namespace ns3;
 
@@ -18,14 +18,14 @@ namespace
     const TocinoFlitHeader::Type TEST_TYPE( TocinoFlitHeader::MAX_TYPE );
 }
 
-TestFlitter::TestFlitter()
+TestTocinoFlitter::TestTocinoFlitter()
     : TestCase( "Tocino Flitter Tests" )
 {}
 
-TestFlitter::~TestFlitter()
+TestTocinoFlitter::~TestTocinoFlitter()
 {}
 
-void TestFlitter::TestEmpty()
+void TestTocinoFlitter::TestEmpty()
 {
     Ptr<Packet> p = Create<Packet>( 0 );
     std::deque< Ptr<Packet> > flits;
@@ -35,7 +35,7 @@ void TestFlitter::TestEmpty()
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 1, "Empty packet should result in one flit" );
 }
 
-void TestFlitter::TestOneFlit( const unsigned LEN )
+void TestTocinoFlitter::TestOneFlit( const unsigned LEN )
 {
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
@@ -55,7 +55,7 @@ void TestFlitter::TestOneFlit( const unsigned LEN )
     NS_TEST_ASSERT_MSG_EQ( h.GetType(), TEST_TYPE, "Flit has incorrect type" );
 }
 
-void TestFlitter::TestTwoFlits( const unsigned TAIL_LEN )
+void TestTocinoFlitter::TestTwoFlits( const unsigned TAIL_LEN )
 {
     const unsigned HEAD_LEN = TocinoFlitHeader::MAX_PAYLOAD_HEAD;
     const unsigned LEN = HEAD_LEN + TAIL_LEN;
@@ -87,7 +87,7 @@ void TestFlitter::TestTwoFlits( const unsigned TAIL_LEN )
     NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "Tail flit missing tail flag?" );
 }
 
-void TestFlitter::TestThreeFlits( const unsigned TAIL_LEN )
+void TestTocinoFlitter::TestThreeFlits( const unsigned TAIL_LEN )
 {
     const unsigned HEAD_LEN = TocinoFlitHeader::MAX_PAYLOAD_HEAD;
     const unsigned BODY_LEN = TocinoFlitHeader::MAX_PAYLOAD_OTHER;
@@ -127,7 +127,7 @@ void TestFlitter::TestThreeFlits( const unsigned TAIL_LEN )
     NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "Tail flit missing tail flag?" );
 }
 
-void TestFlitter::DoRun( void )
+void TestTocinoFlitter::DoRun( void )
 {
     TestEmpty();
 

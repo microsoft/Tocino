@@ -12,16 +12,16 @@
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
 
-#include "tocino-flitloopback.h"
+#include "test-tocino-flitloopback.h"
 
 using namespace ns3;
 
-TocinoFlitLoopback::TocinoFlitLoopback()
+TestTocinoFlitLoopback::TestTocinoFlitLoopback()
   : TestCase( "Send flits from a single net device to itself" )
 {
 }
 
-TocinoFlitLoopback::~TocinoFlitLoopback() {}
+TestTocinoFlitLoopback::~TestTocinoFlitLoopback() {}
 
 namespace
 {
@@ -37,7 +37,7 @@ namespace
     }
 }
 
-void TocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES )
+void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
     Ptr<Packet> p = Create<Packet>( BYTES );
    
@@ -61,7 +61,7 @@ void TocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES 
 }
 
 void
-TocinoFlitLoopback::DoRun (void)
+TestTocinoFlitLoopback::DoRun (void)
 {
     LogComponentEnable("TocinoNetDevice", LOG_LEVEL_ALL);
     LogComponentEnable("TocinoTx", LOG_LEVEL_ALL);

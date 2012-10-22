@@ -1,16 +1,16 @@
-#ifndef __TOCINO_TEST_FLITTER_H__
-#define __TOCINO_TEST_FLITTER_H__
+#ifndef __TEST_TOCINO_FLITTER_H__
+#define __TEST_TOCINO_FLITTER_H__
 
 #include "ns3/test.h"
 
 namespace ns3 {
 
-class TestFlitter : public TestCase
+class TestTocinoFlitter : public TestCase
 {
     public:
 
-    TestFlitter();
-    virtual ~TestFlitter();
+    TestTocinoFlitter();
+    virtual ~TestTocinoFlitter();
 
     private:
 
@@ -23,4 +23,4 @@ class TestFlitter : public TestCase
 };
 
 }
-#endif // __TOCINO_TEST_FLITTER_H__
+#endif // __TEST_TOCINO_FLITTER_H__

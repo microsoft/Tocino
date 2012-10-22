@@ -3,21 +3,21 @@
 #include "ns3/config.h"
 #include "ns3/uinteger.h"
 
-#include "tocino-3x3x3.h"
+#include "test-tocino-3x3x3.h"
 
 using namespace ns3;
 
-Tocino3x3x3::Tocino3x3x3()
+TestTocino3x3x3::TestTocino3x3x3()
   : TestCase ("Wire a 3x3x3 torus")
 {
 }
 
-Tocino3x3x3::~Tocino3x3x3()
+TestTocino3x3x3::~TestTocino3x3x3()
 {
 }
 
 Ptr<TocinoChannel>
-Tocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
+TestTocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
                               uint32_t tx_port,
                               Ptr<TocinoNetDevice> rx_nd,
                               uint32_t rx_port)
@@ -33,7 +33,7 @@ Tocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
 }
 
 void
-Tocino3x3x3::DoRun (void)
+TestTocino3x3x3::DoRun (void)
 {
   uint32_t x, y, z;
   uint32_t i;

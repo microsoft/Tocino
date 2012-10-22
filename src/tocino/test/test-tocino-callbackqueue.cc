@@ -9,10 +9,10 @@
 #include "ns3/ptr.h"
 #include "ns3/packet.h"
 
-// Include a header file from your module to test.
 #include "ns3/callback-queue.h"
-
 #include "ns3/test.h"
+
+#include "test-tocino-callbackqueue.h"
 
 using namespace ns3;
 
@@ -31,14 +31,12 @@ BecameNotFullCB()
   testBecameNotFullCB += 1;
 }
 
-#include "tocino-callbackqueue.h"
-
-TocinoCallbackQueue::TocinoCallbackQueue()
+TestTocinoCallbackQueue::TestTocinoCallbackQueue()
   : TestCase ("Validate CallbackQueue functionality")
 {
 }
 
-TocinoCallbackQueue::~TocinoCallbackQueue() {}
+TestTocinoCallbackQueue::~TestTocinoCallbackQueue() {}
 
 
 // macro to simplify testing queue state
@@ -49,7 +47,7 @@ TocinoCallbackQueue::~TocinoCallbackQueue() {}
 		   (((q->IsEmpty())? 1:0)))
   
 void
-TocinoCallbackQueue::DoRun (void)
+TestTocinoCallbackQueue::DoRun (void)
 {
   Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
 

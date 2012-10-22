@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
-#ifndef __TOCINO_3X3X3_H__
-#define __TOCINO_3X3X3_H__
+#ifndef __TEST_TOCINO_3X3X3_H__
+#define __TEST_TOCINO_3X3X3_H__
 
 #include <stdint.h>
 #include <vector>
@@ -13,11 +13,11 @@
 
 using namespace ns3;
 
-class Tocino3x3x3 : public TestCase
+class TestTocino3x3x3 : public TestCase
 {
 public:
-    Tocino3x3x3();
-    virtual ~Tocino3x3x3();
+    TestTocino3x3x3();
+    virtual ~TestTocino3x3x3();
 private:
     virtual void DoRun (void);
   
@@ -30,4 +30,4 @@ private:
     std::vector<Ptr<TocinoChannel> > m_channels;
     std::vector<Ptr<TocinoNetDevice> > m_netDevices;
 };
-#endif // __TOCINO_3X3X3_H__
+#endif // __TEST_TOCINO_3X3X3_H__
