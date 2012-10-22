@@ -17,14 +17,14 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx(uint32_t nPorts)
+TocinoTx::TocinoTx(uint32_t nPorts, uint32_t nVCs)
 {
   m_portNumber = 0xffffffff;
   m_xstate = XON;
   m_state = IDLE;
   m_pending_xon = false;
   m_pending_xoff = false;
-  m_queues.resize(nPorts);
+  m_queues.resize(nPorts*nVCs);
 }
 
 TocinoTx::~TocinoTx()
@@ -72,16 +72,11 @@ TocinoTx::Transmit()
 {
     Time transmit_time;
     Ptr<Packet> p = 0;
-    uint32_t winner;
+    uint32_t winner, rx_port;
     
     if (m_state == BUSY) return;
     
-    if (m_pending_xoff && m_pending_xon)
-    {
-        // this is a race and probably an error
-        NS_ASSERT_MSG (false, "race condition detected");
-        return;
-    }
+    NS_ASSERT_MSG(!(m_pending_xoff && m_pending_xon), "race condition detected");
     
     // send an XOFF is one is pending
     if (m_pending_xoff)
@@ -97,7 +92,7 @@ TocinoTx::Transmit()
             else
             {
                 NS_LOG_LOGIC ("scheduling XOFF");
-                //p = xoff_packet.Copy();
+                //FIXME p = xoff_packet.Copy();
             }
 	}
     }
@@ -108,26 +103,27 @@ TocinoTx::Transmit()
         if (m_xstate == XOFF) // only send if we're currently disabled
 	{
             NS_LOG_LOGIC ("scheduling XON");
-            //p = xon_packet.Copy();
+            //FIXME p = xon_packet.Copy();
 	}
     }
     
     if (!p && (m_xstate == XON)) // legal to transmit
     {
         winner = Arbitrate();
-        
-        if( winner < m_tnd->m_nPorts )
+        if (winner < m_queues.size())
         {
+            rx_port = winner/m_tnd->m_nVCs;
+
             // if we've unblocked the winner receive port we need to cause an XON
             // to be scheduled on its corresponding transmit port (hide the crud in
             // TocinoNetDeviceReceiver::CheckForUnblock())
             //
             // check for full must occur before CheckForUnblock but Dequeue must occur
             // whether the queue was full or not
-            if (m_queues[winner]->IsFull())
+            if (m_queues[rx_port]->IsFull())
             {
                 p = m_queues[winner]->Dequeue();
-                m_tnd->m_receivers[winner]->CheckForUnblock();
+                m_tnd->m_receivers[rx_port]->CheckForUnblock();
             }
             else
             {
@@ -161,12 +157,12 @@ TocinoTx::Arbitrate()
 {
   uint32_t i;
 
-  // trivial arbitration - obvious starvation concern
-  for (i = 0; i < m_tnd->m_nPorts; i++)
+    // trivial arbitration - obvious starvation concern
+    for (i = 0; i < m_queues.size(); i++)
     {
-      if (m_queues[i]->IsEmpty() == false) return i;
+        if (m_queues[i]->IsEmpty() == false) return i;
     }
-  return m_tnd->m_nPorts; // nothing pending
+    return m_queues.size(); // nothing pending
 }
 
 } // namespace ns3

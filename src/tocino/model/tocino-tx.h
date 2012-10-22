@@ -20,7 +20,7 @@ class CallbackQueue;
 class TocinoTx
 {
 public:
-    TocinoTx( uint32_t nPorts );
+    TocinoTx( uint32_t nPorts, uint32_t nVCs );
     ~TocinoTx();
    
     void SetXState(TocinoFlowControlState s);
@@ -55,7 +55,7 @@ private:
     Ptr<TocinoChannel> m_channel; // link to channel
 
     void TransmitEnd(); // can this be private? needs to be invoked by Simulator::Schedule()
-    uint32_t Arbitrate();
+    uint32_t Arbitrate(); // returns linearized <port, vc> tuple
 };
 
 } // namespace ns3

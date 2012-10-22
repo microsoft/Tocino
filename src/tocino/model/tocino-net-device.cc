@@ -23,20 +23,20 @@ NS_OBJECT_ENSURE_REGISTERED (TocinoNetDevice);
 
 TypeId TocinoNetDevice::GetTypeId(void)
 {
-  static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
-    .SetParent<NetDevice>()
-    .AddConstructor<TocinoNetDevice>()
-    .AddAttribute ("Ports", 
-                   "Number of ports on net device.",
-                   UintegerValue (TocinoNetDevice::NPORTS),
-                   MakeUintegerAccessor (&TocinoNetDevice::m_nPorts),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("VirtualChannels", 
-                   "Number of virtual channels on each port.",
-                   UintegerValue (1),
-                   MakeUintegerAccessor (&TocinoNetDevice::m_nVCs),
-                   MakeUintegerChecker<uint32_t> ());
-  return tid;
+    static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
+        .SetParent<NetDevice>()
+        .AddConstructor<TocinoNetDevice>()
+        .AddAttribute ("Ports", 
+            "Number of ports on net device.",
+            UintegerValue (TocinoNetDevice::NPORTS),
+            MakeUintegerAccessor (&TocinoNetDevice::m_nPorts),
+            MakeUintegerChecker<uint32_t> ())
+        .AddAttribute ("VirtualChannels", 
+            "Number of virtual channels on each port.",
+            UintegerValue (TocinoNetDevice::NVCS),
+            MakeUintegerAccessor (&TocinoNetDevice::m_nVCs),
+            MakeUintegerChecker<uint32_t> ());
+    return tid;
 }
 
 TocinoNetDevice::TocinoNetDevice() :
@@ -59,43 +59,58 @@ TocinoNetDevice::~TocinoNetDevice()
 void
 TocinoNetDevice::Initialize()
 {
-    uint32_t src, dst, i, j;
+    uint32_t vc, i, j, k, base;
 
     // size data structures
-    m_queues.resize(m_nPorts*m_nPorts);
+    m_queues.resize(m_nPorts*m_nPorts*m_nVCs);
     m_receivers.resize(m_nPorts);
     m_transmitters.resize(m_nPorts);
 
-    // create queues - right now 1 per s/d pair
-    // rewrite when we add virtual channels
-    for (src = 0; src < m_nPorts; src++)
+    // create queues
+    // each port has nVCs queues to each port
+    for (i = 0; i < (m_nPorts * m_nPorts * m_nVCs); i++)
     {
-        for (dst = 0; dst < m_nPorts; dst++)
-        {
-            i = (src * m_nPorts) + dst;
-            m_queues[i] = CreateObject<CallbackQueue>();
-        }
+        m_queues[i] = CreateObject<CallbackQueue>();
     }
   
     // create receivers and transmitters
     for (i = 0; i < m_nPorts; i++)
     {
-        m_receivers[i] = new TocinoRx(m_nPorts);
+        m_receivers[i] = new TocinoRx(m_nPorts, m_nVCs);
         m_receivers[i]->m_tnd = this;
         m_receivers[i]->m_portNumber = i;
         
-        m_transmitters[i] = new TocinoTx(m_nPorts);
+        m_transmitters[i] = new TocinoTx(m_nPorts, m_nVCs);
         m_transmitters[i]->m_tnd = this;
         m_transmitters[i]->m_portNumber = i;
     }
   
-    // build linkage between tx, rx, and q
+    // build linkage between rx and q
+    // each rx uses a block of nPorts*nVCs queues
+    // block for rx i is based at i*nPorts*nVCs
+    for (i = 0; i < m_nPorts; i++)
+    {
+        base = i * m_nPorts * m_nVCs;
+        for (j = 0; j < (m_nPorts * m_nVCs); j++)
+        {
+            m_receivers[i]->m_queues[j] = m_queues[base + j];
+        }
+    }
+
+    // build linkage between tx and q
+    // queues for tx are a set of nPorts blocks
+    // blocks for tx i are based at (i*nVCs)+(j*nPorts*nVCs); 0 < j < nPorts
+    // each block is nVCs in size
     for (i = 0; i < m_nPorts; i++)
     {
         for (j = 0; j < m_nPorts; j++)
         {
-            m_receivers[i]->m_queues[j] = m_queues[(i * m_nPorts) + j];
-            m_transmitters[i]->m_queues[j] = m_queues[i + (j * m_nPorts)];
+            base = (i * m_nVCs) + (j * m_nPorts * m_nVCs);
+            k = (j * m_nVCs);
+            for (vc = 0; vc < m_nVCs; vc++)
+            {
+                m_transmitters[i]->m_queues[k + vc] = m_queues[base + vc];
+            }
         }
     }
 }

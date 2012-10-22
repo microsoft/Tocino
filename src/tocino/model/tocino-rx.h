@@ -18,7 +18,7 @@ class CallbackQueue;
 class TocinoRx
 {
 public:
-    TocinoRx( uint32_t );
+    TocinoRx( uint32_t nPorts, uint32_t nVCs);
     ~TocinoRx();
     
     Ptr<NetDevice> GetNetDevice();
