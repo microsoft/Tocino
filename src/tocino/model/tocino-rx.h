@@ -29,10 +29,15 @@ public:
     friend class TocinoTx;
 private:
     
+    static const uint32_t INVALID_PORT = -1;
+
     uint32_t m_portNumber;
+    uint32_t m_currentRoutePort;
+
     Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
     
     std::vector< Ptr <CallbackQueue> > m_queues; // packet queues to write
+    
     
     bool IsBlocked();
     void CheckForUnblock(); // called from TocinNetDeviceTransmitter

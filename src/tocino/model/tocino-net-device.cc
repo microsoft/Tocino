@@ -43,6 +43,7 @@ TocinoNetDevice::TocinoNetDevice() :
     m_node( 0 ),
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU ),
+    m_incomingPacket( NULL ),
     m_nPorts (NPORTS)
 {}
 
@@ -343,13 +344,10 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> flit )
 {
     NS_LOG_LOGIC("Flit ejected.");
 
-    static Ptr<Packet> incomingPacket( NULL );
-    static TocinoAddress src;
-
     TocinoFlitHeader h;
     flit->RemoveHeader( h );
     
-    if( incomingPacket == NULL )
+    if( m_incomingPacket == NULL )
     {
         NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
         NS_ASSERT_MSG( h.GetDestination() == m_address,
@@ -358,34 +356,34 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> flit )
         //NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
         //    "Ejected packet type is not ethernet?" );
         
-        incomingPacket = flit;
-        src = h.GetSource();
+        m_incomingPacket = flit;
+        m_incomingSource = h.GetSource();
     }
     else
     {
         NS_ASSERT( !h.IsHead() );
-        incomingPacket->AddAtEnd( flit );
+        m_incomingPacket->AddAtEnd( flit );
     }
 
     if( h.IsTail() )
     {
-        NS_ASSERT( incomingPacket != NULL );
+        NS_ASSERT( m_incomingPacket != NULL );
     
         EthernetHeader eh;
         EthernetTrailer et;
 
-        incomingPacket->RemoveHeader( eh );
-        incomingPacket->RemoveTrailer( et );
+        m_incomingPacket->RemoveHeader( eh );
+        m_incomingPacket->RemoveTrailer( et );
 
-        NS_ASSERT_MSG( eh.GetSource() == src.AsMac48Address(),
+        NS_ASSERT_MSG( eh.GetSource() == m_incomingSource.AsMac48Address(),
             "Encapsulated Ethernet frame has a difference source than head flit" );
         
         NS_ASSERT_MSG( eh.GetDestination() == m_address.AsMac48Address(),
             "Encapsulated Ethernet frame has a foreign destination address?" );
 
-        m_rxCallback( this, incomingPacket, eh.GetLengthType(), src );
+        m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), m_incomingSource );
 
-        incomingPacket = NULL;
+        m_incomingPacket = NULL;
     }
 }
 

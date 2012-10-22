@@ -10,6 +10,8 @@
 namespace ns3 {
 
 TocinoRx::TocinoRx( uint32_t nPorts, uint32_t nVCs )
+    : m_portNumber( INVALID_PORT )
+    , m_currentRoutePort( INVALID_PORT )
 {
     m_queues.resize(nPorts*nVCs);
 }
@@ -83,24 +85,17 @@ TocinoRx::Receive(Ptr<Packet> p)
     m_tnd->m_transmitters[tx_port]->Transmit(); // kick the transmitter
 }
 
-namespace
-{
-    // silly hack for now
-    const int INVALID = -1;
-    int currentPort = INVALID;
-}
-
 uint32_t
 TocinoRx::Route(Ptr<Packet> p)
 {
     TocinoFlitHeader h;
     p->PeekHeader( h );
 
-    int outputPort = currentPort;
+    int outputPort = m_currentRoutePort;
 
     if( h.IsHead() )
     {
-        NS_ASSERT( currentPort == INVALID );
+        NS_ASSERT( m_currentRoutePort == INVALID_PORT );
 
         uint8_t x = m_tnd->m_address.GetX();
         uint8_t dx = h.GetDestination().GetX();
@@ -144,14 +139,14 @@ TocinoRx::Route(Ptr<Packet> p)
             outputPort = m_tnd->injectionPortNumber(); 
         }
 
-        currentPort = outputPort;
+        m_currentRoutePort = outputPort;
     }
     
-    NS_ASSERT( currentPort != INVALID );
+    NS_ASSERT( m_currentRoutePort != INVALID_PORT );
 
     if( h.IsTail() )
     {
-        currentPort = INVALID;
+        m_currentRoutePort = INVALID_PORT;
     }
 
     return (outputPort * m_tnd->m_nVCs); // vc 0

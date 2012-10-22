@@ -98,7 +98,11 @@ private:
 
     // current flits to be sent 
     std::deque< Ptr<Packet> > m_outgoingFlits;
-   
+ 
+    // state for EjectFlit
+    Ptr<Packet> m_incomingPacket;
+    TocinoAddress m_incomingSource;
+
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
 

@@ -77,35 +77,20 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
     TocinoChannelHelper( netDeviceOne, 0, netDeviceTwo, 1 );
     TocinoChannelHelper( netDeviceTwo, 1, netDeviceOne, 0 );
 
-    // 1 -> 2 
-
     Reset();
 
     for( unsigned i = 0; i < COUNT; ++i )
     {
         netDeviceOne->Send( p, ADDR_TWO, 0 );
-    }
-
-    Simulator::Run();
-
-    NS_TEST_ASSERT_MSG_EQ( totalCount, COUNT, "1->2: Got unexpected total packet count" );
-    NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES*COUNT, "1->2: Got unexpected total packet bytes" );
-
-    // 2 -> 1 
-
-    Reset();
-
-    for( unsigned i = 0; i < COUNT; ++i )
-    {
         netDeviceTwo->Send( p, ADDR_ONE, 0 );
     }
 
     Simulator::Run();
-
-    NS_TEST_ASSERT_MSG_EQ( totalCount, COUNT, "2->1: Got unexpected total packet count" );
-    NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES*COUNT, "2->1: Got unexpected total packet bytes" );
-    
     Simulator::Destroy();
+
+    NS_TEST_ASSERT_MSG_EQ( totalCount, 2*COUNT, "Got unexpected total packet count" );
+    NS_TEST_ASSERT_MSG_EQ( totalBytes, 2*BYTES*COUNT, "Got unexpected total packet bytes" );
+
 }
 
 void
