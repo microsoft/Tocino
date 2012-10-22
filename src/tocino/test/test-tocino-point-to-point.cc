@@ -9,11 +9,13 @@
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
 #include "ns3/test.h"
+#include "ns3/simulator.h"
+#include "ns3/node.h"
+
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
 #include "ns3/tocino-channel.h"
-#include "ns3/simulator.h"
-#include "ns3/node.h"
+#include "ns3/tocino-helper.h"
 
 #include "test-tocino-point-to-point.h"
 
@@ -65,17 +67,6 @@ Ptr<TocinoNetDevice> TestTocinoPointToPoint::CreateNetDeviceHelper( const Tocino
     return netDevice;
 }
 
-void TestTocinoPointToPoint::CreateChannelHelper( Ptr<TocinoNetDevice> tnda, uint32_t pa, Ptr<TocinoNetDevice> tndb, uint32_t pb )
-{
-    Ptr<TocinoChannel> c = CreateObject<TocinoChannel>();
-
-    tnda->SetTxChannel( c, pa );
-    c->SetTransmitter( tnda->GetTransmitter( pa ) );
-
-    tndb->SetRxChannel( c, pb );
-    c->SetReceiver( tndb->GetReceiver( pb ) );
-}
-
 void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
     Ptr<Packet> p = Create<Packet>( BYTES );
@@ -83,8 +74,8 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
     Ptr<TocinoNetDevice> netDeviceOne = CreateNetDeviceHelper( ADDR_ONE );
     Ptr<TocinoNetDevice> netDeviceTwo = CreateNetDeviceHelper( ADDR_TWO );
 
-    CreateChannelHelper( netDeviceOne, 0, netDeviceTwo, 1 );
-    CreateChannelHelper( netDeviceTwo, 1, netDeviceOne, 0 );
+    TocinoChannelHelper( netDeviceOne, 0, netDeviceTwo, 1 );
+    TocinoChannelHelper( netDeviceTwo, 1, netDeviceOne, 0 );
 
     // 1 -> 2 
 

@@ -3,6 +3,8 @@
 #include "ns3/config.h"
 #include "ns3/uinteger.h"
 
+#include "ns3/tocino-helper.h"
+
 #include "test-tocino-3x3x3.h"
 
 using namespace ns3;
@@ -14,22 +16,6 @@ TestTocino3x3x3::TestTocino3x3x3()
 
 TestTocino3x3x3::~TestTocino3x3x3()
 {
-}
-
-Ptr<TocinoChannel>
-TestTocino3x3x3::TocinoLinkHelper(Ptr<TocinoNetDevice> tx_nd,
-                              uint32_t tx_port,
-                              Ptr<TocinoNetDevice> rx_nd,
-                              uint32_t rx_port)
-{
-    Ptr<TocinoChannel> c = CreateObject<TocinoChannel>();
-              
-  tx_nd->SetTxChannel(c, tx_port);
-  c->SetTransmitter(tx_nd->GetTransmitter(tx_port));
-
-  rx_nd->SetRxChannel(c, rx_port);
-  c->SetReceiver(rx_nd->GetReceiver(rx_port));
-  return c;
 }
 
 void
@@ -78,22 +64,22 @@ TestTocino3x3x3::DoRun (void)
               c = 6 * tx; // base index of a block of 6 channels that tx transmits on
 
               rx = (xp * 9) + (y * 3) + z;
-              m_channels[c + 0] = TocinoLinkHelper(m_netDevices[tx], 0, m_netDevices[rx], 1); // x+
+              m_channels[c + 0] = TocinoChannelHelper(m_netDevices[tx], 0, m_netDevices[rx], 1); // x+
 
               rx = (xm * 9) + (y * 3) + z;
-              m_channels[c + 1] = TocinoLinkHelper(m_netDevices[tx], 1, m_netDevices[rx], 0); // x-
+              m_channels[c + 1] = TocinoChannelHelper(m_netDevices[tx], 1, m_netDevices[rx], 0); // x-
 
               rx = (x * 9) + (yp * 3) + z;
-              m_channels[c + 2] = TocinoLinkHelper(m_netDevices[tx], 2, m_netDevices[rx], 3); // y+
+              m_channels[c + 2] = TocinoChannelHelper(m_netDevices[tx], 2, m_netDevices[rx], 3); // y+
 
               rx = (x * 9) + (ym * 3) + z;
-              m_channels[c + 3] = TocinoLinkHelper(m_netDevices[tx], 3, m_netDevices[rx], 2); // y-
+              m_channels[c + 3] = TocinoChannelHelper(m_netDevices[tx], 3, m_netDevices[rx], 2); // y-
 
               rx = (x * 9) + (y * 3) + zp;
-              m_channels[c + 4] = TocinoLinkHelper(m_netDevices[tx], 4, m_netDevices[rx], 5); // z+
+              m_channels[c + 4] = TocinoChannelHelper(m_netDevices[tx], 4, m_netDevices[rx], 5); // z+
 
               rx = (x * 9) + (y * 3) + zm;
-              m_channels[c + 5] = TocinoLinkHelper(m_netDevices[tx], 5, m_netDevices[rx], 4); // z-
+              m_channels[c + 5] = TocinoChannelHelper(m_netDevices[tx], 5, m_netDevices[rx], 4); // z-
             }
         }
     }
