@@ -9,9 +9,9 @@
 
 namespace ns3 {
 
-TocinoRx::TocinoRx( uint32_t nPorts )
+TocinoRx::TocinoRx( uint32_t nPorts, uint32_t nVCs )
 {
-    m_queues.resize(nPorts);
+    m_queues.resize(nPorts*nVCs);
 }
 
 TocinoRx::~TocinoRx()
@@ -49,7 +49,7 @@ TocinoRx::CheckForUnblock()
 void
 TocinoRx::Receive(Ptr<Packet> p)
 {
-    uint32_t tx_port;
+    uint32_t tx_q, tx_port;
 
     // XON packet enables transmission on this port
     if (/*p->IsXON()*/ 0)
@@ -67,11 +67,12 @@ TocinoRx::Receive(Ptr<Packet> p)
     }
 
     // figure out where the packet goes
-    tx_port = Route(p);
-    m_queues[tx_port]->Enqueue(p);
+    tx_q = Route(p); // return linearized <port, vc> index
+    tx_port = tx_q/m_tnd->m_nVCs; // extract port number from q index
+    m_queues[tx_q]->Enqueue(p);
     
     // if the buffer is full, send XOFF - XOFF blocks ALL traffic to the port
-    if (m_queues[tx_port]->IsFull())
+    if (m_queues[tx_q]->IsFull())
     {
         // ejection port should never be full
         NS_ASSERT_MSG(tx_port != m_tnd->injectionPortNumber(), "ejection port is full");
@@ -153,7 +154,7 @@ TocinoRx::Route(Ptr<Packet> p)
         currentPort = INVALID;
     }
 
-    return outputPort;
+    return (outputPort * m_tnd->m_nVCs); // vc 0
 }
 
 } // namespace ns3
