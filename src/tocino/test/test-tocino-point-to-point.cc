@@ -90,7 +90,6 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, 2*COUNT, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, 2*BYTES*COUNT, "Got unexpected total packet bytes" );
-
 }
 
 void
@@ -99,4 +98,8 @@ TestTocinoPointToPoint::DoRun (void)
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
+    
+    // Disabled -- currently fails
+    //Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
+    //TestHelper( 3, 32 );
 }

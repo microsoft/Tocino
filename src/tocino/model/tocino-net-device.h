@@ -81,7 +81,7 @@ private:
     void InjectFlits(); // Attempt to send m_currentFlits
     
     friend class TestEjectFlit;
-    void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
+    void EjectFlit(Ptr<const Packet>); // this gets called by a TocinoTx to eject a Packet
 
     uint32_t injectionPortNumber() const { return m_nPorts-1; }
 

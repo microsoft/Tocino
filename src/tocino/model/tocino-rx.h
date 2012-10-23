@@ -23,7 +23,7 @@ public:
     
     Ptr<NetDevice> GetNetDevice();
     
-    void Receive(Ptr<Packet> p);
+    void Receive(Ptr<const Packet> p);
     
     friend class TocinoNetDevice;
     friend class TocinoTx;
@@ -42,7 +42,7 @@ private:
     bool IsBlocked();
     void CheckForUnblock(); // called from TocinNetDeviceTransmitter
     
-    uint32_t Route(Ptr<Packet> p); // TODO: make this runtime settable
+    uint32_t Route(Ptr<const Packet> p); // TODO: make this runtime settable
 };
 
 } // namespace ns3

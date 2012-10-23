@@ -41,7 +41,7 @@ void
 TocinoRx::CheckForUnblock()
 {
 
-    if (m_tnd->m_transmitters[m_portNumber]->GetXState() == XOFF)
+    if (m_tnd->m_transmitters[m_portNumber]->GetXState() == TocinoFlowControl::XOFF)
     {
         // if not blocked, schedule XON
         if (!IsBlocked()) m_tnd->m_transmitters[m_portNumber]->SendXON();
@@ -49,29 +49,31 @@ TocinoRx::CheckForUnblock()
 }
 
 void
-TocinoRx::Receive(Ptr<Packet> p)
+TocinoRx::Receive(Ptr<const Packet> p)
 {
     uint32_t tx_q, tx_port;
 
     // XON packet enables transmission on this port
-    if (/*p->IsXON()*/ 0)
+    if (TocinoFlowControl::IsXONPacket(p))
     {
-        m_tnd->m_transmitters[m_portNumber]->SetXState(XON);
+        m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XON);
         m_tnd->m_transmitters[m_portNumber]->Transmit();
         return;
     }
 
     // XOFF packet disables transmission on this port
-    if (/*p->IsXOFF()*/ 0)
+    if (TocinoFlowControl::IsXOFFPacket(p))
     {
-        m_tnd->m_transmitters[m_portNumber]->SetXState(XOFF);
+        m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
         return;
     }
 
     // figure out where the packet goes
     tx_q = Route(p); // return linearized <port, vc> index
     tx_port = tx_q/m_tnd->m_nVCs; // extract port number from q index
-    m_queues[tx_q]->Enqueue(p);
+    
+    bool success = m_queues[tx_q]->Enqueue(p->Copy());
+    NS_ASSERT_MSG( success, "Queue overflow?" );
     
     // if the buffer is full, send XOFF - XOFF blocks ALL traffic to the port
     if (m_queues[tx_q]->IsFull())
@@ -86,7 +88,7 @@ TocinoRx::Receive(Ptr<Packet> p)
 }
 
 uint32_t
-TocinoRx::Route(Ptr<Packet> p)
+TocinoRx::Route(Ptr<const Packet> p)
 {
     TocinoFlitHeader h;
     p->PeekHeader( h );

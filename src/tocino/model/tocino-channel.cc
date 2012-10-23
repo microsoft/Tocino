@@ -44,7 +44,7 @@ TocinoChannel::TocinoChannel()
 TocinoChannel::~TocinoChannel()
 {};
 
-Time TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
+Time TocinoChannel::GetTransmissionTime(Ptr<const Packet> p)
 {
     return Seconds(m_bps.CalculateTxTime(p->GetSerializedSize()*8));
 }
@@ -82,7 +82,7 @@ TocinoChannel::GetDevice(uint32_t i) const
 }
 
 bool
-TocinoChannel::TransmitStart (Ptr<Packet> p)
+TocinoChannel::TransmitStart (Ptr<const Packet> p)
 {
   Time transmit_time;
 

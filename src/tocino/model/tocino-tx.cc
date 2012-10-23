@@ -20,7 +20,7 @@ namespace ns3 {
 TocinoTx::TocinoTx(uint32_t nPorts, uint32_t nVCs)
 {
   m_portNumber = 0xffffffff;
-  m_xstate = XON;
+  m_xstate = TocinoFlowControl::XON;
   m_state = IDLE;
   m_pending_xon = false;
   m_pending_xoff = false;
@@ -30,12 +30,12 @@ TocinoTx::TocinoTx(uint32_t nPorts, uint32_t nVCs)
 TocinoTx::~TocinoTx()
 {}
 
-void TocinoTx::SetXState(TocinoFlowControlState s)
+void TocinoTx::SetXState(TocinoFlowControl::State s)
 {
     m_xstate = s;
 }
 
-TocinoFlowControlState TocinoTx::GetXState()
+TocinoFlowControl::State TocinoTx::GetXState()
 {
     return m_xstate;
 }
@@ -71,7 +71,7 @@ void
 TocinoTx::Transmit()
 {
     Time transmit_time;
-    Ptr<Packet> p = 0;
+    Ptr<const Packet> p = 0;
     uint32_t winner, rx_port;
     
     if (m_state == BUSY) return;
@@ -82,7 +82,7 @@ TocinoTx::Transmit()
     if (m_pending_xoff)
     {
         m_pending_xoff = false;
-        if (m_xstate == XON) // only send if we're currently enabled
+        if (m_xstate == TocinoFlowControl::XON) // only send if we're currently enabled
 	{
             if (m_portNumber == m_tnd->injectionPortNumber())
             {
@@ -92,7 +92,7 @@ TocinoTx::Transmit()
             else
             {
                 NS_LOG_LOGIC ("scheduling XOFF");
-                //FIXME p = xoff_packet.Copy();
+                p = TocinoFlowControl::GetXOFFPacket();
             }
 	}
     }
@@ -100,14 +100,14 @@ TocinoTx::Transmit()
     if (!p && m_pending_xon)
     {
         m_pending_xon = false;
-        if (m_xstate == XOFF) // only send if we're currently disabled
+        if (m_xstate == TocinoFlowControl::XOFF) // only send if we're currently disabled
 	{
             NS_LOG_LOGIC ("scheduling XON");
-            //FIXME p = xon_packet.Copy();
+            p = TocinoFlowControl::GetXONPacket();
 	}
     }
     
-    if (!p && (m_xstate == XON)) // legal to transmit
+    if (!p && (m_xstate == TocinoFlowControl::XON)) // legal to transmit
     {
         winner = Arbitrate();
         if (winner < m_queues.size())
@@ -129,6 +129,8 @@ TocinoTx::Transmit()
             {
                 p = m_queues[winner]->Dequeue();
             }
+        
+            NS_ASSERT_MSG( p != NULL, "Queue underrun?" );
         }
     }
 
@@ -166,4 +168,3 @@ TocinoTx::Arbitrate()
 }
 
 } // namespace ns3
-

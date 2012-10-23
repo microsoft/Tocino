@@ -16,6 +16,7 @@ def build(bld):
         'model/tocino-rx.cc',
         'model/tocino-net-device.cc',
         'model/tocino-flit-header.cc',
+        'model/tocino-flow-control.cc',
         'helper/tocino-helper.cc',
         ]
 
@@ -40,7 +41,7 @@ def build(bld):
         'model/callback-queue.h',
         'model/tocino-address.h',
         'model/tocino-flit-header.h',
-        'model/tocino-misc.h',
+        'model/tocino-flow-control.h',
         'helper/tocino-helper.h',
         ]
 

@@ -7,7 +7,7 @@
 #include "ns3/ptr.h"
 #include "ns3/packet.h"
 
-#include "tocino-misc.h"
+#include "tocino-flow-control.h"
 
 namespace ns3
 {
@@ -23,8 +23,8 @@ public:
     TocinoTx( uint32_t nPorts, uint32_t nVCs );
     ~TocinoTx();
    
-    void SetXState(TocinoFlowControlState s);
-    TocinoFlowControlState GetXState();
+    void SetXState(TocinoFlowControl::State s);
+    TocinoFlowControl::State GetXState();
     
     void SetChannel(Ptr<TocinoChannel> channel);
     void SendXOFF();
@@ -39,7 +39,7 @@ public:
 private:
     uint32_t m_portNumber;
     
-    TocinoFlowControlState m_xstate;
+    TocinoFlowControl::State m_xstate;
     Ptr<Packet> m_packet;
 
     enum TocinoTransmitterState {IDLE, BUSY};

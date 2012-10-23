@@ -340,12 +340,15 @@ void TocinoNetDevice::InjectFlits()
     }
 }
 
-void TocinoNetDevice::EjectFlit( Ptr<Packet> flit )
+void TocinoNetDevice::EjectFlit( Ptr<const Packet> flit )
 {
     NS_LOG_LOGIC("Flit ejected.");
 
+    // Avoid modifying the passed-in packet.
+    Ptr<Packet> f = flit->Copy();
+
     TocinoFlitHeader h;
-    flit->RemoveHeader( h );
+    f->RemoveHeader( h );
     
     if( m_incomingPacket == NULL )
     {
@@ -356,13 +359,13 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> flit )
         //NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
         //    "Ejected packet type is not ethernet?" );
         
-        m_incomingPacket = flit;
+        m_incomingPacket = f;
         m_incomingSource = h.GetSource();
     }
     else
     {
         NS_ASSERT( !h.IsHead() );
-        m_incomingPacket->AddAtEnd( flit );
+        m_incomingPacket->AddAtEnd( f );
     }
 
     if( h.IsTail() )
