@@ -27,6 +27,7 @@ def build(bld):
         'test/test-tocino-flitter.cc',
         'test/test-tocino-flitloopback.cc',
         'test/test-tocino-point-to-point.cc',
+        'test/test-tocino-ring.cc',
         'test/test-tocino-3x3x3.cc',
         'test/tocino-test-suite.cc',
         ]
