@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
+#include <cstdio>
+
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/nstime.h"
@@ -44,7 +46,8 @@ TocinoChannel::TocinoChannel()
 TocinoChannel::~TocinoChannel()
 {};
 
-Time TocinoChannel::GetTransmissionTime(Ptr<const Packet> p)
+Time TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
+//Time TocinoChannel::GetTransmissionTime(Ptr<const Packet> p)
 {
     return Seconds(m_bps.CalculateTxTime(p->GetSerializedSize()*8));
 }
@@ -73,41 +76,49 @@ Ptr<NetDevice>
 TocinoChannel::GetDevice(uint32_t i) const
 {
     if (i == TX_DEV)
-        {
-            if (m_tx == NULL) return 0;
-            return m_tx->GetNetDevice();
-        }
+    {
+        if (m_tx == NULL) return 0;
+        return m_tx->GetNetDevice();
+    }
     if (m_rx == NULL) return 0;
     return m_rx->GetNetDevice();
 }
 
 bool
-TocinoChannel::TransmitStart (Ptr<const Packet> p)
+TocinoChannel::TransmitStart (Ptr<Packet> p)
+//TocinoChannel::TransmitStart (Ptr<const Packet> p)
 {
-  Time transmit_time;
-
-  if (m_state != IDLE)
+    Time transmit_time;
+    
+    if (m_state != IDLE)
     {
-      NS_LOG_ERROR ("TocinoChannel::TransmitStart(): m_state is not IDLE");
-      return false;
+        NS_LOG_ERROR ("TocinoChannel::TransmitStart(): m_state is not IDLE");
+        return false;
     }
-  m_packet = p;
-
-  NS_LOG_INFO("starting packet transmission");
-  transmit_time = GetTransmissionTime(p);
-  Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
-  return true;
+    m_packet = p;
+    
+    //char str[64];
+    //sprintf(str,"starting transmission of 0x%08x", (uint32_t)PeekPointer(p));
+    //NS_LOG_INFO(str);
+ 
+    transmit_time = GetTransmissionTime(p);
+    Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
+    return true;
 }
 
 void 
 TocinoChannel::TransmitEnd ()
 {
     m_state = IDLE; // wire can be pipelined
-    Simulator::ScheduleWithContext(m_rx->GetNetDevice()->GetNode()->GetId(), // need to look at this
-                                   m_delay,
-                                   &TocinoRx::Receive,
-                                   m_rx,
-                                   m_packet);
+    Simulator::Schedule(m_delay,
+        &TocinoRx::Receive,
+        m_rx,
+        m_packet);
+    // Simulator::ScheduleWithContext(m_rx->GetNetDevice()->GetNode()->GetId(), // need to look at this
+    //                                m_delay,
+    //                                &TocinoRx::Receive,
+    //                                m_rx,
+    //                                m_packet);
 }
 
 } // namespace ns3

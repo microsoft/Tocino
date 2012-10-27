@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
+#include <cstdio>
+
 #include "ns3/log.h"
 #include "ns3/data-rate.h"
 #include "ns3/uinteger.h"
@@ -110,6 +112,12 @@ TocinoNetDevice::Initialize()
             k = (j * m_nVCs);
             for (vc = 0; vc < m_nVCs; vc++)
             {
+                // assign names to queues to help debug
+                // better name would include TocinoNetDevice id
+                char str[32];
+                sprintf(str,"%d:%d_%d", j, vc, i); // q name - src:vc_dst
+                m_queues[base + vc]->SetName(str);
+
                 m_transmitters[i]->m_queues[k + vc] = m_queues[base + vc];
             }
         }
@@ -332,20 +340,48 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 
 void TocinoNetDevice::InjectFlits()
 {
+
+    NS_LOG_FUNCTION(this->m_node << this->m_ifIndex);
+
     while( !m_outgoingFlits.empty() &&
         !m_receivers[injectionPortNumber()]->IsBlocked() )
     {
-        m_receivers[injectionPortNumber()]->Receive( m_outgoingFlits.front() );
+        Ptr<Packet> p;
+        TocinoFlitHeader h;
+        m_outgoingFlits.front()->PeekHeader(h);
+        if (h.IsHead() && h.IsTail())
+        {
+            //NS_LOG_LOGIC("flit injected: singleton");
+        }
+        else if (h.IsHead())
+        {
+            //NS_LOG_LOGIC("flit injected: head");
+        }
+        else if (h.IsTail())
+        {
+            //NS_LOG_LOGIC("flit injected: tail");
+        }
+        else
+        {
+            //NS_LOG_LOGIC("flit injected:body");
+        }
+
+        // must pop prior to calling Receive; Receive can indirectly generate
+        // a call to InjectFlits which can cause a flit to be sent twice if pop
+        // occurs after Receive
+        p = m_outgoingFlits.front();
         m_outgoingFlits.pop_front();
+        m_receivers[injectionPortNumber()]->Receive(p);
     }
 }
 
-void TocinoNetDevice::EjectFlit( Ptr<const Packet> flit )
+//void TocinoNetDevice::EjectFlit( Ptr<const Packet> flit )
+void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
-    NS_LOG_LOGIC("Flit ejected.");
+    NS_LOG_FUNCTION((uint32_t)PeekPointer(f));
 
-    // Avoid modifying the passed-in packet.
-    Ptr<Packet> f = flit->Copy();
+    // Avoid modifying the passed-in packet. <dharpe - why?>
+    //Ptr<Packet> f = flit->Copy();
 
     TocinoFlitHeader h;
     f->RemoveHeader( h );
@@ -365,7 +401,7 @@ void TocinoNetDevice::EjectFlit( Ptr<const Packet> flit )
     else
     {
         NS_ASSERT( !h.IsHead() );
-        m_incomingPacket->AddAtEnd( f );
+        //m_incomingPacket->AddAtEnd( f );
     }
 
     if( h.IsTail() )
@@ -383,18 +419,9 @@ void TocinoNetDevice::EjectFlit( Ptr<const Packet> flit )
         
         NS_ASSERT_MSG( eh.GetDestination() == m_address.AsMac48Address(),
             "Encapsulated Ethernet frame has a foreign destination address?" );
-
         m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), m_incomingSource );
-
         m_incomingPacket = NULL;
     }
-}
-
-void
-TocinoNetDevice::SetRxChannel(Ptr<TocinoChannel> c, uint32_t port)
-{
-  // not sure we care about this - linkage is TocinoChannel invoking Receive
-  //m_receivers[port]->SetChannel(c);
 }
 
 } // namespace ns3

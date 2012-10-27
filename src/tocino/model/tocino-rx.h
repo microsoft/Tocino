@@ -23,7 +23,8 @@ public:
     
     Ptr<NetDevice> GetNetDevice();
     
-    void Receive(Ptr<const Packet> p);
+//    void Receive(Ptr<const Packet> p);
+    void Receive(Ptr<Packet> p);
     
     friend class TocinoNetDevice;
     friend class TocinoTx;

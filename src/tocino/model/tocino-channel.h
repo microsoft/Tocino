@@ -23,8 +23,10 @@ public:
     TocinoChannel();
     virtual ~TocinoChannel();
     
-    bool TransmitStart(Ptr<const Packet> p);
-    Time GetTransmissionTime(Ptr<const Packet> p);
+    bool TransmitStart(Ptr<Packet> p);
+    //bool TransmitStart(Ptr<const Packet> p);
+    Time GetTransmissionTime(Ptr<Packet> p);
+    //Time GetTransmissionTime(Ptr<const Packet> p);
     
     void SetNetDevice(Ptr<TocinoNetDevice> tnd);
     
@@ -45,7 +47,8 @@ private:
     Time m_delay;
     DataRate m_bps;
     
-    Ptr<const Packet> m_packet;
+    Ptr<Packet> m_packet;
+//    Ptr<const Packet> m_packet;
     
     Ptr<TocinoNetDevice> m_tnd;
     TocinoTx* m_tx;

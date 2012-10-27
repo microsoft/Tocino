@@ -29,10 +29,13 @@ public:
     void DisableCallback(uint32_t i) {m_cb[i].m_cbState = OFF;}
     void SetFreeWM(uint32_t n) {m_freewm = (n>m_maxDepth)? 0:n;} // set high water mark
     void SetFullWM(uint32_t n) {m_fullwm = (n>m_maxDepth)? 0:n;} // set low water mark
+    void SetName(char *name) {strncpy(m_name, name, 31); m_name[31] = 0;}
     uint32_t Size() {return m_q.size();}
     
 private:
     static const uint32_t MAXDEPTH = 8;
+
+    char m_name[32]; // symbolic name for queue - debug assist
 
     bool DoEnqueue(Ptr<Packet> p);
     Ptr<Packet> DoDequeue(void);

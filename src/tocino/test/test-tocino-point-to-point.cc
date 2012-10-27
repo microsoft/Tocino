@@ -99,7 +99,6 @@ TestTocinoPointToPoint::DoRun (void)
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
     
-    // Disabled -- currently fails
-    //Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
-    //TestHelper( 3, 32 );
+    Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
+    TestHelper( 3, 32 );
 }

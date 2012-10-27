@@ -17,8 +17,6 @@ TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
 
     tx_nd->SetTxChannel( c, tx_port );
     c->SetTransmitter( tx_nd->GetTransmitter( tx_port ) );
-
-    rx_nd->SetRxChannel( c, rx_port );
     c->SetReceiver( rx_nd->GetReceiver( rx_port ) );
 
     return c;

@@ -56,7 +56,6 @@ public:
     
     void Initialize();
     void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
-    void SetRxChannel(Ptr<TocinoChannel> c, uint32_t port);
 
     TocinoRx* GetReceiver(uint32_t p) {return m_receivers[p];}
     TocinoTx* GetTransmitter(uint32_t p) {return m_transmitters[p];}
@@ -81,9 +80,11 @@ private:
     void InjectFlits(); // Attempt to send m_currentFlits
     
     friend class TestEjectFlit;
-    void EjectFlit(Ptr<const Packet>); // this gets called by a TocinoTx to eject a Packet
+//    void EjectFlit(Ptr<const Packet>); // this gets called by a TocinoTx to eject a Packet
+    void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
 
     uint32_t injectionPortNumber() const { return m_nPorts-1; }
+    uint32_t ejectionPortNumber() const { return m_nPorts-1; }
 
     Ptr<Node> m_node;
     uint32_t m_ifIndex;

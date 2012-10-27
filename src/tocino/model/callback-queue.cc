@@ -37,6 +37,7 @@ CallbackQueue::CallbackQueue() : Queue(), m_q ()
     }
 
   m_maxDepth = MAXDEPTH; // should be consistent with value in TypeId
+  m_name[0] = 0;
   m_fullwm = 0;
   m_freewm = 0;
 }
@@ -121,22 +122,40 @@ CallbackQueue::DoCallbacks()
 bool
 CallbackQueue::DoEnqueue(Ptr<Packet> p) 
 {
-  if (m_q.size() >= m_maxDepth) return false;
+    if (m_name[0])
+    {
+//        NS_LOG_FUNCTION(m_name << p << m_q.size() << m_maxDepth);
+    }
+    else
+    {
+//        NS_LOG_FUNCTION(this << p << m_q.size() << m_maxDepth);
+    }
 
-  m_q.push (p);
-  DoCallbacks();
-  return true;
+    if (m_q.size() >= m_maxDepth) return false;
+    
+    m_q.push (p);
+    DoCallbacks();
+    return true;
 }
 
 Ptr<Packet>
 CallbackQueue::DoDequeue() 
 {
-  if (m_q.empty ()) return 0;
+    if (m_name[0])
+    {
+//        NS_LOG_FUNCTION(m_name << m_q.size() << m_maxDepth);
+    }
+    else
+    {
+//        NS_LOG_FUNCTION(this << m_q.size() << m_maxDepth);
+    }
 
-  Ptr<Packet> p = m_q.front ();
-  m_q.pop ();
-  DoCallbacks();
-  return p;
+    if (m_q.empty ()) return 0;
+
+    Ptr<Packet> p = m_q.front ();
+    m_q.pop ();
+    DoCallbacks();
+    return p;
 }
 
 Ptr<const Packet>
