@@ -9,6 +9,8 @@
 #include "ns3/channel.h"
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
+#include "ns3/pointer.h"
+#include "ns3/object-factory.h"
 
 #include "tocino-net-device.h"
 #include "tocino-rx.h"
@@ -16,6 +18,7 @@
 #include "callback-queue.h"
 #include "tocino-channel.h"
 #include "tocino-flit-header.h"
+#include "tocino-trivial-router.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoNetDevice");
 
@@ -30,23 +33,35 @@ TypeId TocinoNetDevice::GetTypeId(void)
         .AddConstructor<TocinoNetDevice>()
         .AddAttribute ("Ports", 
             "Number of ports on net device.",
-            UintegerValue (TocinoNetDevice::NPORTS),
+            UintegerValue (TocinoNetDevice::DEFAULT_NPORTS),
             MakeUintegerAccessor (&TocinoNetDevice::m_nPorts),
             MakeUintegerChecker<uint32_t> ())
         .AddAttribute ("VirtualChannels", 
             "Number of virtual channels on each port.",
-            UintegerValue (TocinoNetDevice::NVCS),
+            UintegerValue (TocinoNetDevice::DEFAULT_NVCS),
             MakeUintegerAccessor (&TocinoNetDevice::m_nVCs),
-            MakeUintegerChecker<uint32_t> ());
+            MakeUintegerChecker<uint32_t> ())
+        .AddAttribute ("RouterType",
+            "Name of type which implements routing algorithm.",
+            TypeIdValue (TocinoTrivialRouter::GetTypeId ()),
+            MakeTypeIdAccessor (&TocinoNetDevice::m_routerTypeId),
+            MakeTypeIdChecker ());
     return tid;
 }
 
 TocinoNetDevice::TocinoNetDevice() :
-    m_node( 0 ),
+    m_node( NULL ),
     m_ifIndex( 0 ),
     m_mtu( DEFAULT_MTU ),
+    m_address( 0 ),
     m_incomingPacket( NULL ),
-    m_nPorts (NPORTS)
+    m_incomingSource( 0 ),
+    m_rxCallback( NULL ),
+    m_promiscRxCallback( NULL ),
+    m_nPorts( DEFAULT_NPORTS ),
+    m_nVCs( DEFAULT_NVCS ),
+    m_routerTypeId( TocinoTrivialRouter::GetTypeId() ),
+    m_router( NULL )
 {}
 
 TocinoNetDevice::~TocinoNetDevice()
@@ -57,6 +72,9 @@ TocinoNetDevice::~TocinoNetDevice()
         delete m_receivers[i];
         delete m_transmitters[i];
     }
+
+    NS_ASSERT_MSG( m_packetQueue.empty(), "Unsent packets?" );
+    NS_ASSERT_MSG( m_outgoingFlits.empty(), "Unsent flits?" );
 }
 
 void
@@ -79,12 +97,10 @@ TocinoNetDevice::Initialize()
     // create receivers and transmitters
     for (i = 0; i < m_nPorts; i++)
     {
-        m_receivers[i] = new TocinoRx(m_nPorts, m_nVCs);
-        m_receivers[i]->m_tnd = this;
+        m_receivers[i] = new TocinoRx( this );
         m_receivers[i]->m_portNumber = i;
         
-        m_transmitters[i] = new TocinoTx(m_nPorts, m_nVCs);
-        m_transmitters[i]->m_tnd = this;
+        m_transmitters[i] = new TocinoTx( this );
         m_transmitters[i]->m_portNumber = i;
     }
   
@@ -122,6 +138,14 @@ TocinoNetDevice::Initialize()
             }
         }
     }
+
+    ObjectFactory routerFactory;
+    routerFactory.SetTypeId( m_routerTypeId );
+
+    m_router = routerFactory.Create<TocinoRouter>();
+    m_router->Initialize( this );
+
+    NS_ASSERT( m_router != NULL );
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
@@ -344,26 +368,27 @@ void TocinoNetDevice::InjectFlits()
     NS_LOG_FUNCTION(this->m_node << this->m_ifIndex);
 
     while( !m_outgoingFlits.empty() &&
-        !m_receivers[injectionPortNumber()]->IsBlocked() )
+        !m_receivers[ GetHostPort() ]->IsBlocked() )
     {
         Ptr<Packet> p;
         TocinoFlitHeader h;
         m_outgoingFlits.front()->PeekHeader(h);
+        
         if (h.IsHead() && h.IsTail())
         {
-            //NS_LOG_LOGIC("flit injected: singleton");
+            NS_LOG_LOGIC("flit injected: singleton");
         }
         else if (h.IsHead())
         {
-            //NS_LOG_LOGIC("flit injected: head");
+            NS_LOG_LOGIC("flit injected: head");
         }
         else if (h.IsTail())
         {
-            //NS_LOG_LOGIC("flit injected: tail");
+            NS_LOG_LOGIC("flit injected: tail");
         }
         else
         {
-            //NS_LOG_LOGIC("flit injected:body");
+            NS_LOG_LOGIC("flit injected:body");
         }
 
         // must pop prior to calling Receive; Receive can indirectly generate
@@ -371,17 +396,13 @@ void TocinoNetDevice::InjectFlits()
         // occurs after Receive
         p = m_outgoingFlits.front();
         m_outgoingFlits.pop_front();
-        m_receivers[injectionPortNumber()]->Receive(p);
+        m_receivers[ GetHostPort() ]->Receive(p);
     }
 }
 
-//void TocinoNetDevice::EjectFlit( Ptr<const Packet> flit )
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
     NS_LOG_FUNCTION((uint32_t)PeekPointer(f));
-
-    // Avoid modifying the passed-in packet. <dharpe - why?>
-    //Ptr<Packet> f = flit->Copy();
 
     TocinoFlitHeader h;
     f->RemoveHeader( h );
@@ -401,7 +422,7 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
     else
     {
         NS_ASSERT( !h.IsHead() );
-        //m_incomingPacket->AddAtEnd( f );
+        m_incomingPacket->AddAtEnd( f );
     }
 
     if( h.IsTail() )
@@ -422,6 +443,60 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), m_incomingSource );
         m_incomingPacket = NULL;
     }
+}
+
+TocinoRx*
+TocinoNetDevice::GetReceiver(uint32_t p) const
+{
+    return m_receivers[p];
+}
+
+TocinoTx*
+TocinoNetDevice::GetTransmitter(uint32_t p) const
+{
+    return m_transmitters[p];
+}
+
+uint32_t
+TocinoNetDevice::GetNPorts() const
+{ 
+    return m_nPorts;
+}
+
+uint32_t
+TocinoNetDevice::GetNVCs() const
+{
+    return m_nVCs;
+}
+
+uint32_t
+TocinoNetDevice::PortToQueue( uint32_t port ) const
+{
+    return port * m_nVCs;
+}
+
+uint32_t
+TocinoNetDevice::QueueToPort( uint32_t queue ) const
+{
+    return queue / m_nVCs;
+}
+
+uint32_t
+TocinoNetDevice::GetHostPort() const
+{
+    return m_nPorts - 1;
+}
+
+Ptr<TocinoRouter>
+TocinoNetDevice::GetRouter() const
+{
+    return m_router;
+}
+
+void
+TocinoNetDevice::SetRouter( Ptr<TocinoRouter> r )
+{
+    m_router = r;
 }
 
 } // namespace ns3

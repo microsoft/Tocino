@@ -11,6 +11,7 @@
 #include "ns3/test.h"
 #include "ns3/simulator.h"
 #include "ns3/node.h"
+#include "ns3/string.h"
 
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
@@ -95,10 +96,13 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
 void
 TestTocinoPointToPoint::DoRun (void)
 {
+    Config::SetDefault("ns3::TocinoNetDevice::RouterType",
+        StringValue( "ns3::TocinoDimensionOrderRouter" ) );
+    
+    Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
+
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
-    
-    Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
     TestHelper( 3, 32 );
 }

@@ -402,6 +402,12 @@ void
 Buffer::AddAtEnd (const Buffer &o)
 {
   NS_LOG_FUNCTION (this << &o);
+// MAS - This "optimization" appears to be bugged.
+// Everything seems to work fine with it disabled.
+// When enabled, we overwrite buffers and the
+// resulting heap corruption is a nightmare.
+// (Valgrind can detect the overrun.)
+#if 0
   if (m_data->m_count == 1 &&
       m_end == m_zeroAreaEnd &&
       m_end == m_data->m_dirtyEnd &&
@@ -427,6 +433,7 @@ Buffer::AddAtEnd (const Buffer &o)
       NS_ASSERT (CheckInternalState ());
       return;
     }
+#endif
 
   Buffer dst = CreateFullCopy ();
   Buffer src = o.CreateFullCopy ();

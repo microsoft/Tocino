@@ -14,20 +14,23 @@
 #include "callback-queue.h"
 #include "tocino-net-device.h"
 #include "tocino-channel.h"
+#include "tocino-misc.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx(uint32_t nPorts, uint32_t nVCs)
-{
-  m_portNumber = 0xffffffff;
-  m_xstate = TocinoFlowControl::XON;
-  m_state = IDLE;
-  m_pending_xon = false;
-  m_pending_xoff = false;
-  m_queues.resize(nPorts*nVCs);
-}
+TocinoTx::TocinoTx( Ptr<TocinoNetDevice> tnd )
+    : m_portNumber( TOCINO_INVALID_PORT )
+    , m_xstate( TocinoFlowControl::XON )
+    , m_packet( NULL )
+    , m_state( IDLE )
+    , m_pending_xon( false )
+    , m_pending_xoff( false )
+    , m_tnd( tnd )
+    , m_queues( tnd->GetNPorts() * tnd->GetNVCs() )
+    , m_channel( NULL )
+{}
 
 TocinoTx::~TocinoTx()
 {}
@@ -74,15 +77,13 @@ TocinoTx::Transmit()
 {
     Time transmit_time;
     Ptr<Packet> p = 0;
-//    Ptr<const Packet> p = 0;
     uint32_t winner, rx_port;
-//    char str[64];
     
-    //NS_LOG_FUNCTION(this->m_portNumber);
+    NS_LOG_FUNCTION( m_portNumber );
 
     if (m_state == BUSY) 
     {
-//        NS_LOG_LOGIC("transmitter " << m_portNumber << " BUSY");
+        NS_LOG_LOGIC("transmitter " << m_portNumber << " BUSY");
         return;
     }
     
@@ -92,7 +93,7 @@ TocinoTx::Transmit()
     if (m_pending_xoff)
     {
         m_pending_xoff = false;
-        if (m_portNumber == m_tnd->injectionPortNumber())
+            if (m_portNumber == m_tnd->GetHostPort())
         {
             // do nothing on an injection port stall
             // this case is handled by the transmitter
@@ -101,19 +102,17 @@ TocinoTx::Transmit()
         {
             if (m_xstate == TocinoFlowControl::XON) // only send if we're currently enabled
             {
-                //              sprintf(str,"sending XOFF on transmitter %d", m_portNumber);
-                //NS_LOG_LOGIC(str);
+                NS_LOG_LOGIC( "sending XOFF on transmitter " << m_portNumber );
                 p = TocinoFlowControl::GetXOFFPacket();
             }
         }
-        //sprintf(str, "pending XOFF processed for port %d", m_portNumber);
-        //NS_LOG_LOGIC(str);
+        NS_LOG_LOGIC( "pending XOFF processed for port " << m_portNumber );
     }
     
     if (!p && m_pending_xon)
     {
         m_pending_xon = false;
-        if (m_portNumber == m_tnd->injectionPortNumber())
+        if (m_portNumber == m_tnd->GetHostPort())
         {
             // do nothing on an injection port resume
             // this case is handled by the transmitter
@@ -122,13 +121,11 @@ TocinoTx::Transmit()
         {
             if (m_xstate == TocinoFlowControl::XOFF) // only send if we're currently disabled
             {
-                //      sprintf(str,"sending XON on transmitter %d", m_portNumber);
-                //NS_LOG_LOGIC(str);
+                NS_LOG_LOGIC( "sending XON on transmitter " << m_portNumber );
                 p = TocinoFlowControl::GetXONPacket();
             }
         }
-        //sprintf(str, "pending XON processed for port %d", m_portNumber);
-        //NS_LOG_LOGIC(str);
+        NS_LOG_LOGIC( "pending XON processed for port " << m_portNumber );
     }
     
     if (!p && (m_xstate == TocinoFlowControl::XON)) // legal to transmit
@@ -147,8 +144,9 @@ TocinoTx::Transmit()
             // whether the queue was full or not
             if (m_queues[winner]->IsFull())
             {
-                rx_port = winner/m_tnd->m_nVCs;
-                if (rx_port == m_tnd->injectionPortNumber()) // special handling
+                rx_port = m_tnd->QueueToPort( winner );
+
+                if (rx_port == m_tnd->GetHostPort()) // special handling
                 {
                     bool was_blocked, is_blocked;
                     
@@ -160,14 +158,14 @@ TocinoTx::Transmit()
                     if (was_blocked && !is_blocked) // restart injection process if it had stalled
                     {
                         // kick the net device
-                        //              NS_LOG_LOGIC ("kicking InjectFlits");
-                        //m_tnd->InjectFlits();
+                        // NS_LOG_LOGIC ("kicking InjectFlits");
+                        m_tnd->InjectFlits();
                     }
                 }
                 else
                 {
                     p = m_queues[winner]->Dequeue();
-                    //NS_LOG_LOGIC("request CheckForUnblock");
+                    NS_LOG_LOGIC("request CheckForUnblock");
                     m_tnd->m_receivers[rx_port]->CheckForUnblock();
                 }
             }
@@ -180,12 +178,12 @@ TocinoTx::Transmit()
     }
     else
     {
-//        NS_LOG_LOGIC("transmitter in XOFF state");
+        NS_LOG_LOGIC("transmitter in XOFF state");
     }
 
     if (p) // send the packet onward
     {
-        if (m_portNumber == m_tnd->ejectionPortNumber()) // connected to ejection port
+        if (m_portNumber == m_tnd->GetHostPort()) // connected to ejection port
         {
             // ejection port modeled as having infinite bandwidth and buffering
             // need to keep m_state == BUSY to this point to prevent reentrancy

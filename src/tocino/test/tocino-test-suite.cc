@@ -22,10 +22,7 @@ public:
 TocinoTestSuite::TocinoTestSuite ()
     : TestSuite ("tocino", UNIT)
 {
-    AddTestCase( new TestTocinoCallbackQueue );
-    AddTestCase( new TestTocinoFlitHeader );
-    AddTestCase( new TestTocinoFlitter );
-    AddTestCase( new TestTocinoFlitLoopback );
+// Uncomment to taste
 //    LogComponentEnable("TocinoNetDevice", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
 //    LogComponentEnable("TocinoTx",  (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
 //    LogComponentEnable("TocinoRx", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
@@ -33,6 +30,11 @@ TocinoTestSuite::TocinoTestSuite ()
 //    LogComponentEnable("TocinoChannel", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
 //    LogComponentEnable("DefaultSimulatorImpl", (LogLevel)(LOG_LEVEL_FUNCTION|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
 //    LogComponentEnable("MapScheduler", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    
+    AddTestCase( new TestTocinoCallbackQueue );
+    AddTestCase( new TestTocinoFlitHeader );
+    AddTestCase( new TestTocinoFlitter );
+    AddTestCase( new TestTocinoFlitLoopback );
     AddTestCase( new TestTocinoPointToPoint );
     AddTestCase( new TestTocinoRing );
     AddTestCase( new TestTocino3x3x3 );

@@ -8,6 +8,7 @@
 
 #include "tocino-address.h"
 #include "tocino-flit-header.h"
+#include "tocino-router.h"
 
 namespace ns3
 {
@@ -55,11 +56,21 @@ public:
     virtual bool SupportsSendFrom( void ) const;
     
     void Initialize();
+
     void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
 
-    TocinoRx* GetReceiver(uint32_t p) {return m_receivers[p];}
-    TocinoTx* GetTransmitter(uint32_t p) {return m_transmitters[p];}
-    
+    TocinoRx* GetReceiver( uint32_t ) const;
+    TocinoTx* GetTransmitter( uint32_t ) const;
+   
+    uint32_t GetNPorts() const;
+    uint32_t GetNVCs() const;
+
+    // Get the injection/ejection port
+    uint32_t GetHostPort() const;
+
+    uint32_t PortToQueue( uint32_t port ) const;
+    uint32_t QueueToPort( uint32_t queue ) const;
+
     friend class TocinoRx;
     friend class TocinoTx;
 
@@ -68,11 +79,11 @@ public:
             const TocinoAddress&,
             const TocinoAddress&,
             const TocinoFlitHeader::Type );
-    
+   
+    Ptr<TocinoRouter> GetRouter() const;
+    void SetRouter( Ptr<TocinoRouter> );
+
 private:
-    static const uint32_t NPORTS = 7;
-    static const uint32_t NVCS = 2;
-    
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
@@ -80,11 +91,7 @@ private:
     void InjectFlits(); // Attempt to send m_currentFlits
     
     friend class TestEjectFlit;
-//    void EjectFlit(Ptr<const Packet>); // this gets called by a TocinoTx to eject a Packet
     void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
-
-    uint32_t injectionPortNumber() const { return m_nPorts-1; }
-    uint32_t ejectionPortNumber() const { return m_nPorts-1; }
 
     Ptr<Node> m_node;
     uint32_t m_ifIndex;
@@ -106,12 +113,19 @@ private:
 
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
+    
+    static const uint32_t DEFAULT_NPORTS = 7;
+    static const uint32_t DEFAULT_NVCS = 2;
 
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
+
     std::vector< Ptr <CallbackQueue> > m_queues;
     std::vector< TocinoTx* > m_transmitters;
     std::vector< TocinoRx* > m_receivers;
+    
+    TypeId m_routerTypeId;
+    Ptr<TocinoRouter> m_router;
 };
 
 } // namespace ns3

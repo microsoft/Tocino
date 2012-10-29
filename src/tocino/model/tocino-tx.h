@@ -20,7 +20,7 @@ class CallbackQueue;
 class TocinoTx
 {
 public:
-    TocinoTx( uint32_t nPorts, uint32_t nVCs );
+    TocinoTx( Ptr<TocinoNetDevice> );
     ~TocinoTx();
    
     void SetXState(TocinoFlowControl::State s);
@@ -48,7 +48,7 @@ private:
     bool m_pending_xon;
     bool m_pending_xoff;
 
-    Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
+    const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
     std::vector< Ptr <CallbackQueue> > m_queues; // links to queues
 
