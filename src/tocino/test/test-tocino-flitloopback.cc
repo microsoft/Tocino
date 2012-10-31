@@ -5,13 +5,11 @@
 
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
-#include "ns3/config.h"
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
 #include "ns3/test.h"
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
-#include "ns3/string.h"
 
 #include "test-tocino-flitloopback.h"
 
@@ -64,9 +62,6 @@ void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BY
 void
 TestTocinoFlitLoopback::DoRun (void)
 {
-    Config::SetDefault("ns3::TocinoNetDevice::RouterType",
-        StringValue( "ns3::TocinoTrivialRouter" ) );
-
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );

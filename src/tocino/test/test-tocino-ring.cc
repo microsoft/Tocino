@@ -4,6 +4,9 @@
 
 #include "ns3/packet.h"
 #include "ns3/node.h"
+#include "ns3/log.h"
+#include "ns3/config.h"
+#include "ns3/integer.h"
 
 #include "ns3/tocino-helper.h"
 #include "ns3/tocino-channel.h"
@@ -138,7 +141,7 @@ void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
     
     TocinoChannelHelper( netDeviceB, 0, netDeviceC, 1 );
     TocinoChannelHelper( netDeviceC, 1, netDeviceB, 0 );
-   
+  
     TocinoChannelHelper( netDeviceC, 0, netDeviceA, 1 );
     TocinoChannelHelper( netDeviceA, 1, netDeviceC, 0 );
 
@@ -184,6 +187,12 @@ void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
 void
 TestTocinoRing::DoRun (void)
 {
+    TestHelper( 1, 20 );
+    TestHelper( 1, 123 );
+    TestHelper( 2, 32 );
+
+    Config::SetDefault("ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( 2 ) );
+    
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );

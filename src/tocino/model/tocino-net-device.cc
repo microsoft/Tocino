@@ -18,7 +18,7 @@
 #include "callback-queue.h"
 #include "tocino-channel.h"
 #include "tocino-flit-header.h"
-#include "tocino-trivial-router.h"
+#include "tocino-dimension-order-router.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoNetDevice");
 
@@ -43,7 +43,7 @@ TypeId TocinoNetDevice::GetTypeId(void)
             MakeUintegerChecker<uint32_t> ())
         .AddAttribute ("RouterType",
             "Name of type which implements routing algorithm.",
-            TypeIdValue (TocinoTrivialRouter::GetTypeId ()),
+            TypeIdValue (TocinoDimensionOrderRouter::GetTypeId ()),
             MakeTypeIdAccessor (&TocinoNetDevice::m_routerTypeId),
             MakeTypeIdChecker ());
     return tid;
@@ -60,7 +60,7 @@ TocinoNetDevice::TocinoNetDevice() :
     m_promiscRxCallback( NULL ),
     m_nPorts( DEFAULT_NPORTS ),
     m_nVCs( DEFAULT_NVCS ),
-    m_routerTypeId( TocinoTrivialRouter::GetTypeId() ),
+    m_routerTypeId( TocinoDimensionOrderRouter::GetTypeId() ),
     m_router( NULL )
 {}
 
