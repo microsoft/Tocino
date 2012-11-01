@@ -4,7 +4,8 @@
 
 #include "ns3/test.h"
 
-using namespace ns3;
+namespace ns3
+{
 
 class TestTocinoFlitLoopback : public TestCase
 {
@@ -16,5 +17,6 @@ private:
     virtual void DoRun (void);
 };
 
-#endif // __TEST_TOCINO_FLITLOOPBACK_H_
+}
 
+#endif // __TEST_TOCINO_FLITLOOPBACK_H_

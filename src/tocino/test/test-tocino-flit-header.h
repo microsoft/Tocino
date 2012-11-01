@@ -4,7 +4,8 @@
 
 #include "ns3/test.h"
 
-namespace ns3 {
+namespace ns3
+{
 
 class TocinoFlitHeader;
 

@@ -3,9 +3,11 @@
 #include "test-tocino-callbackqueue.h"
 #include "test-tocino-flit-header.h"
 #include "test-tocino-flitter.h"
+#include "test-tocino-flow-control.h"
 #include "test-tocino-flitloopback.h"
 #include "test-tocino-point-to-point.h"
 #include "test-tocino-ring.h"
+#include "test-tocino-deadlock.h"
 #include "test-tocino-3x3x3.h"
 
 #include "ns3/log.h"
@@ -34,9 +36,11 @@ TocinoTestSuite::TocinoTestSuite ()
     AddTestCase( new TestTocinoCallbackQueue );
     AddTestCase( new TestTocinoFlitHeader );
     AddTestCase( new TestTocinoFlitter );
+    AddTestCase( new TestTocinoFlowControl );
     AddTestCase( new TestTocinoFlitLoopback );
     AddTestCase( new TestTocinoPointToPoint );
     AddTestCase( new TestTocinoRing );
+    //AddTestCase( new TestTocinoDeadlock );
     AddTestCase( new TestTocino3x3x3 );
 }
 

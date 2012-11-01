@@ -30,10 +30,15 @@ Ptr< Packet> TocinoFlowControl::GetPacketHelper()
 }
 
 template< TocinoFlowControl::State TFCS >
-bool TocinoFlowControl::TestPacketHelper( Ptr< Packet> p )
+bool TocinoFlowControl::TestPacketHelper( Ptr< Packet> pkt )
 {
+    // Make a copy so we can safely RemoveHeader() later
+    Ptr<Packet> p = pkt->Copy();
+
+    // We *must* remove, not merely peek, otherwise 
+    // subsequent CopyData() will return header & payload
     TocinoFlitHeader h;
-    p->PeekHeader(h);
+    p->RemoveHeader(h);
 
     if( h.GetType() == TocinoFlitHeader::LLC )
     {

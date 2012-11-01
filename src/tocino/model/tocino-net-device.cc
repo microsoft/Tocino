@@ -413,8 +413,8 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         NS_ASSERT_MSG( h.GetDestination() == m_address,
             "Ejected packet for foreign address?" );
 
-        //NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
-        //    "Ejected packet type is not ethernet?" );
+        NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
+            "Ejected packet type is not ethernet?" );
         
         m_incomingPacket = f;
         m_incomingSource = h.GetSource();

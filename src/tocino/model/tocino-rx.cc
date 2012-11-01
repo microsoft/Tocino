@@ -120,11 +120,15 @@ TocinoRx::Receive(Ptr<Packet> p)
     {
         //NS_LOG_LOGIC("full buffer");
 
-        // ejection port should never be full
-        NS_ASSERT_MSG(tx_port != m_tnd->GetHostPort(), "ejection port is full");
-
-        m_tnd->m_transmitters[m_portNumber]->SendXOFF();
-        m_tnd->m_transmitters[m_portNumber]->Transmit();
+        if( tx_port == m_tnd->GetHostPort() )
+        {
+            // ejection port can never be full?
+        }
+        else
+        {
+            m_tnd->m_transmitters[m_portNumber]->SendXOFF();
+            m_tnd->m_transmitters[m_portNumber]->Transmit();
+        }
     }
     m_tnd->m_transmitters[tx_port]->Transmit(); // kick the transmitter
 }

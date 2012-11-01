@@ -8,7 +8,8 @@
 #include "ns3/tocino-address.h"
 #include "ns3/tocino-net-device.h"
 
-using namespace ns3;
+namespace ns3
+{
 
 class TestTocinoPointToPoint : public TestCase
 {
@@ -21,5 +22,7 @@ private:
     void TestHelper( const unsigned, const unsigned );
     virtual void DoRun (void);
 };
+
+}
 
 #endif // __TEST_TOCINO_POINT_TO_POINT_H__

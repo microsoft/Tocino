@@ -2,7 +2,9 @@
 #define __TEST_TOCINO_CALLBACKQUEUE_H_
 
 #include "ns3/test.h"
-using namespace ns3;
+
+namespace ns3
+{
 
 class TestTocinoCallbackQueue : public TestCase
 {
@@ -13,5 +15,7 @@ private:
   virtual void DoRun (void);
 
 };
-#endif // __TEST_TOCINO_CALLBACKQUEUE_H_
 
+}
+
+#endif // __TEST_TOCINO_CALLBACKQUEUE_H_

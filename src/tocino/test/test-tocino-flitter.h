@@ -3,7 +3,8 @@
 
 #include "ns3/test.h"
 
-namespace ns3 {
+namespace ns3
+{
 
 class TestTocinoFlitter : public TestCase
 {
@@ -23,4 +24,5 @@ class TestTocinoFlitter : public TestCase
 };
 
 }
+
 #endif // __TEST_TOCINO_FLITTER_H__

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
-#ifndef __TEST_TOCINO_RING_H__
-#define __TEST_TOCINO_RING_H__
+#ifndef __TEST_TOCINO_DEADLOCK_H__
+#define __TEST_TOCINO_DEADLOCK_H__
 
 #include "ns3/test.h"
 #include "ns3/ptr.h"
@@ -10,13 +10,12 @@
 namespace ns3
 {
 
-class TestTocinoRing : public TestCase
+class TestTocinoDeadlock : public TestCase
 {
 public:
-    TestTocinoRing();
-    virtual ~TestTocinoRing();
+    TestTocinoDeadlock();
+    virtual ~TestTocinoDeadlock();
 private:
-    template <unsigned IDX>
     Ptr<TocinoNetDevice> CreateNetDeviceHelper( const TocinoAddress& );
     void TestHelper( const unsigned, const unsigned );
     virtual void DoRun (void);
@@ -24,4 +23,4 @@ private:
 
 }
 
-#endif // __TEST_TOCINO_RING_H__
+#endif // __TEST_TOCINO_DEADLOCK_H__

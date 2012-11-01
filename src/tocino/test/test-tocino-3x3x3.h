@@ -11,7 +11,8 @@
 #include "ns3/tocino-channel.h"
 #include "ns3/tocino-net-device.h"
 
-using namespace ns3;
+namespace ns3
+{
 
 class TestTocino3x3x3 : public TestCase
 {
@@ -30,4 +31,7 @@ private:
     std::vector<Ptr<TocinoChannel> > m_channels;
     std::vector<Ptr<TocinoNetDevice> > m_netDevices;
 };
+
+}
+
 #endif // __TEST_TOCINO_3X3X3_H__
