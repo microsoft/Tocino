@@ -52,32 +52,28 @@ TocinoRx::IsBlocked()
 void
 TocinoRx::CheckForUnblock()
 {
-    //NS_LOG_FUNCTION(this);
-    //char str[64];
+    NS_LOG_FUNCTION(this);
 
     if (m_tnd->m_transmitters[m_portNumber]->GetXState() == TocinoFlowControl::XOFF)
     {
         // if not blocked, schedule XON
         if (!IsBlocked()) 
         {
-            //      sprintf(str, "%d unblocked", m_portNumber);
-            //NS_LOG_LOGIC(str);
+            NS_LOG_LOGIC( "port " << m_portNumber << " unblocked" );
             m_tnd->m_transmitters[m_portNumber]->SendXON();
         }
         else
         {
-            //sprintf(str, "%d remains blocked", m_portNumber);
-            //NS_LOG_LOGIC(str);
+            NS_LOG_LOGIC( "port " << m_portNumber << " remains blocked" );
         }
     }
     else
     {
-        //NS_LOG_LOGIC("channel is not XOFF");
+        NS_LOG_LOGIC( "port " << m_portNumber << " is not XOFF" );
     }
 }
 
 void
-//TocinoRx::Receive(Ptr<const Packet> p)
 TocinoRx::Receive(Ptr<Packet> p)
 {
     NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << this->m_portNumber << PeekPointer(p));
@@ -87,7 +83,7 @@ TocinoRx::Receive(Ptr<Packet> p)
     // XON packet enables transmission on this port
     if (TocinoFlowControl::IsXONPacket(p))
     {
-        //NS_LOG_LOGIC("setting pending XON");
+        NS_LOG_LOGIC("setting pending XON");
         m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XON);
         m_tnd->m_transmitters[m_portNumber]->Transmit();
         return;
@@ -96,7 +92,7 @@ TocinoRx::Receive(Ptr<Packet> p)
     // XOFF packet disables transmission on this port
     if (TocinoFlowControl::IsXOFFPacket(p))
     {
-        //NS_LOG_LOGIC("setting pending XOFF");
+        NS_LOG_LOGIC("setting pending XOFF");
         m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
         return;
     }

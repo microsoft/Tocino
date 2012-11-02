@@ -57,6 +57,9 @@ void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BY
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, COUNT, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES*COUNT, "Got unexpected total packet bytes" );
+
+    bool aq = tnd->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device not quiet?" );
 }
 
 void

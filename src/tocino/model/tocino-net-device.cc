@@ -66,15 +66,14 @@ TocinoNetDevice::TocinoNetDevice() :
 
 TocinoNetDevice::~TocinoNetDevice()
 {
+    NS_ASSERT( AllQuiet() );
+
     uint32_t i;
     for (i = 0; i < m_nPorts; i++)
     {
         delete m_receivers[i];
         delete m_transmitters[i];
     }
-
-    NS_ASSERT_MSG( m_packetQueue.empty(), "Unsent packets?" );
-    NS_ASSERT_MSG( m_outgoingFlits.empty(), "Unsent flits?" );
 }
 
 void
@@ -364,7 +363,6 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 
 void TocinoNetDevice::InjectFlits()
 {
-
     NS_LOG_FUNCTION(this->m_node << this->m_ifIndex);
 
     while( !m_outgoingFlits.empty() &&
@@ -497,6 +495,49 @@ void
 TocinoNetDevice::SetRouter( Ptr<TocinoRouter> r )
 {
     m_router = r;
+}
+
+bool TocinoNetDevice::AllQuiet() const
+{
+    bool quiet = true;
+
+    if( !m_packetQueue.empty() ) 
+    {
+        NS_LOG_LOGIC( "Not quiet: SendFrom() in progress?" );
+        quiet = false;
+    }
+
+    if( !m_outgoingFlits.empty() )
+    {
+        NS_LOG_LOGIC( "Not quiet: InjectFlits() in progress?" );
+        quiet = false;
+    }
+
+    if( m_incomingPacket != NULL )
+    {
+        NS_LOG_LOGIC( "Not quiet: EjectFlits() in progress?" );
+        quiet = false;
+    }
+    
+    for (unsigned i = 0; i < m_nPorts; i++)
+    {
+        if( m_transmitters[i]->GetXState() == TocinoFlowControl::XOFF )
+        {
+            NS_LOG_LOGIC( "Not quiet: m_transmitters[" << i << "] is XOFF" );
+            quiet = false;
+        }
+    }
+    
+    for (int i = 0; i < (m_nPorts * m_nPorts * m_nVCs); i++)
+    {
+        if( !m_queues[i]->IsEmpty() )
+        {
+            NS_LOG_LOGIC( "Not quiet: m_queue[" << i << "] not empty" );
+            quiet = false;
+        }
+    }
+
+    return quiet;
 }
 
 } // namespace ns3

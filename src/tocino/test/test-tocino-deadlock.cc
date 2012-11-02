@@ -26,7 +26,6 @@ namespace
 {
     bool AcceptPacket( Ptr<NetDevice>, Ptr<const Packet> p, uint16_t, const Address& src )
     {
-        //fprintf( stderr, "Got a flit\n" );
         return true;
     }
 }
@@ -84,22 +83,29 @@ void TestTocinoDeadlock::TestHelper( const unsigned COUNT, const unsigned BYTES 
     for( unsigned i = 0; i < COUNT; ++i )
     {
         netDeviceA->Send( p, ADDR_C, 0 );
-        netDeviceB->Send( p, ADDR_D, 0 );
-        netDeviceC->Send( p, ADDR_A, 0 );
-        netDeviceD->Send( p, ADDR_B, 0 );
+        //netDeviceB->Send( p, ADDR_D, 0 );
+        //netDeviceC->Send( p, ADDR_A, 0 );
+        //netDeviceD->Send( p, ADDR_B, 0 );
     }
-
-    fprintf( stderr, "Run\n" );
 
     Simulator::Run();
     Simulator::Destroy();
+
+    bool allQuietA = netDeviceA->AllQuiet();
+    bool allQuietB = netDeviceB->AllQuiet();
+    bool allQuietC = netDeviceC->AllQuiet();
+    bool allQuietD = netDeviceD->AllQuiet();
+
+    NS_TEST_ASSERT_MSG_EQ( allQuietA, true, "Net device A not quiet?" );
+    NS_TEST_ASSERT_MSG_EQ( allQuietB, true, "Net device B not quiet?" );
+    NS_TEST_ASSERT_MSG_EQ( allQuietC, true, "Net device C not quiet?" );
+    NS_TEST_ASSERT_MSG_EQ( allQuietD, true, "Net device D not quiet?" );
 }
 
 void
 TestTocinoDeadlock::DoRun (void)
 {
-    Config::SetDefault("ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( 2 ) );
     Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue( 1 ));
     
-    TestHelper( 3, 20 );
+    TestHelper( 2, 20 );
 }

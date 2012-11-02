@@ -83,6 +83,8 @@ public:
     Ptr<TocinoRouter> GetRouter() const;
     void SetRouter( Ptr<TocinoRouter> );
 
+    bool AllQuiet() const;
+
 private:
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );

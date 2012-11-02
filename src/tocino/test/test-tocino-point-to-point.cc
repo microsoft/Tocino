@@ -90,6 +90,14 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, 2*COUNT, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, 2*BYTES*COUNT, "Got unexpected total packet bytes" );
+
+    bool aq;
+    
+    aq = netDeviceOne->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 1 not quiet?" );
+    
+    aq = netDeviceTwo->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 2 not quiet?" );
 }
 
 void
