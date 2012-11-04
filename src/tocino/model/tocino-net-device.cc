@@ -138,6 +138,7 @@ TocinoNetDevice::Initialize()
         }
     }
 
+    //FIXME - move this prior to creation of receivers and then create receivers with router as arg
     ObjectFactory routerFactory;
     routerFactory.SetTypeId( m_routerTypeId );
 
@@ -363,7 +364,7 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 
 void TocinoNetDevice::InjectFlits()
 {
-    NS_LOG_FUNCTION(this->m_node << this->m_ifIndex);
+    NS_LOG_FUNCTION(GetNode()->GetId() << m_ifIndex);
 
     while( !m_outgoingFlits.empty() &&
         !m_receivers[ GetHostPort() ]->IsBlocked() )
@@ -400,7 +401,7 @@ void TocinoNetDevice::InjectFlits()
 
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
-    NS_LOG_FUNCTION((uint32_t)PeekPointer(f));
+    NS_LOG_FUNCTION(GetNode()->GetId() << PeekPointer(f));
 
     TocinoFlitHeader h;
     f->RemoveHeader( h );

@@ -14,10 +14,13 @@
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
+#define TOCINO_RX_DBG_PREFIX "<" << m_tnd->GetNode()->GetId() << "." << m_portNumber << "r>"
+
 namespace ns3 {
 
 TocinoRx::TocinoRx( Ptr<TocinoNetDevice> tnd )
     : m_portNumber( TOCINO_INVALID_PORT )
+    , m_xstate( TocinoFlowControl::XON )
     , m_tnd( tnd )
     , m_queues( tnd->GetNPorts() * tnd->GetNVCs() )
 {}
@@ -40,9 +43,6 @@ TocinoRx::IsBlocked()
     {
         if (m_queues[i]->IsFull()) 
         {
-//            char str[64];
-            //          sprintf(str, "blocked on %d(0x%08x)", i, (unsigned int)&m_queues[i]);
-            //NS_LOG_LOGIC(str);
             return true;
         }
     }
@@ -52,56 +52,54 @@ TocinoRx::IsBlocked()
 void
 TocinoRx::CheckForUnblock()
 {
-    NS_LOG_FUNCTION(this);
+    //NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << m_portNumber);
 
-    if (m_tnd->m_transmitters[m_portNumber]->GetXState() == TocinoFlowControl::XOFF)
+    if (m_xstate == TocinoFlowControl::XOFF)
     {
         // if not blocked, schedule XON
         if (!IsBlocked()) 
         {
-            NS_LOG_LOGIC( "port " << m_portNumber << " unblocked" );
+            //NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " unblocked" );
             m_tnd->m_transmitters[m_portNumber]->SendXON();
+            m_tnd->m_transmitters[m_portNumber]->Transmit(); // restart the transmitter
         }
         else
         {
-            NS_LOG_LOGIC( "port " << m_portNumber << " remains blocked" );
+            //NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " blocked" );
         }
     }
     else
     {
-        NS_LOG_LOGIC( "port " << m_portNumber << " is not XOFF" );
+        //NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " is not XOFF" );
     }
 }
 
 void
 TocinoRx::Receive(Ptr<Packet> p)
 {
-    NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << this->m_portNumber << PeekPointer(p));
+    NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << m_portNumber << PeekPointer(p));
 
     uint32_t tx_q, tx_port;
 
-    // XON packet enables transmission on this port
-    if (TocinoFlowControl::IsXONPacket(p))
+    if (TocinoFlowControl::IsXONPacket(p)) // XON packet enables transmission on this port
     {
-        NS_LOG_LOGIC("setting pending XON");
+        NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " received XON");
         m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XON);
-        m_tnd->m_transmitters[m_portNumber]->Transmit();
+        m_tnd->m_transmitters[m_portNumber]->Transmit(); // restart the transmitter
         return;
     }
-
-    // XOFF packet disables transmission on this port
-    if (TocinoFlowControl::IsXOFFPacket(p))
+    
+    if (TocinoFlowControl::IsXOFFPacket(p)) // XOFF packet disables transmission on this port
     {
-        NS_LOG_LOGIC("setting pending XOFF");
+        NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " received XOFF");
         m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
         return;
     }
   
-    Ptr<TocinoRouter> router = m_tnd->GetRouter();
+    Ptr<TocinoRouter> router = m_tnd->GetRouter(); //FIXME this should be done at init time
     NS_ASSERT( router != NULL );
 
-    // figure out where the packet goes
-    // returns linearized <port, vc> index
+    // figure out where the packet goes; returns linearized <port, vc> index
     tx_q = router->Route( m_portNumber, p ); 
     
     NS_ASSERT_MSG( tx_q != TOCINO_INVALID_QUEUE, "Route failed" );
@@ -114,8 +112,6 @@ TocinoRx::Receive(Ptr<Packet> p)
     // if the buffer is full, send XOFF - XOFF blocks ALL traffic to the port
     if (m_queues[tx_q]->IsFull())
     {
-        //NS_LOG_LOGIC("full buffer");
-
         if( tx_port == m_tnd->GetHostPort() )
         {
             // ejection port can never be full?

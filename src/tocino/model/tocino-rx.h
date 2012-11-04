@@ -7,6 +7,8 @@
 
 #include "ns3/ptr.h"
 
+#include "tocino-flow-control.h"
+
 namespace ns3
 {
 
@@ -31,6 +33,7 @@ public:
 private:
     
     uint32_t m_portNumber;
+    TocinoFlowControl::State m_xstate; // tracks xstate of TocinoTx on other end of channel
 
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
     
@@ -38,6 +41,8 @@ private:
     
     bool IsBlocked();
     void CheckForUnblock(); // called from TocinNetDeviceTransmitter
+    void SetXState(TocinoFlowControl::State s) {m_xstate = s;}
+    TocinoFlowControl::State GetXState() {return m_xstate;}
 };
 
 } // namespace ns3

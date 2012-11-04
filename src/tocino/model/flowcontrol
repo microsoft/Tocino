@@ -1,0 +1,15 @@
+Tocino flow control is implemented using XON and XOFF LLC packets
+
+A stall (XOFF) is detected on port i by TocinoRx::Receive when it enqueues a packet and detects that the enqueue operation has filled a buffer. This requires the transmitter upstream of port i to halt transmission on that particular vc. Currently, we do not stall on the per vc level we block the entire channel - this needs to be fixed but shouldn't be a big deal.
+
+To stall the upstream transmitter, rx port i (rx[i]) invokes SendXOFF() on tx[i]. This sets a flag in tx[i] indicating an XOFF packet should be sent upstream at the next available opportunity.
+
+tx[i] eventually sends the XOFF which is received by rx[j] on the upstream TocinoNetDevice.
+
+rx[j] responds to receipt of the XOFF by setting the xstate of tx[j] to XOFF - this inhibits transmission by tx[j]
+
+A >>potential<< resume (XON) is detected on port k by TocinoTx::Transmit when it dequeues from a full buffer associated with receive port i. tx[k] cannot determine whether the port actually unblocks because it does not have visability into all of the buffers associated with receive port i, it can only see the buffers associated with packets routed from receive port i to transmit port k (perhaps multiple vcs). To determine if the potential resume is real, tx[k] dequeues the packet and invokes TocinoRX::CheckForUnblock on receive port i.
+
+If CheckForUnblock determines port i has unblocked, it requests tx[i] to send an XON packet upstream by calling TocinoTx::SendXON(), This sets a flag in tx[i] indicating an XON packet should be transmitted.
+
+tx[i] eventually sends an XON packet to the upstream TocinoNetDevice where it is received by rx[j]. rx[j] sets the xstate of tx[j] to XON and kicks the tx[j] to restart packet transmission.

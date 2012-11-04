@@ -83,9 +83,9 @@ void TestTocinoDeadlock::TestHelper( const unsigned COUNT, const unsigned BYTES 
     for( unsigned i = 0; i < COUNT; ++i )
     {
         netDeviceA->Send( p, ADDR_C, 0 );
-        //netDeviceB->Send( p, ADDR_D, 0 );
-        //netDeviceC->Send( p, ADDR_A, 0 );
-        //netDeviceD->Send( p, ADDR_B, 0 );
+        netDeviceB->Send( p, ADDR_D, 0 );
+        netDeviceC->Send( p, ADDR_A, 0 );
+        netDeviceD->Send( p, ADDR_B, 0 );
     }
 
     Simulator::Run();
