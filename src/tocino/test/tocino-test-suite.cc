@@ -25,23 +25,23 @@ public:
 TocinoTestSuite::TocinoTestSuite ()
     : TestSuite ("tocino", UNIT)
 {
-// Uncomment to taste
-    LogComponentEnable("TocinoNetDevice", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-    LogComponentEnable("TocinoTx",  (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-    LogComponentEnable("TocinoRx", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    // Uncomment to taste
+    //LogComponentEnable("TocinoNetDevice", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("TocinoTx",  (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("TocinoRx", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     //LogComponentEnable("CallbackQueue", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     //LogComponentEnable("TocinoChannel", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-//    LogComponentEnable("DefaultSimulatorImpl", (LogLevel)(LOG_LEVEL_FUNCTION|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-//    LogComponentEnable("MapScheduler", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("DefaultSimulatorImpl", (LogLevel)(LOG_LEVEL_FUNCTION|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("MapScheduler", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     
     AddTestCase( new TestTocinoCallbackQueue );
     AddTestCase( new TestTocinoFlitHeader );
     AddTestCase( new TestTocinoFlitter );
     AddTestCase( new TestTocinoFlowControl );
-    //AddTestCase( new TestTocinoFlitLoopback ); // seg fault
+    AddTestCase( new TestTocinoFlitLoopback );
     AddTestCase( new TestTocinoPointToPoint );
     AddTestCase( new TestTocinoMultihop );
-    //AddTestCase( new TestTocinoRing );
+    AddTestCase( new TestTocinoRing );
     //AddTestCase( new TestTocinoDeadlock );
     AddTestCase( new TestTocino3x3x3 );
 }
