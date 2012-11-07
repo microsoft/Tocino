@@ -14,7 +14,11 @@
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
-#define TOCINO_RX_DBG_PREFIX "<" << m_tnd->GetNode()->GetId() << "." << m_portNumber << "r>"
+#ifdef NS_LOG_APPEND_CONTEXT
+#pragma push_macro("NS_LOG_APPEND_CONTEXT")
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT { std::clog << m_portNumber << " "; }
+#endif
 
 namespace ns3 {
 
@@ -59,31 +63,31 @@ TocinoRx::CheckForUnblock()
         // if not blocked, schedule XON
         if (!IsBlocked()) 
         {
-            //NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " unblocked" );
+            //NS_LOG_LOGIC("unblocked" );
             m_tnd->m_transmitters[m_portNumber]->SendXON();
             m_tnd->m_transmitters[m_portNumber]->Transmit(); // restart the transmitter
         }
         else
         {
-            //NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " blocked" );
+            //NS_LOG_LOGIC("blocked" );
         }
     }
     else
     {
-        //NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " is not XOFF" );
+        //NS_LOG_LOGIC("is not XOFF" );
     }
 }
 
 void
 TocinoRx::Receive(Ptr<Packet> p)
 {
-    NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << m_portNumber << PeekPointer(p));
+    NS_LOG_FUNCTION( p );
 
     uint32_t tx_q, tx_port;
 
     if (TocinoFlowControl::IsXONPacket(p)) // XON packet enables transmission on this port
     {
-        NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " received XON");
+        NS_LOG_LOGIC("received XON");
         m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XON);
         m_tnd->m_transmitters[m_portNumber]->Transmit(); // restart the transmitter
         return;
@@ -91,7 +95,7 @@ TocinoRx::Receive(Ptr<Packet> p)
     
     if (TocinoFlowControl::IsXOFFPacket(p)) // XOFF packet disables transmission on this port
     {
-        NS_LOG_LOGIC(TOCINO_RX_DBG_PREFIX << " received XOFF");
+        NS_LOG_LOGIC("received XOFF");
         m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
         return;
     }
@@ -126,3 +130,5 @@ TocinoRx::Receive(Ptr<Packet> p)
 }
 
 } // namespace ns3
+
+#pragma pop_macro("NS_LOG_APPEND_CONTEXT")

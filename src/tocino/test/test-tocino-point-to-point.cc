@@ -81,8 +81,11 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
 
     for( unsigned i = 0; i < COUNT; ++i )
     {
-        netDeviceOne->Send( p, ADDR_TWO, 0 );
-        netDeviceTwo->Send( p, ADDR_ONE, 0 );
+        Simulator::ScheduleWithContext( netDeviceOne->GetNode()->GetId(), Seconds(0),
+            &TocinoNetDevice::Send, netDeviceOne, p, ADDR_TWO, 0 );
+
+        Simulator::ScheduleWithContext( netDeviceTwo->GetNode()->GetId(), Seconds(0),
+            &TocinoNetDevice::Send, netDeviceTwo, p, ADDR_ONE, 0 );
     }
 
     Simulator::Run();

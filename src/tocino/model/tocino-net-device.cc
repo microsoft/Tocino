@@ -323,7 +323,7 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     
         m_outgoingFlits = Flitter( currentPacket, source, destination, TocinoFlitHeader::ETHERNET );
    
-        InjectFlits();
+        SendFlits();
     }
 
     // Tocino is a lossless network
@@ -362,47 +362,53 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
   m_transmitters[port]->SetChannel(c);
 }
 
-void TocinoNetDevice::InjectFlits()
+void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << m_ifIndex);
+    NS_LOG_FUNCTION( f );
+
+    TocinoFlitHeader h;
+    f->PeekHeader(h);
+
+    if (h.IsHead() && h.IsTail())
+    {
+        NS_LOG_LOGIC( "singleton" );
+    }
+    else if (h.IsHead())
+    {
+        NS_LOG_LOGIC( "head" );
+    }
+    else if (h.IsTail())
+    {
+        NS_LOG_LOGIC( "tail" );
+    }
+    else
+    {
+        NS_LOG_LOGIC( "body" );
+    }
+
+    m_receivers[ GetHostPort() ]->Receive(f);
+}
+
+void TocinoNetDevice::SendFlits()
+{
+    NS_LOG_FUNCTION_NOARGS();
 
     while( !m_outgoingFlits.empty() &&
         !m_receivers[ GetHostPort() ]->IsBlocked() )
     {
-        Ptr<Packet> p;
-        TocinoFlitHeader h;
-        m_outgoingFlits.front()->PeekHeader(h);
-        
-        if (h.IsHead() && h.IsTail())
-        {
-            NS_LOG_LOGIC("flit injected: singleton");
-        }
-        else if (h.IsHead())
-        {
-            NS_LOG_LOGIC("flit injected: head");
-        }
-        else if (h.IsTail())
-        {
-            NS_LOG_LOGIC("flit injected: tail");
-        }
-        else
-        {
-            NS_LOG_LOGIC("flit injected:body");
-        }
-
-        // must pop prior to calling Receive; Receive can indirectly generate
-        // a call to InjectFlits which can cause a flit to be sent twice if pop
-        // occurs after Receive
-        p = m_outgoingFlits.front();
+        // must pop prior to calling InjectFlit; InjectFlit can indirectly generate
+        // a call to SendFlits which can cause a flit to be sent twice if pop
+        // occurs after InjectFlits
+        Ptr<Packet> f = m_outgoingFlits.front();
         m_outgoingFlits.pop_front();
-        m_receivers[ GetHostPort() ]->Receive(p);
+        InjectFlit(f);
     }
 }
 
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << PeekPointer(f));
-
+    NS_LOG_FUNCTION( f );
+    
     TocinoFlitHeader h;
     f->RemoveHeader( h );
     
@@ -510,7 +516,7 @@ bool TocinoNetDevice::AllQuiet() const
 
     if( !m_outgoingFlits.empty() )
     {
-        NS_LOG_LOGIC( "Not quiet: InjectFlits() in progress?" );
+        NS_LOG_LOGIC( "Not quiet: SendFlits() in progress?" );
         quiet = false;
     }
 

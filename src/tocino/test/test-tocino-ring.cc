@@ -152,7 +152,8 @@ void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
 
     for( unsigned i = 0; i < COUNT; ++i )
     {
-        netDeviceA->Send( p, ADDR_C, 0 );
+        Simulator::ScheduleWithContext( netDeviceA->GetNode()->GetId(), Seconds(0),
+                &TocinoNetDevice::Send, netDeviceA, p, ADDR_C, 0 );
     }
 
     Simulator::Run();
@@ -170,7 +171,8 @@ void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
 
     for( unsigned i = 0; i < COUNT; ++i )
     {
-        netDeviceC->Send( p, ADDR_A, 0 );
+        Simulator::ScheduleWithContext( netDeviceC->GetNode()->GetId(), Seconds(0),
+                &TocinoNetDevice::Send, netDeviceC, p, ADDR_A, 0 );
     }
 
     Simulator::Run();

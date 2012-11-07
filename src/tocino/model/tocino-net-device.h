@@ -89,8 +89,9 @@ private:
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
-        
-    void InjectFlits(); // Attempt to send m_currentFlits
+       
+    void InjectFlit( Ptr<Packet> ) const; // send one flit
+    void SendFlits(); // Attempt to send m_currentFlits
     
     friend class TestEjectFlit;
     void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet

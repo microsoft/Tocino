@@ -19,7 +19,11 @@
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
-#define TOCINO_TX_DBG_PREFIX "<" << m_tnd->GetNode()->GetId() << "." << m_portNumber << "t>"
+#ifdef NS_LOG_APPEND_CONTEXT
+#pragma push_macro("NS_LOG_APPEND_CONTEXT")
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT { std::clog << m_portNumber << " "; }
+#endif
 
 namespace ns3 {
 
@@ -43,11 +47,11 @@ void TocinoTx::SetXState(TocinoFlowControl::State s)
     m_xstate = s;
     if (m_xstate == TocinoFlowControl::XON)
     {
-        NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " transmitter xstate now XON");
+        NS_LOG_LOGIC("transmitter xstate now XON");
     }
     if (m_xstate == TocinoFlowControl::XOFF)
     {
-        NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " transmitter xstate now XOFF");
+        NS_LOG_LOGIC("transmitter xstate now XOFF");
     }
 }
 
@@ -69,12 +73,12 @@ void TocinoTx::SendXOFF()
     if (m_pending_xon) 
     {
         m_pending_xon = false;
-        NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " clearing pending XON");
+        NS_LOG_LOGIC("clearing pending XON");
     }
     else
     {
         m_pending_xoff = true;
-        NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " pending XOFF");
+        NS_LOG_LOGIC("pending XOFF");
     }
 }
 
@@ -83,12 +87,12 @@ void TocinoTx::SendXON()
     if (m_pending_xoff)
     {
         m_pending_xoff = false;
-        NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " clearing pending XOFF");
+        NS_LOG_LOGIC("clearing pending XOFF");
     }
     else
     {
         m_pending_xon = true;
-        NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " pending XON");
+        NS_LOG_LOGIC("pending XON");
     }
 }
 
@@ -107,19 +111,18 @@ TocinoTx::TransmitEnd()
 void
 TocinoTx::Transmit()
 {
+    NS_LOG_FUNCTION_NOARGS();
+
     Time transmit_time;
     Ptr<Packet> p = 0;
     uint32_t winner, rx_port;
     
-
     if (m_state == BUSY) 
     {
-        //NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " transmitter BUSY");
+        //NS_LOG_LOGIC("transmitter BUSY");
         return;
     }
     NS_ASSERT_MSG(!(m_pending_xoff && m_pending_xon), "race condition detected");
-
-    NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << m_portNumber);
 
     // send an XOFF if one is pending
     if (m_pending_xoff)
@@ -140,7 +143,7 @@ TocinoTx::Transmit()
             // THIS IS VERY IMPORTANT and probably should be checked at construction time
             // an alternative would be to infer the appropriate receiver to signal
             m_tnd->m_receivers[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
-            NS_LOG_LOGIC (TOCINO_TX_DBG_PREFIX << " sending XOFF(" << PeekPointer(p) << ")");
+            NS_LOG_LOGIC( "sending XOFF(" << p << ")" );
         }
     }
     
@@ -158,7 +161,7 @@ TocinoTx::Transmit()
 
             // same state reflection as described above
             m_tnd->m_receivers[m_portNumber]->SetXState(TocinoFlowControl::XON);
-            NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " sending XON(" << PeekPointer(p) << ")");
+            NS_LOG_LOGIC( "sending XON(" << p << ")" );
         }
     }
     
@@ -192,13 +195,13 @@ TocinoTx::Transmit()
 
                         if (was_blocked && !is_blocked) // if injection process had stalled
                         {
-                            m_tnd->InjectFlits();
+                            m_tnd->SendFlits();
                         }
                     }
                     else
                     {
                         p = m_queues[winner]->Dequeue();
-                        //NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " request CheckForUnblock");
+                        //NS_LOG_LOGIC("request CheckForUnblock");
                         m_tnd->m_receivers[rx_port]->CheckForUnblock();
                     }
                 }
@@ -211,12 +214,12 @@ TocinoTx::Transmit()
             else
             {
                 // nothing to send - idle link
-                NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " nothing to send");
+                NS_LOG_LOGIC("nothing to send");
             }
         }
         else 
         {
-            //NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " transmitter is XOFF");
+            //NS_LOG_LOGIC("transmitter is XOFF");
         }
     }
 
@@ -238,7 +241,7 @@ TocinoTx::Transmit()
             m_channel->TransmitStart(p);
 
             transmit_time= m_channel->GetTransmissionTime(p);
-            NS_LOG_LOGIC(TOCINO_TX_DBG_PREFIX << " transmitting " << PeekPointer(p) << " for " << transmit_time);
+            NS_LOG_LOGIC("transmitting " << p << " for " << transmit_time);
             Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
         }
     }
@@ -258,3 +261,5 @@ TocinoTx::Arbitrate()
 }
 
 } // namespace ns3
+
+#pragma pop_macro("NS_LOG_APPEND_CONTEXT")

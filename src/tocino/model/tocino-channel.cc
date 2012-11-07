@@ -110,15 +110,12 @@ void
 TocinoChannel::TransmitEnd ()
 {
     m_state = IDLE; // wire can be pipelined
-    Simulator::Schedule(m_delay,
-        &TocinoRx::Receive,
-        m_rx,
-        m_packet);
-    // Simulator::ScheduleWithContext(m_rx->GetNetDevice()->GetNode()->GetId(), // need to look at this
-    //                                m_delay,
-    //                                &TocinoRx::Receive,
-    //                                m_rx,
-    //                                m_packet);
+    
+    Simulator::ScheduleWithContext(m_rx->GetNetDevice()->GetNode()->GetId(),
+                                   m_delay,
+                                   &TocinoRx::Receive,
+                                   m_rx,
+                                   m_packet);
 }
 
 } // namespace ns3

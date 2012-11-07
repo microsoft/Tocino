@@ -91,7 +91,8 @@ void TestTocinoMultihop::TestHelper(const unsigned BYTES )
 
     Reset();
 
-    netDeviceZero->Send( p, ADDR_TWO, 0 );
+    Simulator::ScheduleWithContext( netDeviceZero->GetNode()->GetId(), Seconds(0), 
+        &TocinoNetDevice::Send, netDeviceZero, p, ADDR_TWO, 0 );
 
     Simulator::Run();
     Simulator::Destroy();
