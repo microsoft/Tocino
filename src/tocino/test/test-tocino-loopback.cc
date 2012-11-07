@@ -15,16 +15,16 @@
 #include "ns3/tocino-flit-header.h"
 #include "ns3/tocino-misc.h"
 
-#include "test-tocino-flitloopback.h"
+#include "test-tocino-loopback.h"
 
 using namespace ns3;
 
-TestTocinoFlitLoopback::TestTocinoFlitLoopback()
+TestTocinoLoopback::TestTocinoLoopback()
   : TestCase( "Send flits from a single net device to itself" )
 {
 }
 
-TestTocinoFlitLoopback::~TestTocinoFlitLoopback() {}
+TestTocinoLoopback::~TestTocinoLoopback() {}
 
 namespace
 {
@@ -40,7 +40,7 @@ namespace
     }
 }
 
-void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES )
+void TestTocinoLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
     Ptr<Packet> p = Create<Packet>( BYTES );
    
@@ -73,7 +73,7 @@ void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BY
 }
 
 void
-TestTocinoFlitLoopback::DoRun (void)
+TestTocinoLoopback::DoRun (void)
 {
     TocinoCustomizeLogging();
 

@@ -4,7 +4,7 @@
 #include "test-tocino-flit-header.h"
 #include "test-tocino-flitter.h"
 #include "test-tocino-flow-control.h"
-#include "test-tocino-flitloopback.h"
+#include "test-tocino-loopback.h"
 #include "test-tocino-point-to-point.h"
 #include "test-tocino-multihop.h"
 #include "test-tocino-ring.h"
@@ -38,7 +38,7 @@ TocinoTestSuite::TocinoTestSuite ()
     AddTestCase( new TestTocinoFlitHeader );
     AddTestCase( new TestTocinoFlitter );
     AddTestCase( new TestTocinoFlowControl );
-    AddTestCase( new TestTocinoFlitLoopback );
+    AddTestCase( new TestTocinoLoopback );
     AddTestCase( new TestTocinoPointToPoint );
     AddTestCase( new TestTocinoMultihop );
     AddTestCase( new TestTocinoRing );

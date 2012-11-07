@@ -29,7 +29,7 @@ def build(bld):
         'test/test-tocino-flit-header.cc',
         'test/test-tocino-flitter.cc',
         'test/test-tocino-flow-control.cc',
-        'test/test-tocino-flitloopback.cc',
+        'test/test-tocino-loopback.cc',
         'test/test-tocino-point-to-point.cc',
         'test/test-tocino-multihop.cc',
         'test/test-tocino-ring.cc',
