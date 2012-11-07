@@ -23,7 +23,7 @@
 using namespace ns3;
 
 TestTocinoMultihop::TestTocinoMultihop()
-  : TestCase( "Send multihop packet net devices" )
+  : TestCase( "Test requiring multiple hops" )
 {
 }
 
@@ -31,10 +31,10 @@ TestTocinoMultihop::~TestTocinoMultihop() {}
 
 namespace
 {
-    const TocinoAddress ADDR_ZERO(0,0,0);
-    const TocinoAddress ADDR_ONE(1,0,0);
-    const TocinoAddress ADDR_TWO(2,0,0);
-    const TocinoAddress ADDR_THREE(3,0,0);
+    const TocinoAddress ADDR_A(0,0,0);
+    const TocinoAddress ADDR_B(1,0,0);
+    const TocinoAddress ADDR_C(2,0,0);
+    const TocinoAddress ADDR_D(3,0,0);
 
     unsigned totalCount;
     unsigned totalBytes;
@@ -72,44 +72,46 @@ void TestTocinoMultihop::TestHelper(const unsigned BYTES )
 {
     Ptr<Packet> p = Create<Packet>( BYTES );
     
-    Ptr<TocinoNetDevice> netDeviceZero = CreateNetDeviceHelper( ADDR_ZERO );
-    Ptr<TocinoNetDevice> netDeviceOne = CreateNetDeviceHelper( ADDR_ONE );
-    Ptr<TocinoNetDevice> netDeviceTwo = CreateNetDeviceHelper( ADDR_TWO );
-    Ptr<TocinoNetDevice> netDeviceThree = CreateNetDeviceHelper( ADDR_THREE );
+    // A <-> B <-> C <-> D
+    // (no wrap-around link)
+    
+    Ptr<TocinoNetDevice> netDeviceA = CreateNetDeviceHelper( ADDR_A );
+    Ptr<TocinoNetDevice> netDeviceB = CreateNetDeviceHelper( ADDR_B );
+    Ptr<TocinoNetDevice> netDeviceC = CreateNetDeviceHelper( ADDR_C );
+    Ptr<TocinoNetDevice> netDeviceD = CreateNetDeviceHelper( ADDR_D );
 
-    // 4 element ring
     // x+ transmission channels
-    TocinoChannelHelper( netDeviceZero, 0, netDeviceOne, 1 );
-    TocinoChannelHelper( netDeviceOne, 0, netDeviceTwo, 1 );
-    TocinoChannelHelper( netDeviceTwo, 0, netDeviceThree, 1 );
-    TocinoChannelHelper( netDeviceThree, 0, netDeviceZero, 1 );
+    TocinoChannelHelper( netDeviceA, 0, netDeviceB, 1 );
+    TocinoChannelHelper( netDeviceB, 0, netDeviceC, 1 );
+    TocinoChannelHelper( netDeviceC, 0, netDeviceD, 1 );
 
     // x- transmission channels
-    TocinoChannelHelper( netDeviceZero, 1, netDeviceThree, 0 );
-    TocinoChannelHelper( netDeviceOne, 1, netDeviceZero, 0 );
-    TocinoChannelHelper( netDeviceTwo, 1, netDeviceOne, 0 );
-    TocinoChannelHelper( netDeviceThree, 1, netDeviceTwo, 0 );
+    TocinoChannelHelper( netDeviceB, 1, netDeviceA, 0 );
+    TocinoChannelHelper( netDeviceC, 1, netDeviceB, 0 );
+    TocinoChannelHelper( netDeviceD, 1, netDeviceC, 0 );
 
     Reset();
 
-    Simulator::ScheduleWithContext( netDeviceZero->GetNode()->GetId(), Seconds(0), 
-        &TocinoNetDevice::Send, netDeviceZero, p, ADDR_TWO, 0 );
+    Simulator::ScheduleWithContext( netDeviceA->GetNode()->GetId(), Seconds(0), 
+        &TocinoNetDevice::Send, netDeviceA, p, ADDR_D, 0 );
 
     Simulator::Run();
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, 1, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES, "Got unexpected total packet bytes" );
 
-    //bool aq;
+#if 0
+    bool aq;
     
-    // aq = netDeviceZero->AllQuiet();
-    // NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 0 not quiet?" );
-    // aq = netDeviceOne->AllQuiet();
-    // NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 1 not quiet?" );
-    // aq = netDeviceTwo->AllQuiet();
-    // NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 2 not quiet?" );
-    // aq = netDeviceThree->AllQuiet();
-    // NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 3 not quiet?" );
+    aq = netDeviceA->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 0 not quiet?" );
+    aq = netDeviceB->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 1 not quiet?" );
+    aq = netDeviceC->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 2 not quiet?" );
+    aq = netDeviceD->AllQuiet();
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 3 not quiet?" );
+#endif
 }
 
 void
@@ -122,5 +124,4 @@ TestTocinoMultihop::DoRun (void)
     
     Simulator::Destroy();
     Config::Reset();
-
 }
