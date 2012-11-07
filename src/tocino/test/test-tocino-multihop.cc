@@ -16,6 +16,7 @@
 #include "ns3/tocino-flit-header.h"
 #include "ns3/tocino-channel.h"
 #include "ns3/tocino-helper.h"
+#include "ns3/tocino-misc.h"
 
 #include "test-tocino-multihop.h"
 
@@ -95,7 +96,6 @@ void TestTocinoMultihop::TestHelper(const unsigned BYTES )
         &TocinoNetDevice::Send, netDeviceZero, p, ADDR_TWO, 0 );
 
     Simulator::Run();
-    Simulator::Destroy();
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, 1, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES, "Got unexpected total packet bytes" );
@@ -115,7 +115,12 @@ void TestTocinoMultihop::TestHelper(const unsigned BYTES )
 void
 TestTocinoMultihop::DoRun (void)
 {
+    TocinoCustomizeLogging();
     Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(1));
 
     TestHelper(1000);
+    
+    Simulator::Destroy();
+    Config::Reset();
+
 }

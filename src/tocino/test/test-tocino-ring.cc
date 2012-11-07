@@ -7,10 +7,11 @@
 #include "ns3/log.h"
 #include "ns3/config.h"
 #include "ns3/integer.h"
+#include "ns3/simulator.h"
 
 #include "ns3/tocino-helper.h"
 #include "ns3/tocino-channel.h"
-#include "ns3/simulator.h"
+#include "ns3/tocino-misc.h"
 
 using namespace ns3;
 
@@ -182,13 +183,13 @@ void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
     
     NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), COUNT, "Unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), BYTES*COUNT, "Unexpected total packet bytes" );
-
-    Simulator::Destroy();
 }
 
 void
 TestTocinoRing::DoRun (void)
 {
+    TocinoCustomizeLogging();
+
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
@@ -198,4 +199,7 @@ TestTocinoRing::DoRun (void)
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
+
+    Simulator::Destroy();
+    Config::Reset();
 }

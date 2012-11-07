@@ -17,6 +17,7 @@ def build(bld):
         'model/tocino-net-device.cc',
         'model/tocino-flit-header.cc',
         'model/tocino-flow-control.cc',
+        'model/tocino-misc.cc',
         'model/tocino-router.cc',
         'model/tocino-dimension-order-router.cc',
         'helper/tocino-helper.cc',

@@ -16,6 +16,7 @@
 #include "ns3/tocino-flit-header.h"
 #include "ns3/tocino-channel.h"
 #include "ns3/tocino-helper.h"
+#include "ns3/tocino-misc.h"
 
 #include "test-tocino-point-to-point.h"
 
@@ -89,7 +90,6 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
     }
 
     Simulator::Run();
-    Simulator::Destroy();
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, 2*COUNT, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, 2*BYTES*COUNT, "Got unexpected total packet bytes" );
@@ -106,10 +106,14 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
 void
 TestTocinoPointToPoint::DoRun (void)
 {
+    TocinoCustomizeLogging();
     Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
 
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
     TestHelper( 3, 32 );
+    
+    Simulator::Destroy();
+    Config::Reset();
 }

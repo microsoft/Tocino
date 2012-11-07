@@ -8,10 +8,11 @@
 #include "ns3/config.h"
 #include "ns3/integer.h"
 #include "ns3/uinteger.h"
+#include "ns3/simulator.h"
 
 #include "ns3/tocino-helper.h"
 #include "ns3/tocino-channel.h"
-#include "ns3/simulator.h"
+#include "ns3/tocino-misc.h"
 
 using namespace ns3;
 
@@ -96,7 +97,6 @@ void TestTocinoDeadlock::TestHelper( const unsigned COUNT, const unsigned BYTES 
     }
 
     Simulator::Run();
-    Simulator::Destroy();
 
 #if 0
     bool allQuietA = netDeviceA->AllQuiet();
@@ -114,7 +114,11 @@ void TestTocinoDeadlock::TestHelper( const unsigned COUNT, const unsigned BYTES 
 void
 TestTocinoDeadlock::DoRun (void)
 {
+    TocinoCustomizeLogging();
     Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue( 1 ));
     
     TestHelper( 2, 20 );
+    
+    Simulator::Destroy();
+    Config::Reset();
 }

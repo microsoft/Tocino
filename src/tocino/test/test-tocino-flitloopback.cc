@@ -13,6 +13,7 @@
 
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-flit-header.h"
+#include "ns3/tocino-misc.h"
 
 #include "test-tocino-flitloopback.h"
 
@@ -63,7 +64,6 @@ void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BY
     }
 
     Simulator::Run();
-    Simulator::Destroy();
 
     NS_TEST_ASSERT_MSG_EQ( totalCount, COUNT, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES*COUNT, "Got unexpected total packet bytes" );
@@ -75,7 +75,11 @@ void TestTocinoFlitLoopback::TestHelper( const unsigned COUNT, const unsigned BY
 void
 TestTocinoFlitLoopback::DoRun (void)
 {
+    TocinoCustomizeLogging();
+
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
+    
+    Simulator::Destroy();
 }
