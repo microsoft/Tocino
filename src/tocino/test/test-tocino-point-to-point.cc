@@ -70,6 +70,8 @@ Ptr<TocinoNetDevice> TestTocinoPointToPoint::CreateNetDeviceHelper( const Tocino
 
 void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
+    TocinoCustomizeLogging();
+
     Ptr<Packet> p = Create<Packet>( BYTES );
     
     Ptr<TocinoNetDevice> netDeviceOne = CreateNetDeviceHelper( ADDR_ONE );
@@ -101,12 +103,13 @@ void TestTocinoPointToPoint::TestHelper( const unsigned COUNT, const unsigned BY
     
     aq = netDeviceTwo->AllQuiet();
     NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 2 not quiet?" );
+    
+    Simulator::Destroy();
 }
 
 void
 TestTocinoPointToPoint::DoRun (void)
 {
-    TocinoCustomizeLogging();
     Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
 
     TestHelper( 1, 20 );
@@ -114,6 +117,5 @@ TestTocinoPointToPoint::DoRun (void)
     TestHelper( 2, 32 );
     TestHelper( 3, 32 );
     
-    Simulator::Destroy();
     Config::Reset();
 }

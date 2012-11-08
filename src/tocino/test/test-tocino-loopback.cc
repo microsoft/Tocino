@@ -42,6 +42,8 @@ namespace
 
 void TestTocinoLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
+    TocinoCustomizeLogging();
+
     Ptr<Packet> p = Create<Packet>( BYTES );
    
     Ptr<TocinoNetDevice> tnd = CreateObject<TocinoNetDevice>();
@@ -70,16 +72,14 @@ void TestTocinoLoopback::TestHelper( const unsigned COUNT, const unsigned BYTES 
 
     bool aq = tnd->AllQuiet();
     NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device not quiet?" );
+    
+    Simulator::Destroy();
 }
 
 void
 TestTocinoLoopback::DoRun (void)
 {
-    TocinoCustomizeLogging();
-
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
-    
-    Simulator::Destroy();
 }

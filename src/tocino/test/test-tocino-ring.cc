@@ -131,6 +131,8 @@ Ptr<TocinoNetDevice> TestTocinoRing::CreateNetDeviceHelper( const TocinoAddress&
 
 void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
 {
+    TocinoCustomizeLogging();
+
     Ptr<Packet> p = Create<Packet>( BYTES );
     
     Ptr<TocinoNetDevice> netDeviceA = CreateNetDeviceHelper<IDX_A>( ADDR_A );
@@ -183,13 +185,13 @@ void TestTocinoRing::TestHelper( const unsigned COUNT, const unsigned BYTES )
     
     NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), COUNT, "Unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), BYTES*COUNT, "Unexpected total packet bytes" );
+    
+    Simulator::Destroy();
 }
 
 void
 TestTocinoRing::DoRun (void)
 {
-    TocinoCustomizeLogging();
-
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
@@ -200,6 +202,5 @@ TestTocinoRing::DoRun (void)
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
 
-    Simulator::Destroy();
     Config::Reset();
 }
