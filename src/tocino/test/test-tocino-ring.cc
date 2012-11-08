@@ -80,31 +80,28 @@ namespace
         return totalBytes;
     }
 
-    unsigned IndexOf( const Address& src )
+    unsigned IndexOf( const Address& addr )
     {
-        TocinoAddress tsrc = TocinoAddress::ConvertFrom( src );
+        TocinoAddress taddr = TocinoAddress::ConvertFrom( addr );
         
-        if( tsrc == ADDR_A )
+        if( taddr == ADDR_A )
         {
             return IDX_A;
         }
         
-        if( tsrc == ADDR_B )
+        if( taddr == ADDR_B )
         {
             return IDX_B;
         }
         
-        NS_ASSERT( tsrc == ADDR_C );
+        NS_ASSERT( taddr == ADDR_C );
         return IDX_C;
     }
 
-    // The (non-promiscuous) receive callback provides only the packet's source,
-    // not it's destination.  We use a template function here such that each
-    // NetDevice has a different callback, specialized on destination.
-    template <unsigned DST_IDX>
-    bool AcceptPacket( Ptr<NetDevice>, Ptr<const Packet> p, uint16_t, const Address& src )
+    bool AcceptPacket( Ptr<NetDevice> nd, Ptr<const Packet> p, uint16_t, const Address& src )
     {
         const unsigned SRC_IDX = IndexOf( src );
+        const unsigned DST_IDX = IndexOf( nd->GetAddress() );
 
         countArray[SRC_IDX][DST_IDX]++;
         bytesArray[SRC_IDX][DST_IDX] += p->GetSize();
@@ -119,7 +116,7 @@ Ptr<TocinoNetDevice> TestTocinoRing::CreateNetDeviceHelper( const TocinoAddress&
     
     netDevice->Initialize();
     netDevice->SetAddress( a );
-    netDevice->SetReceiveCallback( MakeCallback( AcceptPacket<IDX> ) );
+    netDevice->SetReceiveCallback( MakeCallback( AcceptPacket ) );
 
     // HACK: The Nodes are required to avoid
     // SIGSEGV in TocinoChannel::TransmitEnd()
