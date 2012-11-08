@@ -28,6 +28,7 @@ class TocinoAddress
         m_address.y = y;
         m_address.z = z;
         m_address.reserved = res;
+        m_address.multicast = 0;
     }
 
     Address ConvertTo() const
