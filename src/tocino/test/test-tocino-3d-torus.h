@@ -31,10 +31,8 @@ private:
     
     void Reset();
 
-    // MAS - these should really be const
-    // but multi-dim std::map is a mess
-    unsigned GetTotalCount();
-    unsigned GetTotalBytes();
+    unsigned GetTotalCount() const;
+    unsigned GetTotalBytes() const;
 
     void RunOneTest( const unsigned, const unsigned, const TocinoAddress&, const TocinoAddress& );
     void TestHelper( const unsigned, const unsigned );
@@ -46,14 +44,13 @@ private:
     // 3D vector of NetDevices
     std::vector< std::vector< std::vector< 
         Ptr< TocinoNetDevice > > > > m_netDevices;
-   
-    // 2d map src*dst
-    std::map< TocinoAddress, std::map<
-        TocinoAddress, unsigned > > m_counts;
+  
+    // 2d map src*dst => unsigned
+    typedef std::map< TocinoAddress, unsigned > TestMatrixRow;
+    typedef std::map< TocinoAddress, TestMatrixRow  > TestMatrix;
 
-    // 2d map src*dst
-    std::map< TocinoAddress, std::map<
-        TocinoAddress, unsigned > > m_bytes;
+    TestMatrix m_counts;
+    TestMatrix m_bytes;
 };
 
 }

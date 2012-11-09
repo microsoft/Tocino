@@ -99,19 +99,20 @@ void TestTocino3DTorus::Reset()
     m_bytes.clear();
 }
 
-unsigned TestTocino3DTorus::GetTotalCount()
+unsigned TestTocino3DTorus::GetTotalCount() const
 {
     unsigned total = 0;
 
-    // MAS - I hate this code
-    std::map<TocinoAddress, std::map<TocinoAddress, unsigned> >::iterator i;
-    std::map<TocinoAddress, unsigned>::iterator j;
+    TestMatrix::const_iterator i;
+    TestMatrixRow::const_iterator j;
 
     for( i = m_counts.begin(); i != m_counts.end(); i++ ) 
     {
-        for( j = m_counts[(*i).first].begin(); j != m_counts[(*i).first].end(); j++ ) 
+        const TestMatrixRow& row = m_counts.find(i->first)->second;
+
+        for( j = row.begin(); j != row.end(); j++ ) 
         {
-            total += (*j).second;
+            total += j->second;
         }
     }
 
@@ -122,15 +123,16 @@ unsigned TestTocino3DTorus::GetTotalBytes()
 {
     unsigned total = 0;
     
-    // MAS - I hate this code
-    std::map<TocinoAddress, std::map<TocinoAddress, unsigned> >::iterator i;
-    std::map<TocinoAddress, unsigned>::iterator j;
-
+    TestMatrix::iterator i;
+    TestMatrixRow::iterator j;
+    
     for( i = m_bytes.begin(); i != m_bytes.end(); i++ ) 
     {
-        for( j = m_bytes[(*i).first].begin(); j != m_bytes[(*i).first].end(); j++ ) 
+        const TestMatrixRow& row = m_bytes.find(i->first)->second;
+
+        for( j = row.begin(); j != row.end(); j++ ) 
         {
-            total += (*j).second;
+            total += j->second;
         }
     }
 
