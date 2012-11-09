@@ -119,12 +119,12 @@ unsigned TestTocino3DTorus::GetTotalCount() const
     return total;
 }
 
-unsigned TestTocino3DTorus::GetTotalBytes()
+unsigned TestTocino3DTorus::GetTotalBytes() const
 {
     unsigned total = 0;
     
-    TestMatrix::iterator i;
-    TestMatrixRow::iterator j;
+    TestMatrix::const_iterator i;
+    TestMatrixRow::const_iterator j;
     
     for( i = m_bytes.begin(); i != m_bytes.end(); i++ ) 
     {
