@@ -81,17 +81,17 @@ class TocinoAddress
         return a;
     }
     
-    uint8_t GetX()
+    uint8_t GetX() const
     {
         return m_address.x;
     }
     
-    uint8_t GetY()
+    uint8_t GetY() const
     {
         return m_address.y;
     }
     
-    uint8_t GetZ()
+    uint8_t GetZ() const
     {
         return m_address.z;
     }

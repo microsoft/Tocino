@@ -9,7 +9,7 @@
 #include "test-tocino-multihop.h"
 #include "test-tocino-ring.h"
 #include "test-tocino-deadlock.h"
-#include "test-tocino-3x3x3.h"
+#include "test-tocino-3d-torus.h"
 
 #include "ns3/log.h"
 #include "ns3/test.h"
@@ -43,7 +43,7 @@ TocinoTestSuite::TocinoTestSuite ()
     AddTestCase( new TestTocinoMultihop );
     AddTestCase( new TestTocinoRing );
     AddTestCase( new TestTocinoDeadlock );
-    AddTestCase( new TestTocino3x3x3 );
+    AddTestCase( new TestTocino3DTorus );
 }
 
 static TocinoTestSuite tocinoTestSuite;

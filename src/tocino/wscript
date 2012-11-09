@@ -33,7 +33,7 @@ def build(bld):
         'test/test-tocino-point-to-point.cc',
         'test/test-tocino-multihop.cc',
         'test/test-tocino-ring.cc',
-        'test/test-tocino-3x3x3.cc',
+        'test/test-tocino-3d-torus.cc',
         'test/test-tocino-deadlock.cc',
         'test/tocino-test-suite.cc',
         ]
