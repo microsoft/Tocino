@@ -22,6 +22,16 @@
 
 NS_LOG_COMPONENT_DEFINE ("TocinoNetDevice");
 
+#ifdef NS_LOG_APPEND_CONTEXT
+#pragma push_macro("NS_LOG_APPEND_CONTEXT")
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT \
+    { std::clog << "(" \
+                << (int) m_address.GetX() << "," \
+                << (int) m_address.GetY() << "," \
+                << (int) m_address.GetZ() << ") "; }
+#endif
+
 namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED (TocinoNetDevice);
@@ -364,7 +374,8 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 
 void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 {
-    NS_LOG_FUNCTION( f );
+    // FIXME: Use some kind of packet ID here instead
+    NS_LOG_FUNCTION( PeekPointer(f) );
 
     TocinoFlitHeader h;
     f->PeekHeader(h);
@@ -407,7 +418,8 @@ void TocinoNetDevice::SendFlits()
 
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
-    NS_LOG_FUNCTION( f );
+    // FIXME: Use some kind of packet ID here instead
+    NS_LOG_FUNCTION( PeekPointer(f) );
     
     TocinoFlitHeader h;
     f->RemoveHeader( h );
@@ -546,5 +558,7 @@ bool TocinoNetDevice::AllQuiet() const
 
     return quiet;
 }
+
+#pragma pop_macro("NS_LOG_APPEND_CONTEXT")
 
 } // namespace ns3

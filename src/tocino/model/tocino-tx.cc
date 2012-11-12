@@ -22,7 +22,12 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 #ifdef NS_LOG_APPEND_CONTEXT
 #pragma push_macro("NS_LOG_APPEND_CONTEXT")
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT { std::clog << m_portNumber << " "; }
+#define NS_LOG_APPEND_CONTEXT \
+    { std::clog << "(" \
+                << (int) m_tnd->m_address.GetX() << "," \
+                << (int) m_tnd->m_address.GetY() << "," \
+                << (int) m_tnd->m_address.GetZ() << ") " \
+                << m_portNumber << " "; }
 #endif
 
 namespace ns3 {

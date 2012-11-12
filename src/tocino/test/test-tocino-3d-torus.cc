@@ -139,53 +139,25 @@ unsigned TestTocino3DTorus::GetTotalBytes() const
     return total;
 }
 
-void TestTocino3DTorus::RunOneTest( const unsigned COUNT, const unsigned BYTES, const TocinoAddress& src, const TocinoAddress& dst )
+TocinoAddress TestTocino3DTorus::OppositeCorner( const uint8_t x, const uint8_t y, const uint8_t z )
 {
-    TocinoCustomizeLogging();
+    const int MAX_COORD = m_radix-1;
 
+    NS_ASSERT( x == 0 || x == MAX_COORD );
+    NS_ASSERT( y == 0 || y == MAX_COORD );
+    NS_ASSERT( z == 0 || z == MAX_COORD );
+
+    uint8_t ox = (x == 0) ? MAX_COORD : 0;
+    uint8_t oy = (y == 0) ? MAX_COORD : 0;
+    uint8_t oz = (z == 0) ? MAX_COORD : 0;
+
+    return TocinoAddress( ox, oy, oz );
+}
+
+void TestTocino3DTorus::TestCornerToCorner( const unsigned COUNT, const unsigned BYTES )
+{
     Ptr<Packet> p = Create<Packet>( BYTES );
-   
-    Ptr<TocinoNetDevice> srcNetDevice = m_netDevices[src.GetX()][src.GetY()][src.GetZ()];
 
-    Reset();
-
-    for( unsigned i = 0; i < COUNT; ++i )
-    {
-        Simulator::ScheduleWithContext( srcNetDevice->GetNode()->GetId(), Seconds(0),
-                &TocinoNetDevice::Send, srcNetDevice, p, dst, 0 );
-    }
-
-    Simulator::Run();
-   
-    NS_TEST_ASSERT_MSG_EQ( m_counts[src][dst], COUNT, "Unexpected packet count" );
-    NS_TEST_ASSERT_MSG_EQ( m_bytes[src][dst], BYTES*COUNT, "Unexpected packet bytes" );
-    
-    NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), COUNT, "Unexpected total packet count" );
-    NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), BYTES*COUNT, "Unexpected total packet bytes" );
-    
-    Simulator::Destroy();
-}
-
-TocinoAddress TestTocino3DTorus::OppositeCorner( const TocinoAddress& a )
-{
-    int x = a.GetX();
-    int y = a.GetY();
-    int z = a.GetZ();
-
-    if( x == 0 ) { x = m_radix-1; }
-    else { NS_ASSERT( x == m_radix-1 ); }
-    
-    if( y == 0 ) { y = m_radix-1; }
-    else { NS_ASSERT( y == m_radix-1 ); }
-    
-    if( z == 0 ) { z = m_radix-1; }
-    else { NS_ASSERT( z == m_radix-1 ); }
-
-    return TocinoAddress( x, y, z );
-}
-
-void TestTocino3DTorus::TestHelper( const unsigned COUNT, const unsigned BYTES )
-{
     // iterate over the "corners"
     for( int x = 0; x < m_radix; x += (m_radix-1) )
     { 
@@ -193,13 +165,129 @@ void TestTocino3DTorus::TestHelper( const unsigned COUNT, const unsigned BYTES )
         { 
             for( int z = 0; z < m_radix; z += (m_radix-1) )
             {
-                TocinoAddress src( x, y, z );
-                TocinoAddress dst = OppositeCorner( src );
+                Reset();
+                TocinoCustomizeLogging();
 
-                RunOneTest( COUNT, BYTES, src, dst );
+                TocinoAddress src( x, y, z );
+                TocinoAddress dst = OppositeCorner( x, y, z );
+
+                Ptr<TocinoNetDevice> srcNetDevice = m_netDevices[x][y][z];
+
+                for( unsigned i = 0; i < COUNT; ++i )
+                {
+                    Simulator::ScheduleWithContext( 
+                            srcNetDevice->GetNode()->GetId(),
+                            Seconds(0),
+                            &TocinoNetDevice::Send,
+                            srcNetDevice,
+                            p,
+                            dst,
+                            0 );
+                }
+
+                Simulator::Run();
+
+                NS_TEST_ASSERT_MSG_EQ( m_counts[src][dst], COUNT, "Unexpected packet count" );
+                NS_TEST_ASSERT_MSG_EQ( m_bytes[src][dst], BYTES*COUNT, "Unexpected packet bytes" );
+
+                NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), COUNT, "Unexpected total packet count" );
+                NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), BYTES*COUNT, "Unexpected total packet bytes" );
+
+                Simulator::Destroy();
             }
         }
     }
+}
+
+int TestTocino3DTorus::Middle() const
+{
+    return ( m_radix-1 ) / 2;
+}
+
+bool TestTocino3DTorus::IsCenterNeighbor( const int x, const int y, const int z ) const
+{
+    int middles = 0;
+
+    if( x == Middle() ) middles++;
+    if( y == Middle() ) middles++;
+    if( z == Middle() ) middles++;
+
+    // addresses with exactly two middle coords
+    // are neighbors (1-hop, adjacent) of center
+    if( middles == 2 ) return 2;
+
+    return false;
+}
+
+void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
+{
+    // 6:1 incast on the center node
+    
+    Reset();
+    TocinoCustomizeLogging();
+
+    Ptr<Packet> p = Create<Packet>( BYTES );
+   
+    const TocinoAddress center( Middle(), Middle(), Middle() );
+    
+    for( unsigned i = 0; i < COUNT; ++i )
+    {
+        for( int x = 0; x < m_radix; x++ )
+        { 
+            for( int y = 0; y < m_radix; y++ )
+            { 
+                for( int z = 0; z < m_radix; z++ )
+                {
+                    if( IsCenterNeighbor( x, y, z ) )
+                    {
+                        Simulator::ScheduleWithContext(
+                                m_netDevices[x][y][z]->GetNode()->GetId(),
+                                Seconds(0),
+                                &TocinoNetDevice::Send,
+                                m_netDevices[x][y][z],
+                                p,
+                                center,
+                                0 );
+                    }
+                }
+            }
+        }
+    }
+
+    Simulator::Run();
+   
+    for( int x = 0; x < m_radix; x++ )
+    { 
+        for( int y = 0; y < m_radix; y++ )
+        { 
+            for( int z = 0; z < m_radix; z++ )
+            {
+                if( IsCenterNeighbor( x, y, z ) )
+                {
+                    TocinoAddress src( x, y, z );
+
+                    NS_TEST_ASSERT_MSG_EQ( m_counts[src][center], COUNT, "Unexpected packet count" );
+                    NS_TEST_ASSERT_MSG_EQ( m_bytes[src][center], BYTES*COUNT, "Unexpected packet bytes" );
+                }
+            }
+        }
+    }
+
+    NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), 6*COUNT, "Unexpected total packet count" );
+    NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), 6*BYTES*COUNT, "Unexpected total packet bytes" );
+    
+    Simulator::Destroy();
+}
+
+void TestTocino3DTorus::TestHelper()
+{
+    TestCornerToCorner( 1, 20 );
+    TestCornerToCorner( 1, 123 );
+    TestCornerToCorner( 2, 32 );
+    
+    //TestIncast( 1, 20 );
+    //TestIncast( 1, 123 );
+    //TestIncast( 2, 32 );
 }
 
 void
@@ -209,15 +297,10 @@ TestTocino3DTorus::DoRun()
 
     Initialize();
 
-    TestHelper( 1, 20 );
-    TestHelper( 1, 123 );
-    TestHelper( 2, 32 );
-
-    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( m_radix-1 ) );
+    TestHelper();
     
-    TestHelper( 1, 20 );
-    TestHelper( 1, 123 );
-    TestHelper( 2, 32 );
+    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( m_radix-1 ) );
+    TestHelper();
 
     Config::Reset();
 }

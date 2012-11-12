@@ -17,7 +17,12 @@ NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 #ifdef NS_LOG_APPEND_CONTEXT
 #pragma push_macro("NS_LOG_APPEND_CONTEXT")
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT { std::clog << m_portNumber << " "; }
+#define NS_LOG_APPEND_CONTEXT \
+    { std::clog << "(" \
+                << (int) m_tnd->m_address.GetX() << "," \
+                << (int) m_tnd->m_address.GetY() << "," \
+                << (int) m_tnd->m_address.GetZ() << ") " \
+                << m_portNumber << " "; }
 #endif
 
 namespace ns3 {
@@ -81,7 +86,8 @@ TocinoRx::CheckForUnblock()
 void
 TocinoRx::Receive(Ptr<Packet> p)
 {
-    NS_LOG_FUNCTION( p );
+    // FIXME: Use some kind of packet ID here instead
+    NS_LOG_FUNCTION( PeekPointer(p) );
 
     uint32_t tx_q, tx_port;
 

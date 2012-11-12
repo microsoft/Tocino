@@ -34,10 +34,13 @@ private:
     unsigned GetTotalCount() const;
     unsigned GetTotalBytes() const;
 
-    void RunOneTest( const unsigned, const unsigned, const TocinoAddress&, const TocinoAddress& );
-    void TestHelper( const unsigned, const unsigned );
+    TocinoAddress OppositeCorner( const uint8_t, const uint8_t, const uint8_t );
+    int Middle() const;
+    bool IsCenterNeighbor( const int x, const int y, const int z ) const;
 
-    TocinoAddress OppositeCorner( const TocinoAddress& );
+    void TestCornerToCorner( const unsigned, const unsigned );
+    void TestIncast( const unsigned, const unsigned );
+    void TestHelper();
 
     virtual void DoRun();
  
