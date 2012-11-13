@@ -17,7 +17,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     void Initialize( Ptr<TocinoNetDevice> );
 
-    uint32_t Route( const uint32_t inPort, Ptr<const Packet> p );
+    uint32_t Route( Ptr<const Packet> p );
 
     private:
 
@@ -30,7 +30,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     int32_t m_wrapPoint;
 
     //FIXME need entry for each VC
-    std::vector< uint32_t > m_routeVector;
+    uint32_t m_currentRoute;
 };
 
 }

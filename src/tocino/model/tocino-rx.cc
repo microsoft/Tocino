@@ -11,6 +11,7 @@
 #include "tocino-tx.h"
 #include "callback-queue.h"
 #include "tocino-misc.h"
+#include "tocino-router.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
@@ -27,11 +28,12 @@ NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
 namespace ns3 {
 
-TocinoRx::TocinoRx( Ptr<TocinoNetDevice> tnd )
+TocinoRx::TocinoRx( Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
     : m_portNumber( TOCINO_INVALID_PORT )
     , m_xstate( TocinoFlowControl::XON )
     , m_tnd( tnd )
     , m_queues( tnd->GetNPorts() * tnd->GetNVCs() )
+    , m_router( router )
 {}
 
 TocinoRx::~TocinoRx()
@@ -106,11 +108,9 @@ TocinoRx::Receive(Ptr<Packet> p)
         return;
     }
   
-    Ptr<TocinoRouter> router = m_tnd->GetRouter(); //FIXME this should be done at init time
-    NS_ASSERT( router != NULL );
-
     // figure out where the packet goes; returns linearized <port, vc> index
-    tx_q = router->Route( m_portNumber, p ); 
+    NS_ASSERT( m_router != NULL );
+    tx_q = m_router->Route( p ); 
     
     NS_ASSERT_MSG( tx_q != TOCINO_INVALID_QUEUE, "Route failed" );
     

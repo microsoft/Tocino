@@ -19,6 +19,7 @@
 #include "tocino-channel.h"
 #include "tocino-flit-header.h"
 #include "tocino-dimension-order-router.h"
+#include "tocino-simple-arbiter.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoNetDevice");
 
@@ -55,6 +56,11 @@ TypeId TocinoNetDevice::GetTypeId(void)
             "Name of type which implements routing algorithm.",
             TypeIdValue (TocinoDimensionOrderRouter::GetTypeId ()),
             MakeTypeIdAccessor (&TocinoNetDevice::m_routerTypeId),
+            MakeTypeIdChecker ())
+        .AddAttribute ("ArbiterType",
+            "Name of type which implements arbitration algorithm.",
+            TypeIdValue (TocinoSimpleArbiter::GetTypeId ()),
+            MakeTypeIdAccessor (&TocinoNetDevice::m_arbiterTypeId),
             MakeTypeIdChecker ());
     return tid;
 }
@@ -71,7 +77,7 @@ TocinoNetDevice::TocinoNetDevice() :
     m_nPorts( DEFAULT_NPORTS ),
     m_nVCs( DEFAULT_NVCS ),
     m_routerTypeId( TocinoDimensionOrderRouter::GetTypeId() ),
-    m_router( NULL )
+    m_arbiterTypeId( TocinoSimpleArbiter::GetTypeId() )
 {}
 
 TocinoNetDevice::~TocinoNetDevice()
@@ -89,6 +95,12 @@ TocinoNetDevice::~TocinoNetDevice()
 void
 TocinoNetDevice::Initialize()
 {
+    ObjectFactory routerFactory;
+    routerFactory.SetTypeId( m_routerTypeId );
+
+    ObjectFactory arbiterFactory;
+    arbiterFactory.SetTypeId( m_arbiterTypeId );
+
     uint32_t vc, i, j, k, base;
 
     // size data structures
@@ -103,13 +115,18 @@ TocinoNetDevice::Initialize()
         m_queues[i] = CreateObject<CallbackQueue>();
     }
   
-    // create receivers and transmitters
+    // create receivers and routers
+    // create transmitters and arbiters
     for (i = 0; i < m_nPorts; i++)
     {
-        m_receivers[i] = new TocinoRx( this );
+        Ptr<TocinoRouter> router = routerFactory.Create<TocinoRouter>();
+        m_receivers[i] = new TocinoRx( this, router );
+        router->Initialize( this );
         m_receivers[i]->m_portNumber = i;
         
-        m_transmitters[i] = new TocinoTx( this );
+        Ptr<TocinoArbiter> arbiter = arbiterFactory.Create<TocinoArbiter>();
+        m_transmitters[i] = new TocinoTx( this, arbiter );
+        arbiter->Initialize( this, m_transmitters[i] );
         m_transmitters[i]->m_portNumber = i;
     }
   
@@ -148,14 +165,6 @@ TocinoNetDevice::Initialize()
         }
     }
 
-    //FIXME - move this prior to creation of receivers and then create receivers with router as arg
-    ObjectFactory routerFactory;
-    routerFactory.SetTypeId( m_routerTypeId );
-
-    m_router = routerFactory.Create<TocinoRouter>();
-    m_router->Initialize( this );
-
-    NS_ASSERT( m_router != NULL );
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
@@ -502,18 +511,6 @@ uint32_t
 TocinoNetDevice::GetHostPort() const
 {
     return m_nPorts - 1;
-}
-
-Ptr<TocinoRouter>
-TocinoNetDevice::GetRouter() const
-{
-    return m_router;
-}
-
-void
-TocinoNetDevice::SetRouter( Ptr<TocinoRouter> r )
-{
-    m_router = r;
 }
 
 bool TocinoNetDevice::AllQuiet() const

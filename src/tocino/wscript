@@ -20,6 +20,8 @@ def build(bld):
         'model/tocino-misc.cc',
         'model/tocino-router.cc',
         'model/tocino-dimension-order-router.cc',
+        'model/tocino-arbiter.cc',
+        'model/tocino-simple-arbiter.cc',
         'helper/tocino-helper.cc',
         ]
 
@@ -52,6 +54,8 @@ def build(bld):
         'model/tocino-misc.h',
         'model/tocino-router.h',
         'model/tocino-dimension-order-router.h',
+        'model/tocino-arbiter.h',
+        'model/tocino-simple-arbiter.h',
         'helper/tocino-helper.h',
         ]
 

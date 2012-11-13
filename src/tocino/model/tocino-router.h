@@ -15,7 +15,7 @@ struct TocinoRouter : public Object
 {
     static TypeId GetTypeId( void );
 
-    virtual uint32_t Route( const uint32_t inPort, Ptr<const Packet> p ) = 0;
+    virtual uint32_t Route( Ptr<const Packet> p ) = 0;
 
     virtual void Initialize( Ptr<TocinoNetDevice> ) = 0;
 };

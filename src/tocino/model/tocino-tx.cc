@@ -32,7 +32,7 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx( Ptr<TocinoNetDevice> tnd )
+TocinoTx::TocinoTx( Ptr<TocinoNetDevice> tnd, Ptr<TocinoArbiter> arbiter )
     : m_portNumber( TOCINO_INVALID_PORT )
     , m_xstate( TocinoFlowControl::XON )
     , m_packet( NULL )
@@ -42,6 +42,7 @@ TocinoTx::TocinoTx( Ptr<TocinoNetDevice> tnd )
     , m_tnd( tnd )
     , m_queues( tnd->GetNPorts() * tnd->GetNVCs() )
     , m_channel( NULL )
+    , m_arbiter( arbiter )
 {}
 
 TocinoTx::~TocinoTx()
@@ -174,8 +175,11 @@ TocinoTx::Transmit()
     {
         if (m_xstate == TocinoFlowControl::XON) // legal to transmit
         {
-            winner = Arbitrate();
-            if (winner < m_queues.size())
+            NS_ASSERT( m_arbiter != NULL );
+            
+            winner = m_arbiter->Arbitrate();
+
+            if (winner != TOCINO_INVALID_QUEUE )
             {
                 m_state = BUSY; // this acts as a mutex on Transmit
 
@@ -252,17 +256,17 @@ TocinoTx::Transmit()
     }
 }
 
-uint32_t
-TocinoTx::Arbitrate()
+bool
+TocinoTx::IsQueueNotEmpty( int qnum ) const
 {
-  uint32_t i;
+    NS_ASSERT( qnum < static_cast<int>( m_queues.size() ) );
 
-    // trivial arbitration - obvious starvation concern
-    for (i = 0; i < m_queues.size(); i++)
+    if( m_queues[qnum]->IsEmpty() ) 
     {
-        if (m_queues[i]->IsEmpty() == false) return i;
+        return false;
     }
-    return m_queues.size(); // nothing pending
+    
+    return true;
 }
 
 } // namespace ns3

@@ -16,16 +16,16 @@ class NetDevice;
 class TocinoNetDevice;
 class Packet;
 class CallbackQueue;
+class TocinoRouter;
 
 class TocinoRx
 {
 public:
-    TocinoRx( Ptr<TocinoNetDevice> );
+    TocinoRx( Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
     ~TocinoRx();
     
     Ptr<NetDevice> GetNetDevice();
     
-//    void Receive(Ptr<const Packet> p);
     void Receive(Ptr<Packet> p);
    
     friend class TocinoNetDevice;
@@ -43,6 +43,8 @@ private:
     void CheckForUnblock(); // called from TocinNetDeviceTransmitter
     void SetXState(TocinoFlowControl::State s) {m_xstate = s;}
     TocinoFlowControl::State GetXState() {return m_xstate;}
+    
+    Ptr<TocinoRouter> m_router;
 };
 
 } // namespace ns3

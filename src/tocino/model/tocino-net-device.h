@@ -8,7 +8,7 @@
 
 #include "tocino-address.h"
 #include "tocino-flit-header.h"
-#include "tocino-router.h"
+#include "tocino-arbiter.h"
 
 namespace ns3
 {
@@ -80,9 +80,6 @@ public:
             const TocinoAddress&,
             const TocinoFlitHeader::Type );
    
-    Ptr<TocinoRouter> GetRouter() const;
-    void SetRouter( Ptr<TocinoRouter> );
-
     bool AllQuiet() const;
 
 private:
@@ -128,7 +125,7 @@ private:
     std::vector< TocinoRx* > m_receivers;
     
     TypeId m_routerTypeId;
-    Ptr<TocinoRouter> m_router;
+    TypeId m_arbiterTypeId;
 };
 
 } // namespace ns3

@@ -16,11 +16,12 @@ class NetDevice;
 class TocinoChannel;
 class TocinoNetDevice;
 class CallbackQueue;
+class TocinoArbiter;
 
 class TocinoTx
 {
 public:
-    TocinoTx( Ptr<TocinoNetDevice> );
+    TocinoTx( Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
     ~TocinoTx();
    
     void SetXState(TocinoFlowControl::State s);
@@ -33,7 +34,9 @@ public:
     Ptr<NetDevice> GetNetDevice();
     
     void Transmit();
-    
+   
+    bool IsQueueNotEmpty( int ) const;
+
     friend class TocinoNetDevice;
     
 private:
@@ -55,7 +58,8 @@ private:
     Ptr<TocinoChannel> m_channel; // link to channel
 
     void TransmitEnd(); // can this be private? needs to be invoked by Simulator::Schedule()
-    uint32_t Arbitrate(); // returns linearized <port, vc> tuple
+
+    Ptr<TocinoArbiter> m_arbiter;
 };
 
 } // namespace ns3
