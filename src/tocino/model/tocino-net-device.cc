@@ -496,6 +496,12 @@ TocinoNetDevice::GetNVCs() const
 }
 
 uint32_t
+TocinoNetDevice::GetNQueues() const
+{
+    return m_nPorts * m_nVCs;
+}
+
+uint32_t
 TocinoNetDevice::PortToQueue( uint32_t port ) const
 {
     return port * m_nVCs;

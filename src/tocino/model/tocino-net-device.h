@@ -8,7 +8,6 @@
 
 #include "tocino-address.h"
 #include "tocino-flit-header.h"
-#include "tocino-arbiter.h"
 
 namespace ns3
 {
@@ -64,6 +63,7 @@ public:
    
     uint32_t GetNPorts() const;
     uint32_t GetNVCs() const;
+    uint32_t GetNQueues() const;
 
     // Get the injection/ejection port
     uint32_t GetHostPort() const;

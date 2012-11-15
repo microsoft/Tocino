@@ -35,7 +35,10 @@ public:
     
     void Transmit();
    
-    bool IsQueueNotEmpty( int ) const;
+    bool IsQueueEmpty( uint32_t qnum ) const;
+    bool IsQueueNotEmpty( uint32_t qnum ) const;
+
+    bool IsNextFlitTail( uint32_t qnum ) const;
 
     friend class TocinoNetDevice;
     

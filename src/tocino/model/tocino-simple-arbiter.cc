@@ -23,6 +23,8 @@ TypeId TocinoSimpleArbiter::GetTypeId(void)
    
 TocinoSimpleArbiter::TocinoSimpleArbiter()
     : m_tnd( NULL )
+    , m_ttx( NULL )
+    , m_currentWinner( TOCINO_INVALID_QUEUE )
 {}
 
 void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* ttx )
@@ -31,17 +33,49 @@ void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* 
     m_ttx = ttx;
 }
 
-int TocinoSimpleArbiter::Arbitrate()
+uint32_t TocinoSimpleArbiter::Arbitrate()
 {
-    const int TOTAL_QUEUES = m_tnd->GetNPorts() * m_tnd->GetNVCs();
+    uint32_t winner = TOCINO_INVALID_QUEUE;
 
-    // trivial arbitration - obvious starvation concern
-    for ( int i = 0; i < TOTAL_QUEUES; i++)
+    if( m_currentWinner != TOCINO_INVALID_QUEUE )
     {
-        if( m_ttx->IsQueueNotEmpty( i ) ) return i;
+        if( m_ttx->IsQueueNotEmpty( m_currentWinner ) )
+        {
+            // Continue previous flow
+            winner = m_currentWinner;
+        }
+    }
+    else
+    {
+        // Pick a new flow
+        // FIXME: obvious starvation concern
+        for( uint32_t i = 0; i < m_tnd->GetNQueues(); i++ )
+        {
+            if( m_ttx->IsQueueNotEmpty( i ) )
+            {
+                winner = i;
+                break;
+            }
+        }
+      
+        m_currentWinner = winner;
     }
 
-    return TOCINO_INVALID_QUEUE;
+    if( winner == TOCINO_INVALID_QUEUE )
+    {
+        return DO_NOTHING;
+    }
+
+    if( m_ttx->IsQueueNotEmpty( winner ) )
+    {
+        if( m_ttx->IsNextFlitTail( winner ) )
+        {
+            // Flow ending, reset
+            m_currentWinner = TOCINO_INVALID_QUEUE;
+        }
+    }
+    
+    return winner;
 }
 
 }

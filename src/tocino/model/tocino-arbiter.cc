@@ -3,6 +3,8 @@
 
 #include "ns3/log.h"
 
+#include "tocino-misc.h"
+
 NS_LOG_COMPONENT_DEFINE ("TocinoArbiter");
 
 namespace ns3
@@ -16,5 +18,7 @@ TypeId TocinoArbiter::GetTypeId(void)
         .SetParent<Object>();
     return tid;
 }
+
+const uint32_t TocinoArbiter::DO_NOTHING = TOCINO_INVALID_PORT-1;
 
 }

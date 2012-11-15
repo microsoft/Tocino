@@ -32,7 +32,7 @@ TocinoRx::TocinoRx( Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
     : m_portNumber( TOCINO_INVALID_PORT )
     , m_xstate( TocinoFlowControl::XON )
     , m_tnd( tnd )
-    , m_queues( tnd->GetNPorts() * tnd->GetNVCs() )
+    , m_queues( tnd->GetNQueues() )
     , m_router( router )
 {}
 

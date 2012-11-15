@@ -15,9 +15,11 @@ struct TocinoArbiter : public Object
 {
     static TypeId GetTypeId( void );
 
-    virtual int Arbitrate() = 0;
+    virtual uint32_t Arbitrate() = 0;
 
     virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* ) = 0;
+
+    static const uint32_t DO_NOTHING;
 };
 
 }

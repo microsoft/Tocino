@@ -16,6 +16,7 @@
 #include "tocino-net-device.h"
 #include "tocino-channel.h"
 #include "tocino-misc.h"
+#include "tocino-arbiter.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
@@ -40,7 +41,7 @@ TocinoTx::TocinoTx( Ptr<TocinoNetDevice> tnd, Ptr<TocinoArbiter> arbiter )
     , m_pending_xon( false )
     , m_pending_xoff( false )
     , m_tnd( tnd )
-    , m_queues( tnd->GetNPorts() * tnd->GetNVCs() )
+    , m_queues( tnd->GetNQueues() )
     , m_channel( NULL )
     , m_arbiter( arbiter )
 {}
@@ -179,7 +180,7 @@ TocinoTx::Transmit()
             
             winner = m_arbiter->Arbitrate();
 
-            if (winner != TOCINO_INVALID_QUEUE )
+            if (winner != TocinoArbiter::DO_NOTHING )
             {
                 m_state = BUSY; // this acts as a mutex on Transmit
 
@@ -238,8 +239,8 @@ TocinoTx::Transmit()
         {
             // ejection port modeled as having infinite bandwidth and buffering
             // need to keep m_state == BUSY to this point to prevent reentrancy
-            m_state = IDLE;
             m_tnd->EjectFlit(p); // eject the packet
+            TransmitEnd();
         }
         else
         {
@@ -257,16 +258,35 @@ TocinoTx::Transmit()
 }
 
 bool
-TocinoTx::IsQueueNotEmpty( int qnum ) const
+TocinoTx::IsQueueEmpty( uint32_t qnum ) const
 {
-    NS_ASSERT( qnum < static_cast<int>( m_queues.size() ) );
+    NS_ASSERT( qnum < m_queues.size() );
 
     if( m_queues[qnum]->IsEmpty() ) 
     {
-        return false;
+        return true;
     }
     
-    return true;
+    return false;
+}
+
+bool
+TocinoTx::IsQueueNotEmpty( uint32_t qnum ) const
+{
+    return !IsQueueEmpty( qnum );
+}
+
+bool
+TocinoTx::IsNextFlitTail( uint32_t qnum ) const
+{
+    NS_ASSERT( qnum < m_queues.size() );
+    NS_ASSERT( !m_queues[qnum]->IsEmpty() );
+
+    Ptr<const Packet> f = m_queues[qnum]->Peek();
+    TocinoFlitHeader h;
+    f->PeekHeader( h );
+
+    return h.IsTail();
 }
 
 } // namespace ns3

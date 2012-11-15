@@ -214,7 +214,7 @@ bool TestTocino3DTorus::IsCenterNeighbor( const int x, const int y, const int z 
 
     // addresses with exactly two middle coords
     // are neighbors (1-hop, adjacent) of center
-    if( middles == 2 ) return 2;
+    if( middles == 2 ) return true;
 
     return false;
 }
@@ -262,6 +262,8 @@ void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
         { 
             for( int z = 0; z < m_radix; z++ )
             {
+                NS_TEST_ASSERT_MSG_EQ( m_netDevices[x][y][z]->AllQuiet(), true, "Net device not quiet" );
+
                 if( IsCenterNeighbor( x, y, z ) )
                 {
                     TocinoAddress src( x, y, z );
@@ -285,9 +287,9 @@ void TestTocino3DTorus::TestHelper()
     TestCornerToCorner( 1, 123 );
     TestCornerToCorner( 2, 32 );
     
-    //TestIncast( 1, 20 );
-    //TestIncast( 1, 123 );
-    //TestIncast( 2, 32 );
+    TestIncast( 1, 20 );
+    TestIncast( 1, 123 );
+    TestIncast( 2, 32 );
 }
 
 void

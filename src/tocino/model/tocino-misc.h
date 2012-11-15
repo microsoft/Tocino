@@ -3,11 +3,12 @@
 #define __TOCINO_MISC_H__
 
 #include <stdint.h>
+#include <limits>
 
 namespace ns3
 {
-    const uint32_t TOCINO_INVALID_PORT = -1;
-    const uint32_t TOCINO_INVALID_QUEUE = -1;
+    const uint32_t TOCINO_INVALID_PORT = std::numeric_limits<uint32_t>::max();
+    const uint32_t TOCINO_INVALID_QUEUE = std::numeric_limits<uint32_t>::max();
 
     void TocinoCustomizeLogging();
 }
