@@ -58,6 +58,8 @@ public:
 
     void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
 
+    TocinoAddress GetTocinoAddress( void ) const;
+
     TocinoRx* GetReceiver( uint32_t ) const;
     TocinoTx* GetTransmitter( uint32_t ) const;
    
@@ -71,9 +73,6 @@ public:
     uint32_t PortToQueue( uint32_t port ) const;
     uint32_t QueueToPort( uint32_t queue ) const;
 
-    friend class TocinoRx;
-    friend class TocinoTx;
-
     static std::deque< Ptr<Packet> > Flitter(
             const Ptr<Packet>,
             const TocinoAddress&,
@@ -81,6 +80,9 @@ public:
             const TocinoFlitHeader::Type );
    
     bool AllQuiet() const;
+    
+    void SendFlits(); // Attempt to send m_currentFlits
+    void EjectFlit(Ptr<Packet>); // called by TocinoTx to eject a flit
 
 private:
     // disable copy and copy-assignment
@@ -88,10 +90,6 @@ private:
     TocinoNetDevice( const TocinoNetDevice& );
        
     void InjectFlit( Ptr<Packet> ) const; // send one flit
-    void SendFlits(); // Attempt to send m_currentFlits
-    
-    friend class TestEjectFlit;
-    void EjectFlit(Ptr<Packet>); // this gets called by a TocinoTx to eject a Packet
 
     Ptr<Node> m_node;
     uint32_t m_ifIndex;

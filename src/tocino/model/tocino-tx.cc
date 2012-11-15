@@ -25,16 +25,16 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT \
     { std::clog << "(" \
-                << (int) m_tnd->m_address.GetX() << "," \
-                << (int) m_tnd->m_address.GetY() << "," \
-                << (int) m_tnd->m_address.GetZ() << ") " \
+                << (int) m_tnd->GetTocinoAddress().GetX() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetY() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
                 << m_portNumber << " "; }
 #endif
 
 namespace ns3 {
 
-TocinoTx::TocinoTx( Ptr<TocinoNetDevice> tnd, Ptr<TocinoArbiter> arbiter )
-    : m_portNumber( TOCINO_INVALID_PORT )
+TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoArbiter> arbiter )
+    : m_portNumber( portNumber )
     , m_xstate( TocinoFlowControl::XON )
     , m_packet( NULL )
     , m_state( IDLE )
@@ -149,7 +149,7 @@ TocinoTx::Transmit()
             // tx[j] and rx[j] on the NetDevice at far end of channel
             // THIS IS VERY IMPORTANT and probably should be checked at construction time
             // an alternative would be to infer the appropriate receiver to signal
-            m_tnd->m_receivers[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
+            m_tnd->GetReceiver(m_portNumber)->SetXState(TocinoFlowControl::XOFF);
             NS_LOG_LOGIC( "sending XOFF(" << p << ")" );
         }
     }
@@ -167,7 +167,7 @@ TocinoTx::Transmit()
             p = TocinoFlowControl::GetXONPacket();
 
             // same state reflection as described above
-            m_tnd->m_receivers[m_portNumber]->SetXState(TocinoFlowControl::XON);
+            m_tnd->GetReceiver(m_portNumber)->SetXState(TocinoFlowControl::XON);
             NS_LOG_LOGIC( "sending XON(" << p << ")" );
         }
     }
@@ -199,9 +199,9 @@ TocinoTx::Transmit()
                         bool was_blocked, is_blocked;
                     
                         // detect transition from blocked to unblocked
-                        was_blocked = m_tnd->m_receivers[rx_port]->IsBlocked();
+                        was_blocked = m_tnd->GetReceiver(rx_port)->IsBlocked();
                         p = m_queues[winner]->Dequeue();
-                        is_blocked = m_tnd->m_receivers[rx_port]->IsBlocked();
+                        is_blocked = m_tnd->GetReceiver(rx_port)->IsBlocked();
 
                         if (was_blocked && !is_blocked) // if injection process had stalled
                         {
@@ -212,7 +212,7 @@ TocinoTx::Transmit()
                     {
                         p = m_queues[winner]->Dequeue();
                         //NS_LOG_LOGIC("request CheckForUnblock");
-                        m_tnd->m_receivers[rx_port]->CheckForUnblock();
+                        m_tnd->GetReceiver(rx_port)->CheckForUnblock();
                     }
                 }
                 else
@@ -287,6 +287,13 @@ TocinoTx::IsNextFlitTail( uint32_t qnum ) const
     f->PeekHeader( h );
 
     return h.IsTail();
+}
+
+void
+TocinoTx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
+{
+    NS_ASSERT( qnum < m_queues.size() );
+    m_queues[qnum] = q;
 }
 
 } // namespace ns3

@@ -21,7 +21,7 @@ class TocinoArbiter;
 class TocinoTx
 {
 public:
-    TocinoTx( Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
+    TocinoTx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
     ~TocinoTx();
    
     void SetXState(TocinoFlowControl::State s);
@@ -40,10 +40,10 @@ public:
 
     bool IsNextFlitTail( uint32_t qnum ) const;
 
-    friend class TocinoNetDevice;
-    
+    void SetQueue( uint32_t, Ptr<CallbackQueue> );
+
 private:
-    uint32_t m_portNumber;
+    const uint32_t m_portNumber;
     
     TocinoFlowControl::State m_xstate;
     Ptr<Packet> m_packet;

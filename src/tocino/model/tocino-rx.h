@@ -21,28 +21,30 @@ class TocinoRouter;
 class TocinoRx
 {
 public:
-    TocinoRx( Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
+    TocinoRx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
     ~TocinoRx();
     
     Ptr<NetDevice> GetNetDevice();
     
     void Receive(Ptr<Packet> p);
-   
-    friend class TocinoNetDevice;
-    friend class TocinoTx;
+    
+    void SetXState(TocinoFlowControl::State s) {m_xstate = s;}
+    TocinoFlowControl::State GetXState() {return m_xstate;}
+    
+    bool IsBlocked();
+    void CheckForUnblock(); // called from TocinNetDeviceTransmitter
+
+    void SetQueue( uint32_t, Ptr<CallbackQueue> );
+
 private:
     
-    uint32_t m_portNumber;
+    const uint32_t m_portNumber;
+
     TocinoFlowControl::State m_xstate; // tracks xstate of TocinoTx on other end of channel
 
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
     
     std::vector< Ptr <CallbackQueue> > m_queues; // packet queues to write
-    
-    bool IsBlocked();
-    void CheckForUnblock(); // called from TocinNetDeviceTransmitter
-    void SetXState(TocinoFlowControl::State s) {m_xstate = s;}
-    TocinoFlowControl::State GetXState() {return m_xstate;}
     
     Ptr<TocinoRouter> m_router;
 };

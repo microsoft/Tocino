@@ -120,14 +120,12 @@ TocinoNetDevice::Initialize()
     for (i = 0; i < m_nPorts; i++)
     {
         Ptr<TocinoRouter> router = routerFactory.Create<TocinoRouter>();
-        m_receivers[i] = new TocinoRx( this, router );
+        m_receivers[i] = new TocinoRx( i, this, router );
         router->Initialize( this );
-        m_receivers[i]->m_portNumber = i;
         
         Ptr<TocinoArbiter> arbiter = arbiterFactory.Create<TocinoArbiter>();
-        m_transmitters[i] = new TocinoTx( this, arbiter );
+        m_transmitters[i] = new TocinoTx( i, this, arbiter );
         arbiter->Initialize( this, m_transmitters[i] );
-        m_transmitters[i]->m_portNumber = i;
     }
   
     // build linkage between rx and q
@@ -138,7 +136,7 @@ TocinoNetDevice::Initialize()
         base = i * m_nPorts * m_nVCs;
         for (j = 0; j < (m_nPorts * m_nVCs); j++)
         {
-            m_receivers[i]->m_queues[j] = m_queues[base + j];
+            m_receivers[i]->SetQueue( j, m_queues[base + j] );
         }
     }
 
@@ -160,7 +158,7 @@ TocinoNetDevice::Initialize()
                 sprintf(str,"%d:%d_%d", j, vc, i); // q name - src:vc_dst
                 m_queues[base + vc]->SetName(str);
 
-                m_transmitters[i]->m_queues[k + vc] = m_queues[base + vc];
+                m_transmitters[i]->SetQueue( k+vc, m_queues[base + vc] );
             }
         }
     }
@@ -199,6 +197,11 @@ void TocinoNetDevice::SetAddress( Address address )
 }
 
 Address TocinoNetDevice::GetAddress( void ) const
+{
+    return m_address;
+}
+
+TocinoAddress TocinoNetDevice::GetTocinoAddress( void ) const
 {
     return m_address;
 }
@@ -474,12 +477,14 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 TocinoRx*
 TocinoNetDevice::GetReceiver(uint32_t p) const
 {
+    NS_ASSERT( p < m_receivers.size() );
     return m_receivers[p];
 }
 
 TocinoTx*
 TocinoNetDevice::GetTransmitter(uint32_t p) const
 {
+    NS_ASSERT( p < m_receivers.size() );
     return m_transmitters[p];
 }
 

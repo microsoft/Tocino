@@ -20,16 +20,16 @@ NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT \
     { std::clog << "(" \
-                << (int) m_tnd->m_address.GetX() << "," \
-                << (int) m_tnd->m_address.GetY() << "," \
-                << (int) m_tnd->m_address.GetZ() << ") " \
+                << (int) m_tnd->GetTocinoAddress().GetX() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetY() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
                 << m_portNumber << " "; }
 #endif
 
 namespace ns3 {
 
-TocinoRx::TocinoRx( Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
-    : m_portNumber( TOCINO_INVALID_PORT )
+TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
+    : m_portNumber( portNumber )
     , m_xstate( TocinoFlowControl::XON )
     , m_tnd( tnd )
     , m_queues( tnd->GetNQueues() )
@@ -71,8 +71,8 @@ TocinoRx::CheckForUnblock()
         if (!IsBlocked()) 
         {
             //NS_LOG_LOGIC("unblocked" );
-            m_tnd->m_transmitters[m_portNumber]->SendXON();
-            m_tnd->m_transmitters[m_portNumber]->Transmit(); // restart the transmitter
+            m_tnd->GetTransmitter(m_portNumber)->SendXON();
+            m_tnd->GetTransmitter(m_portNumber)->Transmit(); // restart the transmitter
         }
         else
         {
@@ -86,6 +86,13 @@ TocinoRx::CheckForUnblock()
 }
 
 void
+TocinoRx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
+{
+    NS_ASSERT( qnum < m_queues.size() );
+    m_queues[qnum] = q;
+}
+
+void
 TocinoRx::Receive(Ptr<Packet> p)
 {
     // FIXME: Use some kind of packet ID here instead
@@ -96,15 +103,15 @@ TocinoRx::Receive(Ptr<Packet> p)
     if (TocinoFlowControl::IsXONPacket(p)) // XON packet enables transmission on this port
     {
         NS_LOG_LOGIC("received XON");
-        m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XON);
-        m_tnd->m_transmitters[m_portNumber]->Transmit(); // restart the transmitter
+        m_tnd->GetTransmitter(m_portNumber)->SetXState(TocinoFlowControl::XON);
+        m_tnd->GetTransmitter(m_portNumber)->Transmit(); // restart the transmitter
         return;
     }
     
     if (TocinoFlowControl::IsXOFFPacket(p)) // XOFF packet disables transmission on this port
     {
         NS_LOG_LOGIC("received XOFF");
-        m_tnd->m_transmitters[m_portNumber]->SetXState(TocinoFlowControl::XOFF);
+        m_tnd->GetTransmitter(m_portNumber)->SetXState(TocinoFlowControl::XOFF);
         return;
     }
   
@@ -128,11 +135,11 @@ TocinoRx::Receive(Ptr<Packet> p)
         }
         else
         {
-            m_tnd->m_transmitters[m_portNumber]->SendXOFF();
-            m_tnd->m_transmitters[m_portNumber]->Transmit();
+            m_tnd->GetTransmitter(m_portNumber)->SendXOFF();
+            m_tnd->GetTransmitter(m_portNumber)->Transmit();
         }
     }
-    m_tnd->m_transmitters[tx_port]->Transmit(); // kick the transmitter
+    m_tnd->GetTransmitter(tx_port)->Transmit(); // kick the transmitter
 }
 
 } // namespace ns3
