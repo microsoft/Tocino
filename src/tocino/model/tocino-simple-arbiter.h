@@ -24,7 +24,10 @@ class TocinoSimpleArbiter : public TocinoArbiter
     private:
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoTx *m_ttx;
-    
+
+    bool AllQueuesEmpty() const;
+    uint32_t FairSelectWinner() const;
+
     //FIXME need entry for each VC
     uint32_t m_currentWinner;
 };

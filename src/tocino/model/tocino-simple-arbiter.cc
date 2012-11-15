@@ -1,7 +1,10 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 #include "tocino-simple-arbiter.h"
 
+#include <vector>
+
 #include "ns3/log.h"
+#include "ns3/random-variable.h"
 
 #include "tocino-misc.h"
 #include "tocino-tx.h"
@@ -33,46 +36,70 @@ void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* 
     m_ttx = ttx;
 }
 
+bool TocinoSimpleArbiter::AllQueuesEmpty() const
+{
+    for( uint32_t i = 0; i < m_tnd->GetNQueues(); i++ )
+    {
+        if( m_ttx->IsQueueNotEmpty( i ) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+uint32_t TocinoSimpleArbiter::FairSelectWinner() const
+{
+    std::vector<uint32_t> ready;
+
+    for( uint32_t i = 0; i < m_tnd->GetNQueues(); i++ )
+    {
+        if( m_ttx->IsQueueNotEmpty( i ) )
+        {
+            ready.push_back(i);
+        }
+    }
+
+    UniformVariable rv;
+    
+    return ready[ rv.GetInteger( 0, ready.size()-1 ) ];
+}
+
 uint32_t TocinoSimpleArbiter::Arbitrate()
 {
     uint32_t winner = TOCINO_INVALID_QUEUE;
 
     if( m_currentWinner != TOCINO_INVALID_QUEUE )
     {
-        if( m_ttx->IsQueueNotEmpty( m_currentWinner ) )
+        if( m_ttx->IsQueueEmpty( m_currentWinner ) )
         {
-            // Continue previous flow
-            winner = m_currentWinner;
+            return DO_NOTHING;
         }
+        
+        // Continue previous flow
+        winner = m_currentWinner;
     }
     else
     {
-        // Pick a new flow
-        // FIXME: obvious starvation concern
-        for( uint32_t i = 0; i < m_tnd->GetNQueues(); i++ )
+        if( AllQueuesEmpty() )
         {
-            if( m_ttx->IsQueueNotEmpty( i ) )
-            {
-                winner = i;
-                break;
-            }
+            return DO_NOTHING;
         }
-      
+        
+        // Pick a new flow
+        winner = FairSelectWinner();
+
         m_currentWinner = winner;
     }
 
-    if( winner == TOCINO_INVALID_QUEUE )
-    {
-        return DO_NOTHING;
-    }
+    NS_ASSERT( winner != TOCINO_INVALID_QUEUE );
+    NS_ASSERT( m_ttx->IsQueueNotEmpty( winner ) );
 
-    if( m_ttx->IsQueueNotEmpty( winner ) )
+    if( m_ttx->IsNextFlitTail( winner ) )
     {
-        if( m_ttx->IsNextFlitTail( winner ) )
-        {
-            // Flow ending, reset
-            m_currentWinner = TOCINO_INVALID_QUEUE;
-        }
+        // Flow ending, reset
+        m_currentWinner = TOCINO_INVALID_QUEUE;
     }
     
     return winner;
