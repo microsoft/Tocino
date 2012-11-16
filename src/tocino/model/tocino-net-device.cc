@@ -417,7 +417,7 @@ void TocinoNetDevice::SendFlits()
     NS_LOG_FUNCTION_NOARGS();
 
     while( !m_outgoingFlits.empty() &&
-        !m_receivers[ GetHostPort() ]->IsBlocked() )
+        !m_receivers[ GetHostPort() ]->IsAnyQueueBlocked() )
     {
         // must pop prior to calling InjectFlit; InjectFlit can indirectly generate
         // a call to SendFlits which can cause a flit to be sent twice if pop
@@ -507,14 +507,15 @@ TocinoNetDevice::GetNQueues() const
 }
 
 uint32_t
-TocinoNetDevice::PortToQueue( uint32_t port ) const
+TocinoNetDevice::PortToQueue( uint32_t port, uint32_t vc ) const
 {
-    return port * m_nVCs;
+    return (port * m_nVCs) + vc;
 }
 
 uint32_t
 TocinoNetDevice::QueueToPort( uint32_t queue ) const
 {
+    // Truncation here is *intentional* 
     return queue / m_nVCs;
 }
 

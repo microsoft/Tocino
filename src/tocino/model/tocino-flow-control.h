@@ -15,15 +15,15 @@ class TocinoFlowControl
 
     enum State {XOFF, XON};
 
-    static Ptr<Packet> GetXONPacket();
-    static Ptr<Packet> GetXOFFPacket();
+    static Ptr<Packet> GetXONPacket( uint8_t vc = 0 );
+    static Ptr<Packet> GetXOFFPacket( uint8_t vc = 0 );
     static bool IsXONPacket( Ptr<Packet> );
     static bool IsXOFFPacket( Ptr<Packet> );
 
     private:
 
     template< State TFCS >
-        static Ptr<Packet> GetPacketHelper();
+        static Ptr<Packet> GetPacketHelper( uint8_t );
 
     template< State TFCS >
         static bool TestPacketHelper( Ptr<Packet> p );

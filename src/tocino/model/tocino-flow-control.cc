@@ -9,7 +9,7 @@ namespace ns3
 {
 
 template< TocinoFlowControl::State TFCS >
-Ptr< Packet> TocinoFlowControl::GetPacketHelper()
+Ptr< Packet> TocinoFlowControl::GetPacketHelper( uint8_t vc )
 {
     static Ptr<Packet> p = NULL;
 
@@ -22,6 +22,7 @@ Ptr< Packet> TocinoFlowControl::GetPacketHelper()
         h.SetHead();
         h.SetTail();
         h.SetType( TocinoFlitHeader::LLC );
+        h.SetVirtualChannel( vc );
 
         p->AddHeader(h);
     }
@@ -55,14 +56,14 @@ bool TocinoFlowControl::TestPacketHelper( Ptr< Packet> pkt )
     return false;
 }
 
-Ptr< Packet> TocinoFlowControl::GetXONPacket()
+Ptr< Packet> TocinoFlowControl::GetXONPacket( uint8_t vc )
 {
-    return GetPacketHelper<XON>();
+    return GetPacketHelper<XON>( vc );
 }
 
-Ptr< Packet> TocinoFlowControl::GetXOFFPacket()
+Ptr< Packet> TocinoFlowControl::GetXOFFPacket( uint8_t vc )
 {
-    return GetPacketHelper<XOFF>();
+    return GetPacketHelper<XOFF>( vc );
 }
 
 bool TocinoFlowControl::IsXONPacket( Ptr< Packet> p ) // const?

@@ -199,9 +199,9 @@ TocinoTx::Transmit()
                         bool was_blocked, is_blocked;
                     
                         // detect transition from blocked to unblocked
-                        was_blocked = m_tnd->GetReceiver(rx_port)->IsBlocked();
+                        was_blocked = m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked();
                         p = m_queues[winner]->Dequeue();
-                        is_blocked = m_tnd->GetReceiver(rx_port)->IsBlocked();
+                        is_blocked = m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked();
 
                         if (was_blocked && !is_blocked) // if injection process had stalled
                         {

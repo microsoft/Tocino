@@ -39,20 +39,52 @@ TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
 TocinoRx::~TocinoRx()
 {}
     
-Ptr<NetDevice> TocinoRx::GetNetDevice()
+Ptr<NetDevice>
+TocinoRx::GetNetDevice()
 { 
     return m_tnd;
 }
 
-bool
-TocinoRx::IsBlocked()
+void
+TocinoRx::SetXState( TocinoFlowControl::State s )
 {
-    uint32_t i;
+    m_xstate = s;
+}
 
-    // Receiver is blocked if ANY queue is full
-    for (i = 0; i < m_queues.size(); i++)
+TocinoFlowControl::State
+TocinoRx::GetXState() const
+{
+    return m_xstate;
+}
+    
+bool
+TocinoRx::IsQueueBlocked( uint32_t qnum ) const
+{
+    return m_queues[qnum]->IsFull();
+}
+
+bool
+TocinoRx::IsAnyQueueBlocked() const
+{
+    for( uint32_t i = 0; i < m_queues.size(); ++i )
     {
-        if (m_queues[i]->IsFull()) 
+        if( IsQueueBlocked( i ) )
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+TocinoRx::IsVCBlocked( const uint8_t vc ) const
+{
+    const uint32_t BASE = vc;
+    const uint32_t INCR = vc+1;
+    
+    for( uint32_t i = BASE; i < m_queues.size(); i += INCR )
+    {
+        if( IsQueueBlocked( i ) )
         {
             return true;
         }
@@ -68,7 +100,7 @@ TocinoRx::CheckForUnblock()
     if (m_xstate == TocinoFlowControl::XOFF)
     {
         // if not blocked, schedule XON
-        if (!IsBlocked()) 
+        if (!IsAnyQueueBlocked()) 
         {
             //NS_LOG_LOGIC("unblocked" );
             m_tnd->GetTransmitter(m_portNumber)->SendXON();

@@ -26,16 +26,19 @@ public:
     
     Ptr<NetDevice> GetNetDevice();
     
-    void Receive(Ptr<Packet> p);
+    void SetXState(TocinoFlowControl::State s);
+    TocinoFlowControl::State GetXState() const;
     
-    void SetXState(TocinoFlowControl::State s) {m_xstate = s;}
-    TocinoFlowControl::State GetXState() {return m_xstate;}
-    
-    bool IsBlocked();
+    bool IsQueueBlocked( uint32_t ) const;
+    bool IsAnyQueueBlocked() const ;
+    bool IsVCBlocked( uint8_t ) const;
+
     void CheckForUnblock(); // called from TocinNetDeviceTransmitter
 
     void SetQueue( uint32_t, Ptr<CallbackQueue> );
-
+    
+    void Receive(Ptr<Packet> p);
+    
 private:
     
     const uint32_t m_portNumber;
