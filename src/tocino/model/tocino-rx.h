@@ -26,8 +26,8 @@ public:
     
     Ptr<NetDevice> GetNetDevice();
     
-    void SetXState(TocinoFlowControl::State s);
-    TocinoFlowControl::State GetXState() const;
+    void SetUpstreamXState(TocinoFlowControl::State s);
+    TocinoFlowControl::State GetUpstreamXState() const;
     
     bool IsQueueBlocked( uint32_t ) const;
     bool IsAnyQueueBlocked() const ;
@@ -43,7 +43,7 @@ private:
     
     const uint32_t m_portNumber;
 
-    TocinoFlowControl::State m_xstate; // tracks xstate of TocinoTx on other end of channel
+    TocinoFlowControl::State m_upstreamXState; // tracks xstate of TocinoTx on other end of channel
 
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
     

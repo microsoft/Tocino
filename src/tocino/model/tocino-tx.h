@@ -38,6 +38,7 @@ public:
     bool IsQueueEmpty( uint32_t qnum ) const;
     bool IsQueueNotEmpty( uint32_t qnum ) const;
 
+    Ptr<const Packet> PeekNextFlit( uint32_t qnum ) const;
     bool IsNextFlitTail( uint32_t qnum ) const;
 
     void SetQueue( uint32_t, Ptr<CallbackQueue> );

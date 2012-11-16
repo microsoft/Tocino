@@ -519,6 +519,12 @@ TocinoNetDevice::QueueToPort( uint32_t queue ) const
     return queue / m_nVCs;
 }
 
+uint8_t
+TocinoNetDevice::QueueToVC( uint32_t queue ) const
+{
+    return queue % m_nVCs;
+}
+
 uint32_t
 TocinoNetDevice::GetHostPort() const
 {

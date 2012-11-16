@@ -15,8 +15,8 @@ class TocinoFlowControl
 
     enum State {XOFF, XON};
 
-    static Ptr<Packet> GetXONPacket( uint8_t vc = 0 );
-    static Ptr<Packet> GetXOFFPacket( uint8_t vc = 0 );
+    static Ptr<Packet> GetXONPacket( uint8_t vc );
+    static Ptr<Packet> GetXOFFPacket( uint8_t vc );
     static bool IsXONPacket( Ptr<Packet> );
     static bool IsXOFFPacket( Ptr<Packet> );
 

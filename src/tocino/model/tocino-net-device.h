@@ -70,8 +70,9 @@ public:
     // Get the injection/ejection port
     uint32_t GetHostPort() const;
 
-    uint32_t PortToQueue( uint32_t port, uint32_t vc = 0 ) const;
+    uint32_t PortToQueue( uint32_t port, uint32_t vc ) const;
     uint32_t QueueToPort( uint32_t queue ) const;
+    uint8_t QueueToVC( uint32_t queue ) const;
 
     static std::deque< Ptr<Packet> > Flitter(
             const Ptr<Packet>,

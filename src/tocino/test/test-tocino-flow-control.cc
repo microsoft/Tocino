@@ -20,8 +20,8 @@ void TestTocinoFlowControl::DoRun( void )
 {
     TocinoFlitHeader h;
     
-    Ptr<Packet> xon = TocinoFlowControl::GetXONPacket();
-    Ptr<Packet> xoff = TocinoFlowControl::GetXOFFPacket();
+    Ptr<Packet> xon = TocinoFlowControl::GetXONPacket( 0 );
+    Ptr<Packet> xoff = TocinoFlowControl::GetXOFFPacket( 0 );
     
     xon->PeekHeader( h );
     NS_TEST_ASSERT_MSG_EQ( h.IsHead(), true, "XON packet is not head?" );
