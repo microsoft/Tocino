@@ -27,13 +27,13 @@ TypeId TocinoSimpleArbiter::GetTypeId(void)
 TocinoSimpleArbiter::TocinoSimpleArbiter()
     : m_tnd( NULL )
     , m_ttx( NULL )
-    , m_currentWinner( TOCINO_INVALID_QUEUE )
 {}
 
 void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* ttx )
 {
     m_tnd = tnd;
     m_ttx = ttx;
+    m_legalPort.assign( m_tnd->GetNVCs(), ANY_PORT );
 }
 
 bool TocinoSimpleArbiter::AllQueuesEmpty() const
@@ -49,60 +49,82 @@ bool TocinoSimpleArbiter::AllQueuesEmpty() const
     return true;
 }
 
-uint32_t TocinoSimpleArbiter::FairSelectWinner() const
+TocinoSimpleArbiter::QueueVector
+TocinoSimpleArbiter::BuildCandidateSet() const
 {
-    std::vector<uint32_t> ready;
+    NS_ASSERT( m_tnd->GetNVCs() == m_legalPort.size() );
 
-    for( uint32_t i = 0; i < m_tnd->GetNQueues(); i++ )
+    std::vector<uint32_t> candidates;
+
+    for( uint8_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
     {
-        if( m_ttx->IsQueueNotEmpty( i ) )
+        if( m_legalPort[vc] == ANY_PORT )
         {
-            ready.push_back(i);
+            // can select any port that is ready
+            for( uint32_t port = 0; port < m_tnd->GetNPorts(); ++port )
+            {
+                uint32_t queue = m_tnd->PortToQueue( port, vc );
+
+                if( m_ttx->IsQueueNotEmpty( queue ) )
+                {
+                    candidates.push_back( queue );
+                }
+            }
+        }
+        else
+        {
+            // can only select the allocated port, if ready
+            uint32_t queue = m_tnd->PortToQueue( m_legalPort[vc], vc );
+
+            if( m_ttx->IsQueueNotEmpty( queue ) )
+            {
+                candidates.push_back( queue );
+            }
         }
     }
 
-    UniformVariable rv;
-    
-    return ready[ rv.GetInteger( 0, ready.size()-1 ) ];
+    return candidates;
 }
 
-uint32_t TocinoSimpleArbiter::Arbitrate()
+uint32_t
+TocinoSimpleArbiter::FairSelectWinner( const QueueVector& cand ) const
 {
-    uint32_t winner = TOCINO_INVALID_QUEUE;
+    UniformVariable rv;
+    return cand[ rv.GetInteger( 0, cand.size()-1 ) ];
+}
 
-    if( m_currentWinner != TOCINO_INVALID_QUEUE )
-    {
-        if( m_ttx->IsQueueEmpty( m_currentWinner ) )
-        {
-            return DO_NOTHING;
-        }
-        
-        // Continue previous flow
-        winner = m_currentWinner;
-    }
-    else
-    {
-        if( AllQueuesEmpty() )
-        {
-            return DO_NOTHING;
-        }
-        
-        // Pick a new flow
-        winner = FairSelectWinner();
-
-        m_currentWinner = winner;
-    }
-
-    NS_ASSERT( winner != TOCINO_INVALID_QUEUE );
-    NS_ASSERT( m_ttx->IsQueueNotEmpty( winner ) );
-
+void
+TocinoSimpleArbiter::UpdateState( uint32_t winner )
+{
     if( m_ttx->IsNextFlitTail( winner ) )
     {
         // Flow ending, reset
-        m_currentWinner = TOCINO_INVALID_QUEUE;
+        m_legalPort[ m_tnd->QueueToVC(winner) ] = ANY_PORT;
     }
-    
+    else
+    {
+        // Remember mapping
+        m_legalPort[ m_tnd->QueueToVC(winner) ] = m_tnd->QueueToPort(winner); 
+    }
+}
+
+uint32_t
+TocinoSimpleArbiter::Arbitrate()
+{
+    QueueVector candidates = BuildCandidateSet();
+
+    if( candidates.empty() )
+    {
+        return DO_NOTHING;
+    }
+
+    uint32_t winner = FairSelectWinner( candidates );
+
+    UpdateState( winner );
+
     return winner;
 }
+
+const uint32_t TocinoSimpleArbiter::ANY_PORT = TOCINO_INVALID_PORT-1;
 
 }

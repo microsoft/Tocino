@@ -2,6 +2,8 @@
 #ifndef __TOCINO_SIMPLE_ARBITER_H__
 #define __TOCINO_SIMPLE_ARBITER_H__   
 
+#include <vector>
+
 #include "tocino-arbiter.h"
 #include "tocino-net-device.h"
 
@@ -26,10 +28,16 @@ class TocinoSimpleArbiter : public TocinoArbiter
     const TocinoTx *m_ttx;
 
     bool AllQueuesEmpty() const;
-    uint32_t FairSelectWinner() const;
 
-    //FIXME need entry for each VC
-    uint32_t m_currentWinner;
+    typedef std::vector<uint32_t> QueueVector;
+    QueueVector BuildCandidateSet() const;
+    uint32_t FairSelectWinner( const QueueVector& ) const;
+    void UpdateState( uint32_t winner );
+
+    typedef std::vector<uint32_t> PortVector;
+    PortVector m_legalPort;
+    
+    static const uint32_t ANY_PORT;
 };
 
 }
