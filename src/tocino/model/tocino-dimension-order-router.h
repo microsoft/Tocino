@@ -2,6 +2,8 @@
 #ifndef __TOCINO_DIMENSION_ORDER_ROUTER_H__
 #define __TOCINO_DIMENSION_ORDER_ROUTER_H__
 
+#include <vector>
+
 #include "tocino-router.h"
 #include "tocino-net-device.h"
 
@@ -29,8 +31,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     static const int32_t NO_WRAP = -1;
     int32_t m_wrapPoint;
 
-    //FIXME need entry for each VC
-    uint32_t m_currentRoute;
+    std::vector<uint32_t> m_currentRoutes;
 };
 
 }

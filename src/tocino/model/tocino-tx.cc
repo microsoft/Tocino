@@ -142,14 +142,14 @@ TocinoTx::Transmit()
         }
         else
         {
-            p = TocinoFlowControl::GetXOFFPacket();
+            p = TocinoFlowControl::GetXOFFPacket( 0 );
 
             // reflect xstate of transmitter on far end of channel in local rx
             // assumption: the rx[i] and tx[i] in this NetDevice connect to some
             // tx[j] and rx[j] on the NetDevice at far end of channel
             // THIS IS VERY IMPORTANT and probably should be checked at construction time
             // an alternative would be to infer the appropriate receiver to signal
-            m_tnd->GetReceiver(m_portNumber)->SetXState(TocinoFlowControl::XOFF);
+            m_tnd->GetReceiver(m_portNumber)->SetUpstreamXState(TocinoFlowControl::XOFF);
             NS_LOG_LOGIC( "sending XOFF(" << p << ")" );
         }
     }
@@ -164,10 +164,10 @@ TocinoTx::Transmit()
         }
         else
         {
-            p = TocinoFlowControl::GetXONPacket();
+            p = TocinoFlowControl::GetXONPacket( 0 );
 
             // same state reflection as described above
-            m_tnd->GetReceiver(m_portNumber)->SetXState(TocinoFlowControl::XON);
+            m_tnd->GetReceiver(m_portNumber)->SetUpstreamXState(TocinoFlowControl::XON);
             NS_LOG_LOGIC( "sending XON(" << p << ")" );
         }
     }
@@ -274,6 +274,15 @@ bool
 TocinoTx::IsQueueNotEmpty( uint32_t qnum ) const
 {
     return !IsQueueEmpty( qnum );
+}
+    
+Ptr<const Packet>
+TocinoTx::PeekNextFlit( uint32_t qnum ) const
+{
+    NS_ASSERT( qnum < m_queues.size() );
+    NS_ASSERT( !m_queues[qnum]->IsEmpty() );
+
+    return m_queues[qnum]->Peek();
 }
 
 bool

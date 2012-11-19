@@ -30,12 +30,12 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
 TocinoDimensionOrderRouter::TocinoDimensionOrderRouter()
     : m_tnd( NULL )
     , m_wrapPoint( NO_WRAP )
-    , m_currentRoute( TOCINO_INVALID_PORT )
 {}
 
 void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd )
 {
     m_tnd = tnd;
+    m_currentRoutes.assign( m_tnd->GetNVCs(), TOCINO_INVALID_PORT );
 }
 
 bool TocinoDimensionOrderRouter::ShouldRoutePositive( const uint32_t src, const uint32_t dst ) const
@@ -64,11 +64,13 @@ uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p )
     TocinoFlitHeader h;
     p->PeekHeader( h );
 
-    int outputPort = m_currentRoute;
+    const int VC = h.GetVirtualChannel();
+
+    int outputPort = m_currentRoutes[VC];
 
     if( h.IsHead() )
     {
-        NS_ASSERT( m_currentRoute == TOCINO_INVALID_PORT );
+        NS_ASSERT( m_currentRoutes[VC] == TOCINO_INVALID_PORT );
 
         TocinoAddress localAddr =
             TocinoAddress::ConvertFrom( m_tnd->GetAddress() );
@@ -140,19 +142,19 @@ uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p )
             outputPort = m_tnd->GetHostPort(); 
         }
 
-        m_currentRoute = outputPort;
+        m_currentRoutes[VC] = outputPort;
     }
     
-    NS_ASSERT( m_currentRoute != TOCINO_INVALID_PORT );
+    NS_ASSERT( m_currentRoutes[VC] != TOCINO_INVALID_PORT );
 
     if( h.IsTail() )
     {
-        m_currentRoute = TOCINO_INVALID_PORT;
+        m_currentRoutes[VC] = TOCINO_INVALID_PORT;
         //NS_LOG_LOGIC("removing established path");
     }
 
-    //FIXME always to vc 0 for now
-    return m_tnd->PortToQueue( outputPort ); 
+    //FIXME always stay on same VC for now
+    return m_tnd->PortToQueue( outputPort, VC ); 
 }
 
 }
