@@ -24,13 +24,15 @@ public:
     TocinoTx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
     ~TocinoTx();
    
-    void SetXState(TocinoFlowControl::State s);
-    TocinoFlowControl::State GetXState();
+    void Pause();
+    void Resume();
+    bool IsPaused() const;
+
+    void RemotePause();
+    void RemoteResume();
     
     void SetChannel(Ptr<TocinoChannel> channel);
-    void SendXOFF();
-    void SendXON();
-    
+
     Ptr<NetDevice> GetNetDevice();
     
     void Transmit();
@@ -47,19 +49,25 @@ private:
     const uint32_t m_portNumber;
     
     TocinoFlowControl::State m_xstate;
-    Ptr<Packet> m_packet;
 
     enum TocinoTransmitterState {IDLE, BUSY};
     TocinoTransmitterState m_state;
   
-    bool m_pending_xon;
-    bool m_pending_xoff;
+    bool m_remoteResumeRequested;
+    bool m_remotePauseRequested;
 
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
     std::vector< Ptr <CallbackQueue> > m_queues; // links to queues
 
     Ptr<TocinoChannel> m_channel; // link to channel
+
+    void SendToChannel( Ptr<Packet> f );
+
+    void DoTransmitPause();
+    void DoTransmitResume();
+
+    void DoTransmit();
 
     void TransmitEnd(); // can this be private? needs to be invoked by Simulator::Schedule()
 

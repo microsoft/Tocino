@@ -82,8 +82,11 @@ public:
    
     bool AllQuiet() const;
     
-    void SendFlits(); // Attempt to send m_currentFlits
-    void EjectFlit(Ptr<Packet>); // called by TocinoTx to eject a flit
+    // Attempt to send m_currentFlits
+    void TrySendFlits();
+
+    // called by TocinoTx to eject a flit
+    void EjectFlit(Ptr<Packet>);
 
 private:
     // disable copy and copy-assignment

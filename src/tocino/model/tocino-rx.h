@@ -17,6 +17,7 @@ class TocinoNetDevice;
 class Packet;
 class CallbackQueue;
 class TocinoRouter;
+class TocinoTx;
 
 class TocinoRx
 {
@@ -43,10 +44,15 @@ private:
     
     const uint32_t m_portNumber;
 
-    TocinoFlowControl::State m_upstreamXState; // tracks xstate of TocinoTx on other end of channel
+    // tracks xstate of TocinoTx on other end of channel
+    TocinoFlowControl::State m_upstreamXState;
 
-    const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
-    
+    // link to owning TocinoNetDevice
+    const Ptr<TocinoNetDevice> m_tnd;
+
+    // corresponding transmitter
+    TocinoTx * const m_tx;
+
     std::vector< Ptr <CallbackQueue> > m_queues; // packet queues to write
     
     Ptr<TocinoRouter> m_router;

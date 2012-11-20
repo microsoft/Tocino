@@ -119,13 +119,15 @@ TocinoNetDevice::Initialize()
     // create transmitters and arbiters
     for (i = 0; i < m_nPorts; i++)
     {
-        Ptr<TocinoRouter> router = routerFactory.Create<TocinoRouter>();
-        m_receivers[i] = new TocinoRx( i, this, router );
-        router->Initialize( this );
-        
         Ptr<TocinoArbiter> arbiter = arbiterFactory.Create<TocinoArbiter>();
+        Ptr<TocinoRouter> router = routerFactory.Create<TocinoRouter>();
+
+        // MAS - must create transmitter first
         m_transmitters[i] = new TocinoTx( i, this, arbiter );
+        m_receivers[i] = new TocinoRx( i, this, router );
+
         arbiter->Initialize( this, m_transmitters[i] );
+        router->Initialize( this );
     }
   
     // build linkage between rx and q
@@ -345,7 +347,7 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     
         m_outgoingFlits = Flitter( currentPacket, source, destination, TocinoFlitHeader::ETHERNET );
    
-        SendFlits();
+        TrySendFlits();
     }
 
     // Tocino is a lossless network
@@ -412,7 +414,7 @@ void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
     m_receivers[ GetHostPort() ]->Receive(f);
 }
 
-void TocinoNetDevice::SendFlits()
+void TocinoNetDevice::TrySendFlits()
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -420,7 +422,7 @@ void TocinoNetDevice::SendFlits()
         !m_receivers[ GetHostPort() ]->IsAnyQueueBlocked() )
     {
         // must pop prior to calling InjectFlit; InjectFlit can indirectly generate
-        // a call to SendFlits which can cause a flit to be sent twice if pop
+        // a call to TrySendFlits which can cause a flit to be sent twice if pop
         // occurs after InjectFlits
         Ptr<Packet> f = m_outgoingFlits.front();
         m_outgoingFlits.pop_front();
@@ -543,7 +545,7 @@ bool TocinoNetDevice::AllQuiet() const
 
     if( !m_outgoingFlits.empty() )
     {
-        NS_LOG_LOGIC( "Not quiet: SendFlits() in progress?" );
+        NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
         quiet = false;
     }
 
@@ -555,7 +557,7 @@ bool TocinoNetDevice::AllQuiet() const
     
     for (unsigned i = 0; i < m_nPorts; i++)
     {
-        if( m_transmitters[i]->GetXState() == TocinoFlowControl::XOFF )
+        if( m_transmitters[i]->IsPaused() )
         {
             NS_LOG_LOGIC( "Not quiet: m_transmitters[" << i << "] is XOFF" );
             quiet = false;
