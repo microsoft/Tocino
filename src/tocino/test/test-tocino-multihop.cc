@@ -100,7 +100,6 @@ void TestTocinoMultihop::TestHelper(const unsigned BYTES )
     NS_TEST_ASSERT_MSG_EQ( totalCount, 1, "Got unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( totalBytes, BYTES, "Got unexpected total packet bytes" );
 
-#if 0
     bool aq;
     
     aq = netDeviceA->AllQuiet();
@@ -111,7 +110,6 @@ void TestTocinoMultihop::TestHelper(const unsigned BYTES )
     NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 2 not quiet?" );
     aq = netDeviceD->AllQuiet();
     NS_TEST_ASSERT_MSG_EQ( aq, true, "Net device 3 not quiet?" );
-#endif
 }
 
 void
