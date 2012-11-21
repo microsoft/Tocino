@@ -2,6 +2,7 @@
 
 #include "tocino-flit-header.h"
 #include "tocino-address.h"
+#include "tocino-misc.h"
 
 namespace ns3 {
 
@@ -62,6 +63,9 @@ uint32_t TocinoFlitHeader::GetSerializedSize( void ) const
     
     return SIZE_OTHER;
 }
+
+// If this fires, you may need to modify the union below
+STATIC_ASSERT( TOCINO_NUM_VC_BITS == 4, flit_header_assumes_16_virtual_channels );
 
 namespace {
     union Flags

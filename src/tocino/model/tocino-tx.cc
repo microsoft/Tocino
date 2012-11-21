@@ -165,7 +165,7 @@ TocinoTx::DoTransmitPause()
         return;
     }
 
-    Ptr<Packet> f = TocinoFlowControl::GetXOFFPacket( 0 );
+    Ptr<Packet> f = TocinoFlowControl::GetXOFFPacket();
     
     NS_LOG_LOGIC( "sending XOFF(" << f << ")" );
 
@@ -191,7 +191,7 @@ TocinoTx::DoTransmitResume()
         return;
     }
 
-    Ptr<Packet> f = TocinoFlowControl::GetXONPacket( 0 );
+    Ptr<Packet> f = TocinoFlowControl::GetXONPacket();
     
     NS_LOG_LOGIC( "sending XON(" << f << ")" );
 
