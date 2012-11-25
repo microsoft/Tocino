@@ -48,9 +48,6 @@ main (int argc, char *argv[])
 
     bool verbose = true;
 
-    uint32_t rngSeed = 1;
-    uint32_t rngRun = 1;
-
     uint32_t x, y, z;
     uint32_t i;
     uint32_t tx, rx, c;
@@ -139,9 +136,11 @@ main (int argc, char *argv[])
     }
 
     // cut it loose
-    SeedManager::SetSeed(rngSeed);
-    SeedManager::SetRun(rngRun);
 
+    LogComponentEnable("TocinoNetDevice", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("TocinoTx",  (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("TocinoRx", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
+    //LogComponentEnable("TocinoChannel", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     Simulator::Run ();
     Simulator::Destroy ();
     return 0;

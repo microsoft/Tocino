@@ -25,11 +25,11 @@ All2All::GetTypeId (void)
       .SetParent<Application> ()
       .AddConstructor<All2All> ()
       .AddAttribute ("MTBS", "Mean time between Send operations, exponential distribution.",
-          TimeValue (Seconds(1)),
+          TimeValue (Seconds(0.001)),
           MakeTimeAccessor (&All2All::m_mtbs),
           MakeTimeChecker ())
       .AddAttribute ("MaxdT", "Max delay between Send operations.",
-          TimeValue (Seconds(2)),
+          TimeValue (Seconds(1)),
           MakeTimeAccessor (&All2All::m_maxdt),
           MakeTimeChecker ())
       .AddAttribute ("Size", "Send size in bytes.",
@@ -106,7 +106,6 @@ All2All::Send(void)
 
     // compute delay to next send and schedule event
     Time dt = Time(m_dtRV->GetValue(m_mtbs.GetDouble(), m_maxdt.GetDouble()));
-    NS_LOG_UNCOND("dt= " << dt << "; mtbs= " << m_mtbs.GetDouble() << "; maxdt= " << m_maxdt.GetDouble());
     NS_ASSERT(dt > 0.0);
     ScheduleTransmit(dt);
 }
