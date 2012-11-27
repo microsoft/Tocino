@@ -111,16 +111,21 @@ TocinoSimpleArbiter::UpdateState( uint32_t winner )
 uint32_t
 TocinoSimpleArbiter::Arbitrate()
 {
+    NS_LOG_FUNCTION_NOARGS();
+
     QueueVector candidates = BuildCandidateSet();
 
     if( candidates.empty() )
     {
+        NS_LOG_LOGIC( "No candidates" );
         return DO_NOTHING;
     }
 
     uint32_t winner = FairSelectWinner( candidates );
 
     UpdateState( winner );
+
+    NS_LOG_LOGIC( "Winner is " << winner );
 
     return winner;
 }

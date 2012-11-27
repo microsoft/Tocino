@@ -73,8 +73,8 @@ void TestTocinoDeadlock::TestHelper( const unsigned COUNT, const unsigned BYTES 
     TocinoChannelHelper( netDeviceC, 1, netDeviceD, 0 );
     TocinoChannelHelper( netDeviceD, 0, netDeviceC, 1 );
     
-    TocinoChannelHelper( netDeviceD, 3, netDeviceA, 3 );
-    TocinoChannelHelper( netDeviceA, 2, netDeviceD, 2 );
+    TocinoChannelHelper( netDeviceD, 3, netDeviceA, 2 );
+    TocinoChannelHelper( netDeviceA, 2, netDeviceD, 3 );
     
     // A -> C
     // B -> D

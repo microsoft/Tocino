@@ -89,9 +89,9 @@ void TocinoTx::RemotePause()
     {
         m_remotePauseRequested = true;
         NS_LOG_LOGIC("pending XOFF");
-    }
     
-    Transmit();
+        Transmit();
+    }
 }
 
 void TocinoTx::RemoteResume()
@@ -105,9 +105,9 @@ void TocinoTx::RemoteResume()
     {
         m_remoteResumeRequested = true;
         NS_LOG_LOGIC("pending XON");
-    }
     
-    Transmit();
+        Transmit();
+    }
 }
 
 Ptr<NetDevice> TocinoTx::GetNetDevice()
@@ -125,6 +125,8 @@ TocinoTx::TransmitEnd()
 void
 TocinoTx::SendToChannel( Ptr<Packet> f )
 {
+    NS_LOG_FUNCTION( PeekPointer(f) );
+
     // this acts as a mutex on Transmit
     m_state = BUSY;
 
@@ -156,6 +158,8 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
 void
 TocinoTx::DoTransmitPause()
 {
+    NS_LOG_FUNCTION_NOARGS();
+
     m_remotePauseRequested = false;
 
     if( m_portNumber == m_tnd->GetHostPort() )
@@ -169,19 +173,14 @@ TocinoTx::DoTransmitPause()
     
     NS_LOG_LOGIC( "sending XOFF(" << f << ")" );
 
-    // reflect xstate of transmitter on far end of channel in local rx
-    // assumption: the rx[i] and tx[i] in this NetDevice connect to some
-    // tx[j] and rx[j] on the NetDevice at far end of channel
-    // THIS IS VERY IMPORTANT and probably should be checked at construction time
-    // an alternative would be to infer the appropriate receiver to signal
-    m_tnd->GetReceiver(m_portNumber)->SetUpstreamXState(TocinoFlowControl::XOFF);
-
     SendToChannel( f );
 }
 
 void
 TocinoTx::DoTransmitResume()
 {
+    NS_LOG_FUNCTION_NOARGS();
+
     m_remoteResumeRequested = false;
 
     if( m_portNumber == m_tnd->GetHostPort() )
@@ -195,21 +194,21 @@ TocinoTx::DoTransmitResume()
     
     NS_LOG_LOGIC( "sending XON(" << f << ")" );
 
-    // same state reflection as described above
-    m_tnd->GetReceiver(m_portNumber)->SetUpstreamXState(TocinoFlowControl::XON);
-
     SendToChannel( f );
 }
 
 void
 TocinoTx::DoTransmit()
 {
+    NS_LOG_FUNCTION_NOARGS();
+
     NS_ASSERT( m_arbiter != NULL );
 
     uint32_t winner = m_arbiter->Arbitrate();
 
     if( winner == TocinoArbiter::DO_NOTHING )
     {
+        NS_LOG_LOGIC( "Nothing to do" );
         return;
     }
     
@@ -235,11 +234,13 @@ TocinoTx::DoTransmit()
         else
         {
             // We may have just unblocked rx_port.
-            // If so, CheckForUnblock() will cause
-            // a pending XON on the corresponding
-            // transmitter
+            // If so, resume the corresponding
+            // transmitter.
             
-            m_tnd->GetReceiver(rx_port)->CheckForUnblock();
+            if (!m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked()) 
+            {
+                m_tnd->GetTransmitter(rx_port)->RemoteResume();
+            }
         }
     }
 }

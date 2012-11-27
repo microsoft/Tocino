@@ -30,7 +30,6 @@ namespace ns3 {
 
 TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
     : m_portNumber( portNumber )
-    , m_upstreamXState( TocinoFlowControl::XON )
     , m_tnd( tnd )
     , m_tx( tnd->GetTransmitter( portNumber ) )
     , m_queues( tnd->GetNQueues() )
@@ -46,18 +45,6 @@ TocinoRx::GetNetDevice()
     return m_tnd;
 }
 
-void
-TocinoRx::SetUpstreamXState( TocinoFlowControl::State s )
-{
-    m_upstreamXState = s;
-}
-
-TocinoFlowControl::State
-TocinoRx::GetUpstreamXState() const
-{
-    return m_upstreamXState;
-}
-    
 bool
 TocinoRx::IsQueueBlocked( uint32_t qnum ) const
 {
@@ -91,21 +78,6 @@ TocinoRx::IsVCBlocked( const uint8_t vc ) const
         }
     }
     return false;
-}
-
-void
-TocinoRx::CheckForUnblock()
-{
-    //NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << m_portNumber);
-
-    if (m_upstreamXState == TocinoFlowControl::XOFF)
-    {
-        // if not blocked, schedule XON
-        if (!IsAnyQueueBlocked()) 
-        {
-            m_tx->RemoteResume();
-        }
-    }
 }
 
 void
