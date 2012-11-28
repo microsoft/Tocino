@@ -2,33 +2,26 @@
 #ifndef __TOCINO_FLOW_CONTROL_H__
 #define __TOCINO_FLOW_CONTROL_H__
 
+#include <bitset>
+
 #include "ns3/ptr.h"
+
+#include "tocino-misc.h"
 
 namespace ns3
 {
 
 class Packet;
 
-class TocinoFlowControl
-{
-    public:
+typedef std::bitset<TOCINO_NUM_VC_BITS> TocinoVCBitSet;
+typedef TocinoVCBitSet TocinoFlowControlState;
 
-    enum State {XOFF, XON};
+Ptr<Packet> GetTocinoFlowControlFlit( const TocinoFlowControlState& );
+bool IsTocinoFlowControlFlit( Ptr<const Packet> );
+TocinoFlowControlState GetTocinoFlowControlState( Ptr<const Packet> );
 
-    static Ptr<Packet> GetXONPacket( uint8_t vc );
-    static Ptr<Packet> GetXOFFPacket( uint8_t vc );
-    static bool IsXONPacket( Ptr<Packet> );
-    static bool IsXOFFPacket( Ptr<Packet> );
-
-    private:
-
-    template< State TFCS >
-        static Ptr<Packet> GetPacketHelper( uint8_t );
-
-    template< State TFCS >
-        static bool TestPacketHelper( Ptr<Packet> p );
-};
-
+const TocinoFlowControlState TocinoAllXON( ~0 );
+const TocinoFlowControlState TocinoAllXOFF( 0 );
 }
 
 #endif // __TOCINO_FLOW_CONTROL_H__

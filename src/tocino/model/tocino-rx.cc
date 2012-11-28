@@ -30,7 +30,6 @@ namespace ns3 {
 
 TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
     : m_portNumber( portNumber )
-    , m_upstreamXState( TocinoFlowControl::XON )
     , m_tnd( tnd )
     , m_tx( tnd->GetTransmitter( portNumber ) )
     , m_queues( tnd->GetNQueues() )
@@ -46,18 +45,6 @@ TocinoRx::GetNetDevice()
     return m_tnd;
 }
 
-void
-TocinoRx::SetUpstreamXState( TocinoFlowControl::State s )
-{
-    m_upstreamXState = s;
-}
-
-TocinoFlowControl::State
-TocinoRx::GetUpstreamXState() const
-{
-    return m_upstreamXState;
-}
-    
 bool
 TocinoRx::IsQueueBlocked( uint32_t qnum ) const
 {
@@ -94,21 +81,6 @@ TocinoRx::IsVCBlocked( const uint8_t vc ) const
 }
 
 void
-TocinoRx::CheckForUnblock()
-{
-    //NS_LOG_FUNCTION(m_tnd->GetNode()->GetId() << m_portNumber);
-
-    if (m_upstreamXState == TocinoFlowControl::XOFF)
-    {
-        // if not blocked, schedule XON
-        if (!IsAnyQueueBlocked()) 
-        {
-            m_tx->RemoteResume();
-        }
-    }
-}
-
-void
 TocinoRx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
 {
     NS_ASSERT( qnum < m_queues.size() );
@@ -116,39 +88,33 @@ TocinoRx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
 }
 
 void
-TocinoRx::Receive(Ptr<Packet> p)
+TocinoRx::Receive( Ptr<Packet> f )
 {
-    // FIXME: Use some kind of packet ID here instead
-    NS_LOG_FUNCTION( PeekPointer(p) );
-
     uint32_t tx_q, tx_port;
-
-    if (TocinoFlowControl::IsXONPacket(p)) // XON packet enables transmission on this port
-    {
-        NS_LOG_LOGIC("received XON");
-        m_tx->Resume();
-
-        return;
-    }
     
-    if (TocinoFlowControl::IsXOFFPacket(p)) // XOFF packet disables transmission on this port
+    if( IsTocinoFlowControlFlit( f ) )
     {
-        NS_LOG_LOGIC("received XOFF");
-        m_tx->Pause();
+        NS_LOG_LOGIC( "got flow control flit " << f );
+       
+        TocinoFlowControlState newXState = GetTocinoFlowControlState( f );
+        m_tx->SetXState( newXState );
 
         return;
     }
-  
-    // figure out where the packet goes; returns linearized <port, vc> index
+ 
+    NS_LOG_LOGIC( "got " << f );
+
+    // figure out where the flit goes; returns linearized <port, vc> index
     NS_ASSERT( m_router != NULL );
-    tx_q = m_router->Route( p ); 
+    tx_q = m_router->Route( f ); 
     
     NS_ASSERT_MSG( tx_q != TOCINO_INVALID_QUEUE, "Route failed" );
     
     tx_port = m_tnd->QueueToPort( tx_q ); // extract port number from q index
    
-    bool success = m_queues[tx_q]->Enqueue(p);
-    NS_ASSERT_MSG (success, "queue overrun");
+    bool success = m_queues[tx_q]->Enqueue( f );
+
+    NS_ASSERT_MSG( success, "queue overrun?" );
 
     // if the buffer is full, send XOFF - XOFF blocks ALL traffic to the port
     if (m_queues[tx_q]->IsFull())
@@ -159,7 +125,8 @@ TocinoRx::Receive(Ptr<Packet> p)
         }
         else
         {
-            m_tx->RemotePause();
+            uint8_t vc = m_tnd->QueueToVC( tx_q );
+            m_tx->RemotePause( vc );
         }
     }
 

@@ -35,10 +35,10 @@ namespace ns3 {
 
 TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoArbiter> arbiter )
     : m_portNumber( portNumber )
-    , m_xstate( TocinoFlowControl::XON )
+    , m_xState( TocinoAllXON )
+    , m_remoteXState( TocinoAllXON )
+    , m_doUpdateXState( 0 )
     , m_state( IDLE )
-    , m_remoteResumeRequested( false )
-    , m_remotePauseRequested( false )
     , m_tnd( tnd )
     , m_queues( tnd->GetNQueues() )
     , m_channel( NULL )
@@ -49,25 +49,26 @@ TocinoTx::~TocinoTx()
 {}
 
 void
-TocinoTx::Pause()
+TocinoTx::SetXState( const TocinoFlowControlState& newXState )
 {
-    m_xstate = TocinoFlowControl::XOFF;
-    NS_LOG_LOGIC("transmitter xstate now XOFF");
-}
+    NS_LOG_LOGIC( "set local XState to " << newXState.to_string() );
 
-void
-TocinoTx::Resume()
-{
-    m_xstate = TocinoFlowControl::XON;
-    NS_LOG_LOGIC("transmitter xstate now XON");
+    // If we are resuming any VCs, we should kick transmit
+    bool shouldTransmit = ( ~m_xState & newXState ).any();
 
-    Transmit();
+    m_xState = newXState;
+
+    if( shouldTransmit )
+    {
+        Transmit();
+    }
 }
 
 bool
-TocinoTx::IsPaused() const
+TocinoTx::IsAnyVCPaused() const
 {
-    return m_xstate == TocinoFlowControl::XOFF;
+    TocinoVCBitSet xoffBits = ~m_xState;
+    return xoffBits.any();
 }
 
 void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
@@ -75,38 +76,61 @@ void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
     m_channel = channel;
 }
 
-void TocinoTx::RemotePause()
+void TocinoTx::RemotePause( const uint8_t vc )
 {
-    // attempts to set both pending flags simultaneously can happen:
-    // a buffer fills - generates XOFF - and then is popped - generates XON - 
-    // before transmitter becomes !BUSY and can schedule LLC
-    if (m_remoteResumeRequested) 
+    // Asserted bits in m_remoteXState indicate XON.
+    // Pausing can ONLY clear bits in m_remoteXState
+    
+    const TocinoVCBitSet vcMask = ( 1 << vc );
+   
+    const TocinoVCBitSet unsentResumes = ( m_remoteXState & m_doUpdateXState );
+
+    if( ( unsentResumes & vcMask ).any() )
     {
-        m_remoteResumeRequested = false;
-        NS_LOG_LOGIC("clearing pending XON");
-    }
-    else
-    {
-        m_remotePauseRequested = true;
-        NS_LOG_LOGIC("pending XOFF");
+        // We had an unsent resume on this VC
+
+        // Simply clear remoteXState bit to indicate XOFF
+        m_remoteXState &= ~vcMask;
+
+        // No longer need to update this VC
+        m_doUpdateXState &= ~vcMask;
+        
+        return;
     }
     
+    // We need to pause this VC
+    m_remoteXState &= ~vcMask;
+    m_doUpdateXState |= vcMask;
+
     Transmit();
 }
 
-void TocinoTx::RemoteResume()
+void TocinoTx::RemoteResume( const uint8_t vc )
 {
-    if (m_remotePauseRequested)
+    // Asserted bits in m_remoteXState indicate XON.
+    // Resuming can ONLY assert bits in m_remoteXState
+    
+    const TocinoVCBitSet vcMask = ( 1 << vc );
+   
+    const TocinoVCBitSet unsentPauses = ( ~m_remoteXState & m_doUpdateXState );
+
+    if( ( unsentPauses & vcMask ).any() )
     {
-        m_remotePauseRequested = false;
-        NS_LOG_LOGIC("clearing pending XOFF");
-    }
-    else
-    {
-        m_remoteResumeRequested = true;
-        NS_LOG_LOGIC("pending XON");
+        // We had an unsent pause on this VC
+        
+        // Simply assert remoteXState bit to indicate XON
+        m_remoteXState |= vcMask;
+
+        // No longer need to update this VC
+        m_doUpdateXState &= ~vcMask;
+
+        return;
     }
     
+    // We need to resume this VC
+    m_remoteXState |= vcMask;
+    m_doUpdateXState |= vcMask;
+
     Transmit();
 }
 
@@ -131,6 +155,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
     if( m_portNumber == m_tnd->GetHostPort() ) 
     {
         // ejection port
+        NS_LOG_LOGIC( "ejecting " << f );
         
         // ejection port modeled as having infinite bandwidth and buffering
         // need to keep m_state == BUSY to this point to prevent reentrancy
@@ -140,76 +165,46 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
     else
     {
         // send packet to channel
-        
         NS_ASSERT( m_channel != NULL );
-
         m_channel->TransmitStart( f );
-
         Time transmit_time = m_channel->GetTransmissionTime( f );
 
-        NS_LOG_LOGIC("transmitting " << f << " for " << transmit_time);
+        NS_LOG_LOGIC( "transmitting " << f << " for " << transmit_time );
+
         Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
     }
 }
 
 
 void
-TocinoTx::DoTransmitPause()
+TocinoTx::DoTransmitFlowControl()
 {
-    m_remotePauseRequested = false;
+    NS_LOG_FUNCTION_NOARGS();
 
-    if( m_portNumber == m_tnd->GetHostPort() )
+    if( m_portNumber != m_tnd->GetHostPort() )
     {
-        // do nothing on an injection port stall
-        // this case is handled by the transmitter
-        return;
+        Ptr<Packet> f = GetTocinoFlowControlFlit( m_remoteXState );
+        
+        NS_LOG_LOGIC( "sending " << m_remoteXState.to_string() );
+        
+        SendToChannel( f );
     }
-
-    Ptr<Packet> f = TocinoFlowControl::GetXOFFPacket( 0 );
-    
-    NS_LOG_LOGIC( "sending XOFF(" << f << ")" );
-
-    // reflect xstate of transmitter on far end of channel in local rx
-    // assumption: the rx[i] and tx[i] in this NetDevice connect to some
-    // tx[j] and rx[j] on the NetDevice at far end of channel
-    // THIS IS VERY IMPORTANT and probably should be checked at construction time
-    // an alternative would be to infer the appropriate receiver to signal
-    m_tnd->GetReceiver(m_portNumber)->SetUpstreamXState(TocinoFlowControl::XOFF);
-
-    SendToChannel( f );
-}
-
-void
-TocinoTx::DoTransmitResume()
-{
-    m_remoteResumeRequested = false;
-
-    if( m_portNumber == m_tnd->GetHostPort() )
-    {
-        // do nothing on an injection port resume
-        // this case is handled by the transmitter
-        return;
-    }
-
-    Ptr<Packet> f = TocinoFlowControl::GetXONPacket( 0 );
-    
-    NS_LOG_LOGIC( "sending XON(" << f << ")" );
-
-    // same state reflection as described above
-    m_tnd->GetReceiver(m_portNumber)->SetUpstreamXState(TocinoFlowControl::XON);
-
-    SendToChannel( f );
+        
+    m_doUpdateXState.reset();
 }
 
 void
 TocinoTx::DoTransmit()
 {
+    NS_LOG_FUNCTION_NOARGS();
+
     NS_ASSERT( m_arbiter != NULL );
 
     uint32_t winner = m_arbiter->Arbitrate();
 
     if( winner == TocinoArbiter::DO_NOTHING )
     {
+        NS_LOG_LOGIC( "Nothing to do" );
         return;
     }
     
@@ -235,11 +230,14 @@ TocinoTx::DoTransmit()
         else
         {
             // We may have just unblocked rx_port.
-            // If so, CheckForUnblock() will cause
-            // a pending XON on the corresponding
-            // transmitter
+            // If so, resume the corresponding
+            // transmitter.
             
-            m_tnd->GetReceiver(rx_port)->CheckForUnblock();
+            if( !m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked() ) 
+            {
+                uint8_t vc = m_tnd->QueueToVC( winner );
+                m_tnd->GetTransmitter(rx_port)->RemoteResume( vc );
+            }
         }
     }
 }
@@ -247,61 +245,47 @@ TocinoTx::DoTransmit()
 void
 TocinoTx::Transmit()
 {
-    NS_LOG_FUNCTION_NOARGS();
-    
     if( m_state == BUSY ) 
     {
         return;
     }
-
-    NS_ASSERT_MSG( !(m_remotePauseRequested && m_remoteResumeRequested), "race condition detected" );
-
-    if( m_remotePauseRequested )
+    
+    NS_LOG_FUNCTION_NOARGS();
+    
+    if( m_doUpdateXState.any() )
     {
-        DoTransmitPause();
-    }
-    else if( m_remoteResumeRequested )
-    {
-        DoTransmitResume();
+        DoTransmitFlowControl();
     }
     else 
     {
-        if( m_xstate == TocinoFlowControl::XON )
+        DoTransmit();
+    }
+}
+
+bool
+TocinoTx::CanTransmitFrom( uint32_t qnum ) const
+{
+    // We can transmit from a queue iff
+    //  -It is not empty
+    //  -The corresponding VC is enabled
+    
+    NS_ASSERT( qnum < m_queues.size() );
+   
+    if( !m_queues[qnum]->IsEmpty() ) 
+    {
+        uint8_t vc = m_tnd->QueueToVC( qnum );
+
+        const TocinoVCBitSet vcMask = ( 1 << vc );
+
+        if( ( m_xState & vcMask ).any() )
         {
-            // legal to transmit
-            DoTransmit();
+            return true;
         }
     }
-}
 
-bool
-TocinoTx::IsQueueEmpty( uint32_t qnum ) const
-{
-    NS_ASSERT( qnum < m_queues.size() );
-
-    if( m_queues[qnum]->IsEmpty() ) 
-    {
-        return true;
-    }
-    
     return false;
 }
-
-bool
-TocinoTx::IsQueueNotEmpty( uint32_t qnum ) const
-{
-    return !IsQueueEmpty( qnum );
-}
     
-Ptr<const Packet>
-TocinoTx::PeekNextFlit( uint32_t qnum ) const
-{
-    NS_ASSERT( qnum < m_queues.size() );
-    NS_ASSERT( !m_queues[qnum]->IsEmpty() );
-
-    return m_queues[qnum]->Peek();
-}
-
 bool
 TocinoTx::IsNextFlitTail( uint32_t qnum ) const
 {

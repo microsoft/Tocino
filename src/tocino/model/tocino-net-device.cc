@@ -388,27 +388,24 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 
 void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 {
-    // FIXME: Use some kind of packet ID here instead
-    NS_LOG_FUNCTION( PeekPointer(f) );
-
     TocinoFlitHeader h;
     f->PeekHeader(h);
 
     if (h.IsHead() && h.IsTail())
     {
-        NS_LOG_LOGIC( "singleton" );
+        NS_LOG_LOGIC( f << " singleton" );
     }
     else if (h.IsHead())
     {
-        NS_LOG_LOGIC( "head" );
+        NS_LOG_LOGIC( f << " head" );
     }
     else if (h.IsTail())
     {
-        NS_LOG_LOGIC( "tail" );
+        NS_LOG_LOGIC( f << " tail" );
     }
     else
     {
-        NS_LOG_LOGIC( "body" );
+        NS_LOG_LOGIC( f << " body" );
     }
 
     m_receivers[ GetHostPort() ]->Receive(f);
@@ -433,7 +430,7 @@ void TocinoNetDevice::TrySendFlits()
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
     // FIXME: Use some kind of packet ID here instead
-    NS_LOG_FUNCTION( PeekPointer(f) );
+    NS_LOG_FUNCTION( f );
     
     TocinoFlitHeader h;
     f->RemoveHeader( h );
@@ -559,7 +556,7 @@ bool TocinoNetDevice::AllQuiet() const
     
     for (unsigned i = 0; i < m_nPorts; i++)
     {
-        if( m_transmitters[i]->IsPaused() )
+        if( m_transmitters[i]->IsAnyVCPaused() )
         {
             NS_LOG_LOGIC( "Not quiet: m_transmitters[" << i << "] is XOFF" );
             quiet = false;

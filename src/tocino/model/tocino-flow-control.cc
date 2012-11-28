@@ -8,72 +8,63 @@
 namespace ns3
 {
 
-template< TocinoFlowControl::State TFCS >
-Ptr< Packet> TocinoFlowControl::GetPacketHelper( uint8_t vc )
+Ptr<Packet>
+GetTocinoFlowControlFlit( const TocinoFlowControlState& s )
 {
-    static Ptr<Packet> p = NULL;
+    unsigned long data = s.to_ulong();
 
-    if( p == NULL )
-    {
-        uint8_t DATA = TFCS;
-        p = Create<Packet>( &DATA, sizeof(DATA) );
+    Ptr<Packet> f =
+        Create<Packet>( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );
 
-        TocinoFlitHeader h; // src, dest?
-        h.SetHead();
-        h.SetTail();
-        h.SetType( TocinoFlitHeader::LLC );
-        h.SetVirtualChannel( vc );
+    TocinoFlitHeader h;
+    h.SetHead();
+    h.SetTail();
+    h.SetType( TocinoFlitHeader::LLC );
 
-        p->AddHeader(h);
-    }
+    f->AddHeader(h);
 
-    return p;
+    return f;
 }
 
-template< TocinoFlowControl::State TFCS >
-bool TocinoFlowControl::TestPacketHelper( Ptr< Packet> pkt )
+bool
+IsTocinoFlowControlFlit( Ptr<const Packet> flit )
 {
     // Make a copy so we can safely RemoveHeader() later
-    Ptr<Packet> p = pkt->Copy();
+    Ptr<Packet> f = flit->Copy();
 
     // We *must* remove, not merely peek, otherwise 
     // subsequent CopyData() will return header & payload
     TocinoFlitHeader h;
-    p->RemoveHeader(h);
+    f->RemoveHeader(h);
 
     if( h.GetType() == TocinoFlitHeader::LLC )
     {
         NS_ASSERT( h.IsHead() );
         NS_ASSERT( h.IsTail() );
-
-        uint8_t DATA;
-
-        p->CopyData( &DATA, sizeof(DATA) );
-
-        return ( DATA == TFCS );
+        return true;
     }
 
     return false;
 }
 
-Ptr< Packet> TocinoFlowControl::GetXONPacket( uint8_t vc )
+TocinoFlowControlState
+GetTocinoFlowControlState( Ptr<const Packet> flit )
 {
-    return GetPacketHelper<XON>( vc );
-}
+    NS_ASSERT( IsTocinoFlowControlFlit( flit ) );
 
-Ptr< Packet> TocinoFlowControl::GetXOFFPacket( uint8_t vc )
-{
-    return GetPacketHelper<XOFF>( vc );
-}
+    // Make a copy so we can safely RemoveHeader() later
+    Ptr<Packet> f = flit->Copy();
 
-bool TocinoFlowControl::IsXONPacket( Ptr< Packet> p ) // const?
-{
-    return TestPacketHelper<XON>( p ); 
-}
+    // We *must* remove, not merely peek, otherwise 
+    // subsequent CopyData() will return header & payload
+    TocinoFlitHeader h;
+    f->RemoveHeader(h);
 
-bool TocinoFlowControl::IsXOFFPacket( Ptr< Packet> p ) // const?
-{
-    return TestPacketHelper<XOFF>( p ); 
+    unsigned long data;
+
+    f->CopyData( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );
+
+    return TocinoFlowControlState( data );
 }
 
 }

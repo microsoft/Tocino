@@ -27,8 +27,6 @@ class TocinoSimpleArbiter : public TocinoArbiter
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoTx *m_ttx;
 
-    bool AllQueuesEmpty() const;
-
     typedef std::vector<uint32_t> QueueVector;
     QueueVector BuildCandidateSet() const;
     uint32_t FairSelectWinner( const QueueVector& ) const;

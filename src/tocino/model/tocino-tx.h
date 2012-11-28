@@ -24,12 +24,12 @@ public:
     TocinoTx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
     ~TocinoTx();
    
-    void Pause();
-    void Resume();
-    bool IsPaused() const;
+    void SetXState( const TocinoFlowControlState& );
 
-    void RemotePause();
-    void RemoteResume();
+    bool IsAnyVCPaused() const;
+
+    void RemotePause( const uint8_t vc );
+    void RemoteResume( const uint8_t vc );
     
     void SetChannel(Ptr<TocinoChannel> channel);
 
@@ -37,25 +37,22 @@ public:
     
     void Transmit();
    
-    bool IsQueueEmpty( uint32_t qnum ) const;
-    bool IsQueueNotEmpty( uint32_t qnum ) const;
+    bool CanTransmitFrom( uint32_t qnum ) const;
 
-    Ptr<const Packet> PeekNextFlit( uint32_t qnum ) const;
     bool IsNextFlitTail( uint32_t qnum ) const;
 
     void SetQueue( uint32_t, Ptr<CallbackQueue> );
 
 private:
     const uint32_t m_portNumber;
-    
-    TocinoFlowControl::State m_xstate;
-
-    enum TocinoTransmitterState {IDLE, BUSY};
-    TocinoTransmitterState m_state;
   
-    bool m_remoteResumeRequested;
-    bool m_remotePauseRequested;
+    TocinoFlowControlState m_xState;
+    TocinoFlowControlState m_remoteXState;
+    
+    TocinoVCBitSet m_doUpdateXState;
 
+    enum TocinoTransmitterState {IDLE, BUSY} m_state;
+ 
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
     std::vector< Ptr <CallbackQueue> > m_queues; // links to queues
@@ -64,8 +61,7 @@ private:
 
     void SendToChannel( Ptr<Packet> f );
 
-    void DoTransmitPause();
-    void DoTransmitResume();
+    void DoTransmitFlowControl();
 
     void DoTransmit();
 

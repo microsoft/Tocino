@@ -5,10 +5,14 @@
 #include <stdint.h>
 #include <limits>
 
+#define STATIC_ASSERT( condition, name )\
+    typedef char assert_failed_ ## name [ (condition) ? 1 : -1 ];
+
 namespace ns3
 {
     const uint32_t TOCINO_INVALID_PORT = std::numeric_limits<uint32_t>::max();
     const uint32_t TOCINO_INVALID_QUEUE = std::numeric_limits<uint32_t>::max();
+    const uint32_t TOCINO_NUM_VC_BITS = 4;
 
     void TocinoCustomizeLogging();
 }
