@@ -13,42 +13,15 @@ namespace ns3
 
 class Packet;
 
-typedef std::bitset<TOCINO_NUM_VC_BITS> VCBitSet;
+typedef std::bitset<TOCINO_NUM_VC_BITS> TocinoVCBitSet;
+typedef TocinoVCBitSet TocinoFlowControlState;
 
-class TocinoFlowControl
-{
-    public:
+Ptr<Packet> GetTocinoFlowControlFlit( const TocinoFlowControlState& );
+bool IsTocinoFlowControlFlit( Ptr<const Packet> );
+TocinoFlowControlState GetTocinoFlowControlState( Ptr<const Packet> );
 
-    enum State {XOFF, XON};
-    
-    static Ptr<Packet> GetLLCPacket( const VCBitSet& xon, const VCBitSet& xoff );
-    
-    static bool IsLLCPacket( Ptr<const Packet> );
-
-    static VCBitSet GetXONBits( Ptr<const Packet> );
-    static VCBitSet GetXOFFBits( Ptr<const Packet> );
-   
-    // deprecated
-    static Ptr<Packet> GetXONPacket();
-    static Ptr<Packet> GetXOFFPacket();
-    static bool IsXONPacket( Ptr<const Packet> );
-    static bool IsXOFFPacket( Ptr<const Packet> );
-
-    private:
-    
-    struct Payload
-    {
-        unsigned long xonMask;
-        unsigned long xoffMask;
-    };
-
-    template< State TFCS >
-        static Ptr<Packet> GetPacketHelper( const VCBitSet& );
-
-    template< State TFCS >
-        static bool TestPacketHelper( Ptr<Packet> p );
-};
-
+const TocinoFlowControlState TocinoAllXON( ~0 );
+const TocinoFlowControlState TocinoAllXOFF( 0 );
 }
 
 #endif // __TOCINO_FLOW_CONTROL_H__

@@ -8,125 +8,63 @@
 namespace ns3
 {
 
-Ptr< Packet>
-TocinoFlowControl::GetLLCPacket( const VCBitSet& xon, const VCBitSet& xoff )
+Ptr<Packet>
+GetTocinoFlowControlFlit( const TocinoFlowControlState& s )
 {
-    Payload data;
+    unsigned long data = s.to_ulong();
 
-    data.xonMask = xon.to_ulong();
-    data.xoffMask = xoff.to_ulong();
-
-    Ptr<Packet> p =
+    Ptr<Packet> f =
         Create<Packet>( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );
 
-    TocinoFlitHeader h; // src, dest?
+    TocinoFlitHeader h;
     h.SetHead();
     h.SetTail();
     h.SetType( TocinoFlitHeader::LLC );
 
-    p->AddHeader(h);
+    f->AddHeader(h);
 
-    return p;
-}
-
-// FIXME: This interface is deprecated and should be removed
-Ptr< Packet>
-TocinoFlowControl::GetXONPacket()
-{
-    return GetLLCPacket( -1, 0 );
-}
-
-// FIXME: This interface is deprecated and should be removed
-Ptr< Packet>
-TocinoFlowControl::GetXOFFPacket()
-{
-    return GetLLCPacket( 0, -1 );
+    return f;
 }
 
 bool
-TocinoFlowControl::IsLLCPacket( Ptr<const Packet> pkt )
+IsTocinoFlowControlFlit( Ptr<const Packet> flit )
 {
     // Make a copy so we can safely RemoveHeader() later
-    Ptr<Packet> p = pkt->Copy();
+    Ptr<Packet> f = flit->Copy();
 
     // We *must* remove, not merely peek, otherwise 
     // subsequent CopyData() will return header & payload
     TocinoFlitHeader h;
-    p->RemoveHeader(h);
+    f->RemoveHeader(h);
 
     if( h.GetType() == TocinoFlitHeader::LLC )
     {
+        NS_ASSERT( h.IsHead() );
+        NS_ASSERT( h.IsTail() );
         return true;
     }
 
     return false;
 }
 
-VCBitSet
-TocinoFlowControl::GetXONBits( Ptr<const Packet> pkt )
+TocinoFlowControlState
+GetTocinoFlowControlState( Ptr<const Packet> flit )
 {
+    NS_ASSERT( IsTocinoFlowControlFlit( flit ) );
+
     // Make a copy so we can safely RemoveHeader() later
-    Ptr<Packet> p = pkt->Copy();
+    Ptr<Packet> f = flit->Copy();
 
     // We *must* remove, not merely peek, otherwise 
     // subsequent CopyData() will return header & payload
     TocinoFlitHeader h;
-    p->RemoveHeader(h);
+    f->RemoveHeader(h);
 
-    NS_ASSERT( h.GetType() == TocinoFlitHeader::LLC );
-    NS_ASSERT( h.IsHead() );
-    NS_ASSERT( h.IsTail() );
+    unsigned long data;
 
-    Payload data;
+    f->CopyData( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );
 
-    p->CopyData( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );
-
-    return data.xonMask;
+    return TocinoFlowControlState( data );
 }
 
-VCBitSet
-TocinoFlowControl::GetXOFFBits( Ptr<const Packet> pkt )
-{
-    // Make a copy so we can safely RemoveHeader() later
-    Ptr<Packet> p = pkt->Copy();
-
-    // We *must* remove, not merely peek, otherwise 
-    // subsequent CopyData() will return header & payload
-    TocinoFlitHeader h;
-    p->RemoveHeader(h);
-
-    NS_ASSERT( h.GetType() == TocinoFlitHeader::LLC );
-    NS_ASSERT( h.IsHead() );
-    NS_ASSERT( h.IsTail() );
-
-    Payload data;
-
-    p->CopyData( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );
-
-    return data.xoffMask;
-}
-
-// FIXME: This interface is deprecated and should be removed
-bool
-TocinoFlowControl::IsXONPacket( Ptr<const Packet> pkt )
-{
-    if( !IsLLCPacket( pkt ) )
-    {
-        return false;
-    }
-
-    return GetXONBits( pkt ).any();
-}
-
-// FIXME: This interface is deprecated and should be removed
-bool
-TocinoFlowControl::IsXOFFPacket( Ptr<const Packet> pkt )
-{
-    if( !IsLLCPacket( pkt ) )
-    {
-        return false;
-    }
-
-    return GetXOFFBits( pkt ).any();
-}
 }

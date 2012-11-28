@@ -18,46 +18,16 @@ TestTocinoFlowControl::~TestTocinoFlowControl()
 
 void TestTocinoFlowControl::DoRun( void )
 {
-    // Test the old deprecated interfaces
-    {
-        TocinoFlitHeader h;
+    TocinoFlitHeader h;
+    const TocinoFlowControlState fcs( std::string( "0101" ) );
 
-        Ptr<Packet> xon = TocinoFlowControl::GetXONPacket();
-        Ptr<Packet> xoff = TocinoFlowControl::GetXOFFPacket();
-
-        xon->PeekHeader( h );
-        NS_TEST_ASSERT_MSG_EQ( h.IsHead(), true, "XON packet is not head?" );
-        NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "XON packet is not tail?" );
-        NS_TEST_ASSERT_MSG_EQ( h.GetType(), TocinoFlitHeader::LLC, "XON packet not LLC type?" );
-
-        xoff->PeekHeader( h );
-        NS_TEST_ASSERT_MSG_EQ( h.IsHead(), true, "XOFF packet is not head?" );
-        NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "XOFF packet is not tail?" );
-        NS_TEST_ASSERT_MSG_EQ( h.GetType(), TocinoFlitHeader::LLC, "XOFF packet not LLC type?" );
-
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::IsXONPacket(xon), true, "XON packet is not XON packet?" );
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::IsXOFFPacket(xoff), true, "XOFF packet is not XOFF packet?" );
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::IsXONPacket(xoff), false, "XOFF packet is XON packet?" );
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::IsXOFFPacket(xon), false, "XON packet is XOFF packet?" );
-    }
+    Ptr<Packet> f = GetTocinoFlowControlFlit( fcs );
     
-    // Test the new interfaces 
-    {
-        TocinoFlitHeader h;
-        const VCBitSet mask( std::string("0101") );
+    NS_TEST_ASSERT_MSG_EQ( IsTocinoFlowControlFlit( f ), true, "Expected flow control flit." );
+    NS_TEST_ASSERT_MSG_EQ( GetTocinoFlowControlState( f ), fcs, "Flit has unexpected FlowControlState." );
 
-        Ptr<Packet> p = TocinoFlowControl::GetLLCPacket( mask, ~mask );
-
-        p->PeekHeader( h );
-        NS_TEST_ASSERT_MSG_EQ( h.GetType(), TocinoFlitHeader::LLC, "LLC packet not LLC type?" );
-        NS_TEST_ASSERT_MSG_EQ( h.IsHead(), true, "LLC packet is not head?" );
-        NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "LLC packet is not tail?" );
-
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::IsXONPacket(p), true, "Expected XON packet." );
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::IsXOFFPacket(p), true, "Expected XOFF packet." );
-
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::GetXONBits(p), mask, "Incorrect XON bit set." );
-        NS_TEST_ASSERT_MSG_EQ( TocinoFlowControl::GetXOFFBits(p), ~mask, "Incorrect XOFF bit set." );
-
-    }
+    f->PeekHeader( h );
+    NS_TEST_ASSERT_MSG_EQ( h.GetType(), TocinoFlitHeader::LLC, "Flow control flit should have LLC type." );
+    NS_TEST_ASSERT_MSG_EQ( h.IsHead(), true, "Flow control flit is not head?" );
+    NS_TEST_ASSERT_MSG_EQ( h.IsTail(), true, "Flow control flit is not tail?" );
 }

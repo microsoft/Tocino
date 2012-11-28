@@ -36,19 +36,6 @@ void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* 
     m_legalPort.assign( m_tnd->GetNVCs(), ANY_PORT );
 }
 
-bool TocinoSimpleArbiter::AllQueuesEmpty() const
-{
-    for( uint32_t i = 0; i < m_tnd->GetNQueues(); i++ )
-    {
-        if( m_ttx->IsQueueNotEmpty( i ) )
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 TocinoSimpleArbiter::QueueVector
 TocinoSimpleArbiter::BuildCandidateSet() const
 {
@@ -65,7 +52,7 @@ TocinoSimpleArbiter::BuildCandidateSet() const
             {
                 uint32_t queue = m_tnd->PortToQueue( port, vc );
 
-                if( m_ttx->IsQueueNotEmpty( queue ) )
+                if( m_ttx->CanTransmitFrom( queue ) )
                 {
                     candidates.push_back( queue );
                 }
@@ -76,7 +63,7 @@ TocinoSimpleArbiter::BuildCandidateSet() const
             // can only select the allocated port, if ready
             uint32_t queue = m_tnd->PortToQueue( m_legalPort[vc], vc );
 
-            if( m_ttx->IsQueueNotEmpty( queue ) )
+            if( m_ttx->CanTransmitFrom( queue ) )
             {
                 candidates.push_back( queue );
             }
@@ -111,8 +98,6 @@ TocinoSimpleArbiter::UpdateState( uint32_t winner )
 uint32_t
 TocinoSimpleArbiter::Arbitrate()
 {
-    NS_LOG_FUNCTION_NOARGS();
-
     QueueVector candidates = BuildCandidateSet();
 
     if( candidates.empty() )
