@@ -472,6 +472,7 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         NS_ASSERT_MSG( eh.GetDestination() == m_address.AsMac48Address(),
             "Encapsulated Ethernet frame has a foreign destination address?" );
         NS_LOG_UNCOND("ethernet frame: s=" << eh.GetSource() << " d=" << eh.GetDestination());
+        //NS_ASSERT(m_rxCallback != NULL);
         m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), m_incomingSource );
         m_incomingPacket = NULL;
     }

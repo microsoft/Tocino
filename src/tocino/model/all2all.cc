@@ -59,6 +59,7 @@ void All2All::DoDispose(void)
 void All2All::StartApplication ()
 {
   NS_LOG_FUNCTION(this);
+  NS_ASSERT(m_netDevices.size() > 0);
 
   Ptr<Node> node = GetNode();
   NS_ASSERT(node->GetNDevices() == 1);
@@ -99,10 +100,10 @@ All2All::Send(void)
 
     // randomly target packet - uniform over registered NetDevices
     uint32_t dest = m_destRV->GetInteger(0, m_netDevices.size()-1); // GetInteger includes endpoints
-    Address a = m_netDevices[dest]->GetAddress();
+    Address da = m_netDevices[dest]->GetAddress();
     NS_LOG_UNCOND("selected destination NetDevice " << dest);
-    NS_LOG_UNCOND("sending to address " << a);
-    m_myNetDevice->Send(p, a, 0); // need a "raw" protocol type here
+    NS_LOG_UNCOND("s=" << m_myNetDevice->GetAddress() << " d=" << da);
+    m_myNetDevice->Send(p, da, 0); // need a "raw" protocol type here
 
     // compute delay to next send and schedule event
     Time dt = Time(m_dtRV->GetValue(m_mtbs.GetDouble(), m_maxdt.GetDouble()));

@@ -12,12 +12,6 @@
 #include "ns3/ipv4-address-helper.h"
 
 #include "ns3/all2all.h"
-#include "ns3/application-container.h"
-
-#include "ns3/udp-echo-helper.h"
-#include "ns3/udp-echo-server.h"
-#include "ns3/udp-echo-client.h"
-
 
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-channel.h"
@@ -131,7 +125,7 @@ main (int argc, char *argv[])
         {
             if (i == j) continue; // don't talk to yourself (?)
 
-            apps[i]->AddRemote(netDevices[i]);
+            apps[i]->AddRemote(netDevices[j]);
         }
     }
 
