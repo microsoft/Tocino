@@ -27,20 +27,26 @@ TestTocinoFlitter::~TestTocinoFlitter()
 
 void TestTocinoFlitter::TestEmpty()
 {
+    TocinoNetDevice tnd;
+    tnd.Initialize();
+
     Ptr<Packet> p = Create<Packet>( 0 );
     std::deque< Ptr<Packet> > flits;
 
-    flits = TocinoNetDevice::Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 1, "Empty packet should result in one flit" );
 }
 
 void TestTocinoFlitter::TestOneFlit( const unsigned LEN )
 {
+    TocinoNetDevice tnd;
+    tnd.Initialize();
+
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
     
-    flits = TocinoNetDevice::Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 1, "Incorrect number of flits" );
 
@@ -57,13 +63,16 @@ void TestTocinoFlitter::TestOneFlit( const unsigned LEN )
 
 void TestTocinoFlitter::TestTwoFlits( const unsigned TAIL_LEN )
 {
+    TocinoNetDevice tnd;
+    tnd.Initialize();
+
     const unsigned HEAD_LEN = TocinoFlitHeader::MAX_PAYLOAD_HEAD;
     const unsigned LEN = HEAD_LEN + TAIL_LEN;
     
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
     
-    flits = TocinoNetDevice::Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 2, "Incorrect number of flits" );
 
@@ -89,6 +98,9 @@ void TestTocinoFlitter::TestTwoFlits( const unsigned TAIL_LEN )
 
 void TestTocinoFlitter::TestThreeFlits( const unsigned TAIL_LEN )
 {
+    TocinoNetDevice tnd;
+    tnd.Initialize();
+
     const unsigned HEAD_LEN = TocinoFlitHeader::MAX_PAYLOAD_HEAD;
     const unsigned BODY_LEN = TocinoFlitHeader::MAX_PAYLOAD_OTHER;
     const unsigned LEN = HEAD_LEN + BODY_LEN + TAIL_LEN;
@@ -96,7 +108,7 @@ void TestTocinoFlitter::TestThreeFlits( const unsigned TAIL_LEN )
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
 
-    flits = TocinoNetDevice::Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 3, "Incorrect number of flits" );
 
