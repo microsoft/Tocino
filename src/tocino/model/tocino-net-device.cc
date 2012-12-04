@@ -348,22 +348,14 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
 
     p->AddHeader( eh );
     p->AddTrailer( et );
+        
+    FlittizedPacket fp = Flitter( p, source, destination, TocinoFlitHeader::ETHERNET );
+    m_packetQueue.push_back( fp );
     
     // FIXME: this can grow unbounded?
-    m_packetQueue.push_back( p );
     NS_ASSERT_MSG( m_packetQueue.size() < 10000, "Crazy large packet queue?" );
 
-    if( m_outgoingFlits.empty() )
-    {
-        NS_ASSERT( m_packetQueue.empty() == false );
-
-        Ptr<Packet> currentPacket = m_packetQueue.front();
-        m_packetQueue.pop_front();
-    
-        m_outgoingFlits = Flitter( currentPacket, source, destination, TocinoFlitHeader::ETHERNET );
-   
-        TrySendFlits();
-    }
+    TrySendFlits();
 
     // Tocino is a lossless network
     return true;
@@ -429,6 +421,20 @@ void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 void TocinoNetDevice::TrySendFlits()
 {
     NS_LOG_FUNCTION_NOARGS();
+    
+    if( m_outgoingFlits.empty() )
+    {
+        if( m_packetQueue.empty() )
+        {
+            NS_LOG_LOGIC( "nothing to do" );
+            return;
+        }
+
+        m_outgoingFlits = m_packetQueue.front();
+        m_packetQueue.pop_front();
+    }
+
+    NS_ASSERT( !m_outgoingFlits.empty() );
 
     while( !m_outgoingFlits.empty() &&
         !m_receivers[ GetHostPort() ]->IsAnyQueueBlocked() )

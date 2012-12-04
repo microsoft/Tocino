@@ -104,11 +104,13 @@ private:
     
     TocinoAddress m_address;
 
+    typedef std::deque< Ptr<Packet> > FlittizedPacket;
+
     // packets incoming via SendFrom
-    std::deque< Ptr<Packet> > m_packetQueue;
+    std::deque< FlittizedPacket > m_packetQueue;
 
     // current flits to be sent 
-    std::deque< Ptr<Packet> > m_outgoingFlits;
+    FlittizedPacket m_outgoingFlits;
  
     // state for EjectFlit
     std::vector< Ptr<Packet> > m_incomingPackets;
