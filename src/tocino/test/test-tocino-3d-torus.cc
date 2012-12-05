@@ -2,6 +2,7 @@
 
 #include "ns3/config.h"
 #include "ns3/integer.h"
+#include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/simulator.h"
 
@@ -47,6 +48,7 @@ void TestTocino3DTorus::Initialize()
     NS_ASSERT( m_radix >= 0 );
 
     // create net devices
+    m_netDevices.clear();
     m_netDevices.resize(m_radix);
     for( int x = 0; x < m_radix; x++ )
     { 
@@ -320,18 +322,24 @@ void TestTocino3DTorus::TestHelper()
     TestIncast( 1, 20 );
     TestIncast( 1, 123 );
     TestIncast( 10, 32 );
+    TestIncast( 5, 458 );
 }
 
 void
 TestTocino3DTorus::DoRun()
 {
+    // FIXME: Required to avoid queue overflow on incast test
+    // Remove once this is automatic & based on channel delay
+    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(1));
+    
     m_radix = 3;
 
     Initialize();
-
     TestHelper();
-    
+   
     Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( m_radix-1 ) );
+
+    Initialize();
     TestHelper();
 
     Config::Reset();
