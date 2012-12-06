@@ -97,9 +97,14 @@ void TocinoTx::RemotePause( const uint8_t vc )
         
         return;
     }
-    
+   
+    TocinoVCBitSet orig( m_remoteXState );
+
     // We need to pause this VC
     m_remoteXState &= ~vcMask;
+
+    NS_ASSERT( m_remoteXState != orig );
+
     m_doUpdateXState |= vcMask;
 
     Transmit();
@@ -127,8 +132,13 @@ void TocinoTx::RemoteResume( const uint8_t vc )
         return;
     }
     
+    TocinoVCBitSet orig( m_remoteXState );
+    
     // We need to resume this VC
     m_remoteXState |= vcMask;
+    
+    NS_ASSERT( m_remoteXState != orig );
+
     m_doUpdateXState |= vcMask;
 
     Transmit();
@@ -160,7 +170,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
         // ejection port modeled as having infinite bandwidth and buffering
         // need to keep m_state == BUSY to this point to prevent reentrancy
         m_tnd->EjectFlit( f ); // eject the packet
-        TransmitEnd();
+        Simulator::ScheduleNow( &TocinoTx::TransmitEnd, this );
     }
     else
     {
