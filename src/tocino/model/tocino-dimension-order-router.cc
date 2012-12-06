@@ -6,8 +6,20 @@
 #include "tocino-dimension-order-router.h"
 #include "tocino-misc.h"
 #include "tocino-flit-header.h"
+#include "tocino-rx.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoDimensionOrderRouter");
+
+#ifdef NS_LOG_APPEND_CONTEXT
+#pragma push_macro("NS_LOG_APPEND_CONTEXT")
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT \
+    { std::clog << "(" \
+                << (int) m_tnd->GetTocinoAddress().GetX() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetY() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
+                << m_trx->GetPortNumber() << " "; }
+#endif
 
 namespace ns3
 {
@@ -29,12 +41,14 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
 
 TocinoDimensionOrderRouter::TocinoDimensionOrderRouter()
     : m_tnd( NULL )
+    , m_trx( NULL )
     , m_wrapPoint( NO_WRAP )
 {}
 
-void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd )
+void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoRx* trx )
 {
     m_tnd = tnd;
+    m_trx = trx;
     m_currentRoutes.assign( m_tnd->GetNVCs(), TOCINO_INVALID_PORT );
 }
 

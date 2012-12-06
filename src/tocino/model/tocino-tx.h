@@ -23,7 +23,9 @@ class TocinoTx
 public:
     TocinoTx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
     ~TocinoTx();
-   
+  
+    uint32_t GetPortNumber() const;
+
     void SetXState( const TocinoFlowControlState& );
 
     bool IsAnyVCPaused() const;

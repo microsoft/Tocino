@@ -11,6 +11,17 @@
 
 NS_LOG_COMPONENT_DEFINE ("TocinoSimpleArbiter");
 
+#ifdef NS_LOG_APPEND_CONTEXT
+#pragma push_macro("NS_LOG_APPEND_CONTEXT")
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT \
+    { std::clog << "(" \
+                << (int) m_tnd->GetTocinoAddress().GetX() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetY() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
+                << m_ttx->GetPortNumber() << " "; }
+#endif
+
 namespace ns3
 {
 

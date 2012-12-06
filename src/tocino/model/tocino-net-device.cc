@@ -130,7 +130,7 @@ TocinoNetDevice::Initialize()
         m_receivers[i] = new TocinoRx( i, this, router );
 
         arbiter->Initialize( this, m_transmitters[i] );
-        router->Initialize( this );
+        router->Initialize( this, m_receivers[i] );
     }
   
     // build linkage between rx and q

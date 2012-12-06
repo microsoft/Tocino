@@ -17,7 +17,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     TocinoDimensionOrderRouter();
 
-    void Initialize( Ptr<TocinoNetDevice> );
+    void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* );
 
     uint32_t Route( Ptr<const Packet> p );
 
@@ -26,6 +26,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     bool ShouldRoutePositive( const uint32_t src, const uint32_t dst ) const;
 
     Ptr<TocinoNetDevice> m_tnd;
+    const TocinoRx *m_trx;
 
     // wrap-around support for rings/tori
     static const int32_t NO_WRAP = -1;

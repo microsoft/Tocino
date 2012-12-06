@@ -64,6 +64,12 @@ TocinoTx::SetXState( const TocinoFlowControlState& newXState )
     }
 }
 
+uint32_t
+TocinoTx::GetPortNumber() const
+{
+    return m_portNumber;
+}
+
 bool
 TocinoTx::IsAnyVCPaused() const
 {
@@ -78,6 +84,9 @@ void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
 
 void TocinoTx::RemotePause( const uint8_t vc )
 {
+    // FIXME: cast required to actually print?!
+    NS_LOG_FUNCTION( static_cast<unsigned>(vc) );
+
     // Asserted bits in m_remoteXState indicate XON.
     // Pausing can ONLY clear bits in m_remoteXState
     
@@ -112,6 +121,9 @@ void TocinoTx::RemotePause( const uint8_t vc )
 
 void TocinoTx::RemoteResume( const uint8_t vc )
 {
+    // FIXME: cast required to actually print?!
+    NS_LOG_FUNCTION( static_cast<unsigned>(vc) );
+
     // Asserted bits in m_remoteXState indicate XON.
     // Resuming can ONLY assert bits in m_remoteXState
     
@@ -170,6 +182,13 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
         // ejection port modeled as having infinite bandwidth and buffering
         // need to keep m_state == BUSY to this point to prevent reentrancy
         m_tnd->EjectFlit( f ); // eject the packet
+
+        // ScheduleNow here, rather than direct call to TransmitEnd
+        // avoids mind-bending reentrancy due to:
+        //    Transmit -> SendToChannel -> TransmitEnd -> Transmit
+        // Otherwise we can end up with multiple Transmits in flight
+        // at once, which is very confusing.
+        
         Simulator::ScheduleNow( &TocinoTx::TransmitEnd, this );
     }
     else
@@ -220,34 +239,40 @@ TocinoTx::DoTransmit()
     
     uint32_t rx_port = m_tnd->QueueToPort( winner );
 
-    bool wasBlocked = m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked();
+    // N.B.
+    //
+    // If isNoLongerBlocked == TRUE below, the cause is
+    // unambiguous: it must be due to our Dequeue().
+    // So, while it would be correct to call:
+    //      GetReceiver(rx_port)->IsAnyQueueBlocked()
+    // here, instead of:
+    //      m_queues[winner]->IsAlmostFull()
+    // We use the latter. There is really no need to
+    // scan all the receiver's queues.  We know which
+    // one matters
+    //  -MAS
+    bool wasAlmostFull = m_queues[winner]->IsAlmostFull();
 
     // Dequeue must occur whether the receiver was blocked or not 
     Ptr<Packet> f = m_queues[winner]->Dequeue();
-    
     NS_ASSERT_MSG( f != NULL, "queue underrun" << winner );
+            
+    bool isNoLongerBlocked = !m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked();
 
     SendToChannel( f );
 
-    if( wasBlocked )
+    // If we just unblocked rx_port, resume the corresponding transmitter.
+    if( wasAlmostFull && isNoLongerBlocked )
     {
-        if( rx_port == m_tnd->GetHostPort() )
+        if( rx_port != m_tnd->GetHostPort() )
         {
-            // Special handling for injection port
-            
-            m_tnd->TrySendFlits();
+            uint8_t vc = m_tnd->QueueToVC( winner );
+            m_tnd->GetTransmitter(rx_port)->RemoteResume( vc );
         }
         else
         {
-            // We may have just unblocked rx_port.
-            // If so, resume the corresponding
-            // transmitter.
-            
-            if( !m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked() ) 
-            {
-                uint8_t vc = m_tnd->QueueToVC( winner );
-                m_tnd->GetTransmitter(rx_port)->RemoteResume( vc );
-            }
+            // Special handling for injection port
+            m_tnd->TrySendFlits();
         }
     }
 }

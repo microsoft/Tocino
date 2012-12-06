@@ -38,7 +38,13 @@ TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
 
 TocinoRx::~TocinoRx()
 {}
-    
+
+uint32_t
+TocinoRx::GetPortNumber() const
+{
+    return m_portNumber;
+}
+
 Ptr<NetDevice>
 TocinoRx::GetNetDevice()
 { 
