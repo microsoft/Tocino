@@ -24,7 +24,9 @@ class TocinoRx
 public:
     TocinoRx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
     ~TocinoRx();
-    
+
+    uint32_t GetPortNumber() const;
+
     Ptr<NetDevice> GetNetDevice();
     
     bool IsQueueBlocked( uint32_t ) const;

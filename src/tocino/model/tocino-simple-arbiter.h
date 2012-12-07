@@ -36,6 +36,10 @@ class TocinoSimpleArbiter : public TocinoArbiter
     PortVector m_legalPort;
     
     static const uint32_t ANY_PORT;
+
+#ifdef TOCINO_VC_STRESS_MODE
+    mutable uint8_t m_lastVC;
+#endif
 };
 
 }

@@ -11,6 +11,17 @@
 
 NS_LOG_COMPONENT_DEFINE ("TocinoSimpleArbiter");
 
+#ifdef NS_LOG_APPEND_CONTEXT
+#pragma push_macro("NS_LOG_APPEND_CONTEXT")
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT \
+    { std::clog << "(" \
+                << (int) m_tnd->GetTocinoAddress().GetX() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetY() << "," \
+                << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
+                << m_ttx->GetPortNumber() << " "; }
+#endif
+
 namespace ns3
 {
 
@@ -27,6 +38,9 @@ TypeId TocinoSimpleArbiter::GetTypeId(void)
 TocinoSimpleArbiter::TocinoSimpleArbiter()
     : m_tnd( NULL )
     , m_ttx( NULL )
+#ifdef TOCINO_VC_STRESS_MODE
+    , m_lastVC( TOCINO_INVALID_VC )
+#endif
 {}
 
 void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* ttx )
@@ -77,7 +91,40 @@ uint32_t
 TocinoSimpleArbiter::FairSelectWinner( const QueueVector& cand ) const
 {
     UniformVariable rv;
+
+#ifndef TOCINO_VC_STRESS_MODE
     return cand[ rv.GetInteger( 0, cand.size()-1 ) ];
+#else
+    // try to select a different vc than last time
+    uint32_t winner;
+    QueueVector newCand;
+   
+    if( m_lastVC != TOCINO_INVALID_VC )
+    {
+        for( unsigned i = 0; i < cand.size(); ++i )
+        {
+            uint8_t vc = m_tnd->QueueToVC( cand[i] );
+
+            if( vc != m_lastVC )
+            {
+                newCand.push_back( cand[i] );
+            }
+        }
+    }
+
+    if( newCand.empty() )
+    {
+        winner = cand[ rv.GetInteger( 0, cand.size()-1 ) ];
+    }
+    else
+    {
+        NS_LOG_LOGIC( "intentional VC interleaving" );
+        winner = newCand[ rv.GetInteger( 0, newCand.size()-1 ) ];
+    }
+    
+    m_lastVC = m_tnd->QueueToVC( winner );
+    return winner;
+#endif 
 }
 
 void

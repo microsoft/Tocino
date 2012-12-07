@@ -28,7 +28,7 @@ private:
     bool AcceptPacket( Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address& );
 
     void Initialize();
-    
+    void CheckAllQuiet();
     void Reset();
 
     unsigned GetTotalCount() const;

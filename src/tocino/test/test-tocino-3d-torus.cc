@@ -2,6 +2,7 @@
 
 #include "ns3/config.h"
 #include "ns3/integer.h"
+#include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/simulator.h"
 
@@ -47,6 +48,7 @@ void TestTocino3DTorus::Initialize()
     NS_ASSERT( m_radix >= 0 );
 
     // create net devices
+    m_netDevices.clear();
     m_netDevices.resize(m_radix);
     for( int x = 0; x < m_radix; x++ )
     { 
@@ -88,6 +90,23 @@ void TestTocino3DTorus::Initialize()
 
                 TocinoChannelHelper( cur, 4, m_netDevices[x][y][ Inc(z) ], 5 ); // z+
                 TocinoChannelHelper( cur, 5, m_netDevices[x][y][ Dec(z) ], 4 ); // z-
+            }
+        }
+    }
+}
+
+void TestTocino3DTorus::CheckAllQuiet()
+{
+    for( int x = 0; x < m_radix; x++ )
+    { 
+        for( int y = 0; y < m_radix; y++ )
+        { 
+            for( int z = 0; z < m_radix; z++ )
+            {
+                bool aq = m_netDevices[x][y][z]->AllQuiet();
+
+                NS_TEST_ASSERT_MSG_EQ( aq, true,
+                    "Net device (" << x << "," << y << "," << z << ") not quiet?" );
             }
         }
     }
@@ -187,6 +206,8 @@ void TestTocino3DTorus::TestCornerToCorner( const unsigned COUNT, const unsigned
 
                 Simulator::Run();
 
+                CheckAllQuiet();
+
                 NS_TEST_ASSERT_MSG_EQ( m_counts[src][dst], COUNT, "Unexpected packet count" );
                 NS_TEST_ASSERT_MSG_EQ( m_bytes[src][dst], BYTES*COUNT, "Unexpected packet bytes" );
 
@@ -206,15 +227,26 @@ int TestTocino3DTorus::Middle() const
 
 bool TestTocino3DTorus::IsCenterNeighbor( const int x, const int y, const int z ) const
 {
-    int middles = 0;
+    int exact = 0;
+    int offByOne = 0;
 
-    if( x == Middle() ) middles++;
-    if( y == Middle() ) middles++;
-    if( z == Middle() ) middles++;
+    int dx = abs( Middle() - x );
+    int dy = abs( Middle() - y );
+    int dz = abs( Middle() - z );
 
-    // addresses with exactly two middle coords
-    // are neighbors (1-hop, adjacent) of center
-    if( middles == 2 ) return true;
+    if( dx == 0 ) { exact++; }
+    else if( dx == 1 ) { offByOne++; }
+
+    if( dy == 0 ) { exact++; }
+    else if( dy == 1 ) { offByOne++; }
+    
+    if( dz == 0 ) { exact++; }
+    else if( dz == 1 ) { offByOne++; }
+
+    if( exact == 2 && offByOne == 1 )
+    {
+        return true;
+    }
 
     return false;
 }
@@ -256,14 +288,14 @@ void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
 
     Simulator::Run();
    
+    CheckAllQuiet();
+    
     for( int x = 0; x < m_radix; x++ )
     { 
         for( int y = 0; y < m_radix; y++ )
         { 
             for( int z = 0; z < m_radix; z++ )
             {
-                NS_TEST_ASSERT_MSG_EQ( m_netDevices[x][y][z]->AllQuiet(), true, "Net device not quiet" );
-
                 if( IsCenterNeighbor( x, y, z ) )
                 {
                     TocinoAddress src( x, y, z );
@@ -285,23 +317,29 @@ void TestTocino3DTorus::TestHelper()
 {
     TestCornerToCorner( 1, 20 );
     TestCornerToCorner( 1, 123 );
-    TestCornerToCorner( 2, 32 );
+    TestCornerToCorner( 10, 32 );
     
     TestIncast( 1, 20 );
     TestIncast( 1, 123 );
-    TestIncast( 2, 32 );
+    TestIncast( 10, 32 );
+    TestIncast( 5, 458 );
 }
 
 void
 TestTocino3DTorus::DoRun()
 {
+    // FIXME: Required to avoid queue overflow on incast test
+    // Remove once this is automatic & based on channel delay
+    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(1));
+    
     m_radix = 3;
 
     Initialize();
-
     TestHelper();
-    
+   
     Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( m_radix-1 ) );
+
+    Initialize();
     TestHelper();
 
     Config::Reset();

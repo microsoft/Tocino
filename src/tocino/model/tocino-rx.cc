@@ -38,7 +38,13 @@ TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
 
 TocinoRx::~TocinoRx()
 {}
-    
+
+uint32_t
+TocinoRx::GetPortNumber() const
+{
+    return m_portNumber;
+}
+
 Ptr<NetDevice>
 TocinoRx::GetNetDevice()
 { 
@@ -48,7 +54,7 @@ TocinoRx::GetNetDevice()
 bool
 TocinoRx::IsQueueBlocked( uint32_t qnum ) const
 {
-    return m_queues[qnum]->IsFull();
+    return m_queues[qnum]->IsAlmostFull();
 }
 
 bool
@@ -111,19 +117,22 @@ TocinoRx::Receive( Ptr<Packet> f )
     NS_ASSERT_MSG( tx_q != TOCINO_INVALID_QUEUE, "Route failed" );
     
     tx_port = m_tnd->QueueToPort( tx_q ); // extract port number from q index
-   
-    bool success = m_queues[tx_q]->Enqueue( f );
+     
+    bool wasNotAlmostFull = !m_queues[tx_q]->IsAlmostFull();
 
+    bool success = m_queues[tx_q]->Enqueue( f );
     NS_ASSERT_MSG( success, "queue overrun?" );
 
-    // if the buffer is full, send XOFF - XOFF blocks ALL traffic to the port
-    if (m_queues[tx_q]->IsFull())
+    bool isNowAlmostFull = m_queues[tx_q]->IsAlmostFull();
+
+    if( wasNotAlmostFull && isNowAlmostFull )
     {
-        if( tx_port == m_tnd->GetHostPort() )
-        {
-            // ejection port can never be full?
-        }
-        else
+        // FIXME:
+        // We intend to model an ejection port that can never be full. Yet,
+        // we call RemotePause even when tx_port == m_tnd->GetHostPort(),
+        // in order to avoid overrunning the ejection port queues.
+
+        if( m_portNumber != m_tnd->GetHostPort() )
         {
             uint8_t vc = m_tnd->QueueToVC( tx_q );
             m_tx->RemotePause( vc );

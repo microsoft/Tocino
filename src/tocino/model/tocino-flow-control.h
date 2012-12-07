@@ -13,7 +13,7 @@ namespace ns3
 
 class Packet;
 
-typedef std::bitset<TOCINO_NUM_VC_BITS> TocinoVCBitSet;
+typedef std::bitset<TOCINO_MAX_VCS> TocinoVCBitSet;
 typedef TocinoVCBitSet TocinoFlowControlState;
 
 Ptr<Packet> GetTocinoFlowControlFlit( const TocinoFlowControlState& );

@@ -33,7 +33,8 @@ public:
     uint32_t Size() {return m_q.size();}
     
 private:
-    static const uint32_t MAXDEPTH = 8;
+    static const uint32_t DEFAULT_MAXDEPTH = 8;
+    static const uint32_t DEFAULT_FREEWM = 0;
 
     char m_name[32]; // symbolic name for queue - debug assist
 

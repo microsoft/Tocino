@@ -18,8 +18,12 @@ TypeId CallbackQueue::GetTypeId(void)
     .SetParent<Queue>()
     .AddConstructor<CallbackQueue>()
     .AddAttribute ("Depth", "Maximum queue depth.",
-                   UintegerValue (MAXDEPTH),
+                   UintegerValue (DEFAULT_MAXDEPTH),
                    MakeUintegerAccessor (&CallbackQueue::m_maxDepth),
+                   MakeUintegerChecker<uint32_t>())
+    .AddAttribute ("FreeWaterMark", "Remaining entries for \"almost full\" condition.",
+                   UintegerValue (DEFAULT_FREEWM),
+                   MakeUintegerAccessor (&CallbackQueue::m_freewm),
                    MakeUintegerChecker<uint32_t>());
   return tid;
 }
@@ -36,10 +40,10 @@ CallbackQueue::CallbackQueue() : Queue(), m_q ()
       m_cb[i].m_cbState = OFF;
     }
 
-  m_maxDepth = MAXDEPTH; // should be consistent with value in TypeId
+  m_maxDepth = DEFAULT_MAXDEPTH; // should be consistent with value in TypeId
   m_name[0] = 0;
   m_fullwm = 0;
-  m_freewm = 0;
+  m_freewm = DEFAULT_FREEWM;
 }
 
 bool

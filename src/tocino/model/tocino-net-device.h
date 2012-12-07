@@ -8,6 +8,7 @@
 
 #include "tocino-address.h"
 #include "tocino-flit-header.h"
+#include "tocino-misc.h"
 
 namespace ns3
 {
@@ -74,7 +75,7 @@ public:
     uint32_t QueueToPort( uint32_t queue ) const;
     uint8_t QueueToVC( uint32_t queue ) const;
 
-    static std::deque< Ptr<Packet> > Flitter(
+    std::deque< Ptr<Packet> > Flitter(
             const Ptr<Packet>,
             const TocinoAddress&,
             const TocinoAddress&,
@@ -103,21 +104,28 @@ private:
     
     TocinoAddress m_address;
 
+    typedef std::deque< Ptr<Packet> > FlittizedPacket;
+
     // packets incoming via SendFrom
-    std::deque< Ptr<Packet> > m_packetQueue;
+    std::deque< FlittizedPacket > m_packetQueue;
 
     // current flits to be sent 
-    std::deque< Ptr<Packet> > m_outgoingFlits;
+    FlittizedPacket m_outgoingFlits;
  
     // state for EjectFlit
-    Ptr<Packet> m_incomingPacket;
-    TocinoAddress m_incomingSource;
-
+    std::vector< Ptr<Packet> > m_incomingPackets;
+    std::vector< TocinoAddress > m_incomingSources;
+ 
     NetDevice::ReceiveCallback m_rxCallback;
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
     
     static const uint32_t DEFAULT_NPORTS = 7;
+
+#ifndef TOCINO_VC_STRESS_MODE
     static const uint32_t DEFAULT_NVCS = 2;
+#else
+    static const uint32_t DEFAULT_NVCS = TOCINO_MAX_VCS;
+#endif
 
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
@@ -128,6 +136,10 @@ private:
     
     TypeId m_routerTypeId;
     TypeId m_arbiterTypeId;
+
+#ifdef TOCINO_VC_STRESS_MODE
+    uint32_t m_flowCounter;
+#endif
 };
 
 } // namespace ns3

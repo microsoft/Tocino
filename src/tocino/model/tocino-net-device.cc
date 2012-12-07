@@ -65,19 +65,20 @@ TypeId TocinoNetDevice::GetTypeId(void)
     return tid;
 }
 
-TocinoNetDevice::TocinoNetDevice() :
-    m_node( NULL ),
-    m_ifIndex( 0 ),
-    m_mtu( DEFAULT_MTU ),
-    m_address( 0 ),
-    m_incomingPacket( NULL ),
-    m_incomingSource( 0 ),
-    m_rxCallback( NULL ),
-    m_promiscRxCallback( NULL ),
-    m_nPorts( DEFAULT_NPORTS ),
-    m_nVCs( DEFAULT_NVCS ),
-    m_routerTypeId( TocinoDimensionOrderRouter::GetTypeId() ),
-    m_arbiterTypeId( TocinoSimpleArbiter::GetTypeId() )
+TocinoNetDevice::TocinoNetDevice()
+    : m_node( NULL )
+    , m_ifIndex( 0 )
+    , m_mtu( DEFAULT_MTU )
+    , m_address( 0 )
+    , m_rxCallback( NULL )
+    , m_promiscRxCallback( NULL )
+    , m_nPorts( DEFAULT_NPORTS )
+    , m_nVCs( DEFAULT_NVCS )
+    , m_routerTypeId( TocinoDimensionOrderRouter::GetTypeId() )
+    , m_arbiterTypeId( TocinoSimpleArbiter::GetTypeId() )
+#ifdef TOCINO_VC_STRESS_MODE
+    , m_flowCounter( 0 )
+#endif
 {}
 
 TocinoNetDevice::~TocinoNetDevice()
@@ -104,6 +105,8 @@ TocinoNetDevice::Initialize()
     uint32_t vc, i, j, k, base;
 
     // size data structures
+    m_incomingPackets.resize(m_nVCs, NULL);
+    m_incomingSources.resize(m_nVCs);
     m_queues.resize(m_nPorts*m_nPorts*m_nVCs);
     m_receivers.resize(m_nPorts);
     m_transmitters.resize(m_nPorts);
@@ -278,7 +281,11 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
         flit = p->CreateFragment( start, LEN );
     
         TocinoFlitHeader h( src, dst );
-            
+
+#ifdef TOCINO_VC_STRESS_MODE
+        uint8_t vc = m_flowCounter % m_nVCs;
+#endif
+
         if( isFirstFlit )
         {
             h.SetHead();
@@ -288,9 +295,17 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
         if( isLastFlit )
         {
             h.SetTail();
+#ifdef TOCINO_VC_STRESS_MODE
+            // Round-robin across all the VCs
+            m_flowCounter++;
+#endif
         }
 
         h.SetLength( LEN );
+
+#ifdef TOCINO_VC_STRESS_MODE
+        h.SetVirtualChannel( vc );
+#endif
 
         flit->AddHeader(h);
             
@@ -333,22 +348,15 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
 
     p->AddHeader( eh );
     p->AddTrailer( et );
+        
+    FlittizedPacket fp = Flitter( p, source, destination, TocinoFlitHeader::ETHERNET );
+    m_packetQueue.push_back( fp );
     
     // FIXME: this can grow unbounded?
     m_packetQueue.push_back( p );
     NS_ASSERT_MSG( m_packetQueue.size() < 10000, "Crazy large packet queue?" );
 
-    if( m_outgoingFlits.empty() )
-    {
-        NS_ASSERT( m_packetQueue.empty() == false );
-
-        Ptr<Packet> currentPacket = m_packetQueue.front();
-        m_packetQueue.pop_front();
-    
-        m_outgoingFlits = Flitter( currentPacket, source, destination, TocinoFlitHeader::ETHERNET );
-   
-        TrySendFlits();
-    }
+    TrySendFlits();
 
     // Tocino is a lossless network
     return true;
@@ -414,6 +422,20 @@ void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 void TocinoNetDevice::TrySendFlits()
 {
     NS_LOG_FUNCTION_NOARGS();
+    
+    if( m_outgoingFlits.empty() )
+    {
+        if( m_packetQueue.empty() )
+        {
+            NS_LOG_LOGIC( "nothing to do" );
+            return;
+        }
+
+        m_outgoingFlits = m_packetQueue.front();
+        m_packetQueue.pop_front();
+    }
+
+    NS_ASSERT( !m_outgoingFlits.empty() );
 
     while( !m_outgoingFlits.empty() &&
         !m_receivers[ GetHostPort() ]->IsAnyQueueBlocked() )
@@ -434,8 +456,13 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
     
     TocinoFlitHeader h;
     f->RemoveHeader( h );
-    
-    if( m_incomingPacket == NULL )
+  
+    NS_ASSERT( m_incomingPackets.size() == m_nVCs );
+    NS_ASSERT( m_incomingSources.size() == m_nVCs );
+
+    uint8_t vc = h.GetVirtualChannel();
+
+    if( m_incomingPackets[vc] == NULL )
     {
         NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
         NS_ASSERT_MSG( h.GetDestination() == m_address,
@@ -444,14 +471,16 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
             "Ejected packet type is not ethernet?" );
         
-        m_incomingPacket = f;
-        m_incomingSource = h.GetSource();
+        m_incomingPackets[vc] = f;
+        m_incomingSources[vc] = h.GetSource();
     }
     else
     {
         NS_ASSERT( !h.IsHead() );
-        m_incomingPacket->AddAtEnd( f );
+        m_incomingPackets[vc]->AddAtEnd( f );
     }
+        
+    NS_ASSERT( m_incomingPackets[vc] != NULL );
 
     if( h.IsTail() )
     {
@@ -460,18 +489,17 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         EthernetHeader eh;
         EthernetTrailer et;
 
-        m_incomingPacket->RemoveHeader( eh );
-        m_incomingPacket->RemoveTrailer( et );
+        m_incomingPackets[vc]->RemoveHeader( eh );
+        m_incomingPackets[vc]->RemoveTrailer( et );
 
-        NS_ASSERT_MSG( eh.GetSource() == m_incomingSource.AsMac48Address(),
+        NS_ASSERT_MSG( eh.GetSource() == m_incomingSources[vc].AsMac48Address(),
             "Encapsulated Ethernet frame has a difference source than head flit" );
         
         NS_ASSERT_MSG( eh.GetDestination() == m_address.AsMac48Address(),
             "Encapsulated Ethernet frame has a foreign destination address?" );
-        NS_LOG_UNCOND("ethernet frame: s=" << eh.GetSource() << " d=" << eh.GetDestination());
-        //NS_ASSERT(m_rxCallback != NULL);
-        m_rxCallback( this, m_incomingPacket, eh.GetLengthType(), m_incomingSource );
-        m_incomingPacket = NULL;
+
+        m_rxCallback( this, m_incomingPackets[vc], eh.GetLengthType(), m_incomingSources[vc] );
+        m_incomingPackets[vc] = NULL;
     }
 }
 
@@ -548,12 +576,15 @@ bool TocinoNetDevice::AllQuiet() const
         quiet = false;
     }
 
-    if( m_incomingPacket != NULL )
+    for (unsigned i = 0; i < m_incomingPackets.size(); i++)
     {
-        NS_LOG_LOGIC( "Not quiet: EjectFlits() in progress?" );
-        quiet = false;
+        if( m_incomingPackets[i] != NULL )
+        {
+            NS_LOG_LOGIC( "Not quiet: EjectFlits() in progress?" );
+            quiet = false;
+        }
     }
-    
+
     for (unsigned i = 0; i < m_nPorts; i++)
     {
         if( m_transmitters[i]->IsAnyVCPaused() )

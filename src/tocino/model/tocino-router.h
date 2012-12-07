@@ -10,6 +10,7 @@ namespace ns3
 
 class Packet;
 class TocinoNetDevice;
+class TocinoRx;
 
 struct TocinoRouter : public Object
 {
@@ -17,7 +18,7 @@ struct TocinoRouter : public Object
 
     virtual uint32_t Route( Ptr<const Packet> p ) = 0;
 
-    virtual void Initialize( Ptr<TocinoNetDevice> ) = 0;
+    virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* ) = 0;
 };
 
 }
