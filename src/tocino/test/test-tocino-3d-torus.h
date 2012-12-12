@@ -40,6 +40,7 @@ private:
 
     void TestCornerToCorner( const unsigned, const unsigned );
     void TestIncast( const unsigned, const unsigned );
+    void TestAllToAll( const unsigned, const unsigned );
     void TestHelper();
 
     virtual void DoRun();

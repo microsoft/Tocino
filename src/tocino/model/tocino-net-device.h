@@ -106,9 +106,6 @@ private:
 
     typedef std::deque< Ptr<Packet> > FlittizedPacket;
 
-    // packets incoming via SendFrom
-    std::deque< FlittizedPacket > m_packetQueue;
-
     // current flits to be sent 
     FlittizedPacket m_outgoingFlits;
  
