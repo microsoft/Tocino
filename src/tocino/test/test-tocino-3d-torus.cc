@@ -313,6 +313,65 @@ void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
     Simulator::Destroy();
 }
 
+void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES )
+{
+    Ptr<Packet> p = Create<Packet>( BYTES );
+                
+    Reset();
+    TocinoCustomizeLogging();
+
+    for( int sx = 0; sx < m_radix; sx++ )
+    { 
+        for( int sy = 0; sy < m_radix; sy++ )
+        { 
+            for( int sz = 0; sz < m_radix; sz++ )
+            {
+                TocinoAddress src( sx, sy, sz );
+
+                for( int dx = 0; dx < m_radix; dx++ )
+                { 
+                    for( int dy = 0; dy < m_radix; dy++ )
+                    { 
+                        for( int dz = 0; dz < m_radix; dz++ )
+                        {
+                            TocinoAddress dst( dx, dy, dz );
+
+                            if( src == dst )
+                            {
+                                // don't send to self
+                                continue;
+                            }
+
+                            Ptr<TocinoNetDevice> srcNetDevice = m_netDevices[sx][sy][sz];
+
+                            for( unsigned i = 0; i < COUNT; ++i )
+                            {
+                                Simulator::ScheduleWithContext( 
+                                        srcNetDevice->GetNode()->GetId(),
+                                        Seconds(0),
+                                        &TocinoNetDevice::Send,
+                                        srcNetDevice,
+                                        p,
+                                        dst,
+                                        0 );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    Simulator::Run();
+
+    CheckAllQuiet();
+
+    const int NODES = m_radix * m_radix * m_radix;
+    NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), NODES*(NODES-1)*COUNT, "Unexpected total packet count" );
+    NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), NODES*(NODES-1)*BYTES*COUNT, "Unexpected total packet bytes" );
+
+    Simulator::Destroy();
+}
 void TestTocino3DTorus::TestHelper()
 {
     TestCornerToCorner( 1, 20 );
@@ -323,6 +382,10 @@ void TestTocino3DTorus::TestHelper()
     TestIncast( 1, 123 );
     TestIncast( 10, 32 );
     TestIncast( 5, 458 );
+    
+    TestAllToAll( 1, 20 );
+    //TestAllToAll( 1, 123 );
+    //TestAllToAll( 10, 32 );
 }
 
 void
@@ -330,7 +393,7 @@ TestTocino3DTorus::DoRun()
 {
     // FIXME: Required to avoid queue overflow on incast test
     // Remove once this is automatic & based on channel delay
-    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(1));
+    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
     
     m_radix = 3;
 

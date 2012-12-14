@@ -143,6 +143,15 @@ TocinoRx::Receive( Ptr<Packet> f )
     m_tnd->GetTransmitter(tx_port)->Transmit();
 }
 
+void
+TocinoRx::SetReserveFlits( uint32_t numFlits )
+{
+    for( uint32_t i = 0; i < m_queues.size(); ++i )
+    {
+        m_queues[i]->SetFreeWM( numFlits );
+    }
+}
+
 } // namespace ns3
 
 #pragma pop_macro("NS_LOG_APPEND_CONTEXT")

@@ -130,7 +130,7 @@ TocinoNetDevice::Initialize()
         m_receivers[i] = new TocinoRx( i, this, router );
 
         arbiter->Initialize( this, m_transmitters[i] );
-        router->Initialize( this );
+        router->Initialize( this, m_receivers[i] );
     }
   
     // build linkage between rx and q
@@ -333,6 +333,8 @@ bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t pr
 
 bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Address& dest, uint16_t protocolNumber )
 {
+    NS_LOG_FUNCTION( packet << src << dest << protocolNumber );
+
     // Avoid modifying the passed-in packet.
     Ptr<Packet> p = packet->Copy();
 
@@ -350,11 +352,17 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     p->AddTrailer( et );
         
     FlittizedPacket fp = Flitter( p, source, destination, TocinoFlitHeader::ETHERNET );
-    m_packetQueue.push_back( fp );
-    
+
+    // add the new flits to the end of the outgoing flit Q
+    m_outgoingFlits.insert( m_outgoingFlits.end(), fp.begin(), fp.end() );
+
     // FIXME: this can grow unbounded?
-    m_packetQueue.push_back( p );
-    NS_ASSERT_MSG( m_packetQueue.size() < 10000, "Crazy large packet queue?" );
+    
+    // FIXME: temporarily disable assert so we can run bigger sims.  Ultimately,
+    // we will have "applications" that will hook into the event system and
+    // call SendFrom() incrementally over the course of the sim.
+
+    //NS_ASSERT_MSG( m_outgoingFlits.size() < 10000, "Crazy large packet queue?" );
 
     TrySendFlits();
 
@@ -425,14 +433,8 @@ void TocinoNetDevice::TrySendFlits()
     
     if( m_outgoingFlits.empty() )
     {
-        if( m_packetQueue.empty() )
-        {
-            NS_LOG_LOGIC( "nothing to do" );
-            return;
-        }
-
-        m_outgoingFlits = m_packetQueue.front();
-        m_packetQueue.pop_front();
+        NS_LOG_LOGIC( "nothing to do" );
+        return;
     }
 
     NS_ASSERT( !m_outgoingFlits.empty() );
@@ -564,12 +566,7 @@ bool TocinoNetDevice::AllQuiet() const
 {
     bool quiet = true;
 
-    if( !m_packetQueue.empty() ) 
-    {
-        NS_LOG_LOGIC( "Not quiet: SendFrom() in progress?" );
-        quiet = false;
-    }
-
+   
     if( !m_outgoingFlits.empty() )
     {
         NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
