@@ -24,9 +24,7 @@ public:
     virtual ~TocinoChannel();
     
     bool TransmitStart(Ptr<Packet> p);
-    //bool TransmitStart(Ptr<const Packet> p);
     Time GetTransmissionTime(Ptr<Packet> p);
-    //Time GetTransmissionTime(Ptr<const Packet> p);
     
     void SetNetDevice(Ptr<TocinoNetDevice> tnd);
     
@@ -38,7 +36,9 @@ public:
     static const uint32_t RX_DEV = 1;
     
     Ptr<NetDevice> GetDevice(uint32_t i) const;
-    
+
+    uint32_t FlitBuffersRequired() const;
+
 private:
     
     void TransmitEnd ();
@@ -48,7 +48,6 @@ private:
     DataRate m_bps;
     
     Ptr<Packet> m_packet;
-//    Ptr<const Packet> m_packet;
     
     Ptr<TocinoNetDevice> m_tnd;
     TocinoTx* m_tx;

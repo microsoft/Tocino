@@ -315,8 +315,6 @@ void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
 
 void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES )
 {
-    const int NODES = m_radix * m_radix * m_radix;
-
     Ptr<Packet> p = Create<Packet>( BYTES );
                 
     Reset();
@@ -368,6 +366,7 @@ void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES
 
     CheckAllQuiet();
 
+    const int NODES = m_radix * m_radix * m_radix;
     NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), NODES*(NODES-1)*COUNT, "Unexpected total packet count" );
     NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), NODES*(NODES-1)*BYTES*COUNT, "Unexpected total packet bytes" );
 
@@ -385,6 +384,8 @@ void TestTocino3DTorus::TestHelper()
     TestIncast( 5, 458 );
     
     TestAllToAll( 1, 20 );
+    //TestAllToAll( 1, 123 );
+    //TestAllToAll( 10, 32 );
 }
 
 void
@@ -392,7 +393,7 @@ TestTocino3DTorus::DoRun()
 {
     // FIXME: Required to avoid queue overflow on incast test
     // Remove once this is automatic & based on channel delay
-    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(1));
+    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
     
     m_radix = 3;
 

@@ -11,6 +11,9 @@ namespace ns3
 Ptr<Packet>
 GetTocinoFlowControlFlit( const TocinoFlowControlState& s )
 {
+    // ISSUE-REVIEW: ulong is bigger than we currently
+    // need in order to represent 16 flits.  Consider
+    // using 2B here instead.
     unsigned long data = s.to_ulong();
 
     Ptr<Packet> f =
@@ -60,6 +63,9 @@ GetTocinoFlowControlState( Ptr<const Packet> flit )
     TocinoFlitHeader h;
     f->RemoveHeader(h);
 
+    // ISSUE-REVIEW: ulong is bigger than we currently
+    // need in order to represent 16 flits.  Consider
+    // using 2B here instead.
     unsigned long data;
 
     f->CopyData( reinterpret_cast<uint8_t*>( &data ), sizeof(data) );

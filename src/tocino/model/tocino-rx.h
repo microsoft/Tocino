@@ -36,7 +36,9 @@ public:
     void SetQueue( uint32_t, Ptr<CallbackQueue> );
     
     void Receive(Ptr<Packet> p);
-    
+   
+    void SetReserveFlits( uint32_t );
+
 private:
     
     const uint32_t m_portNumber;
