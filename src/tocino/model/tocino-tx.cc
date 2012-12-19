@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include <cstdio>
+#include <string>
 
 #include "ns3/assert.h"
 #include "ns3/log.h"
@@ -17,6 +18,7 @@
 #include "tocino-channel.h"
 #include "tocino-misc.h"
 #include "tocino-arbiter.h"
+#include "tocino-simple-arbiter.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
@@ -68,6 +70,13 @@ uint32_t
 TocinoTx::GetPortNumber() const
 {
     return m_portNumber;
+}
+
+bool
+TocinoTx::IsVCPaused(const uint32_t vc)
+{
+    TocinoVCBitSet xoffBits = ~m_xState;
+    return xoffBits[vc];
 }
 
 bool
@@ -177,7 +186,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
     if( m_portNumber == m_tnd->GetHostPort() ) 
     {
         // ejection port
-        NS_LOG_LOGIC( "ejecting " << f );
+        NS_LOG_LOGIC( "ejecting " << PeekPointer(f) );
         
         // ejection port modeled as having infinite bandwidth and buffering
         // need to keep m_state == BUSY to this point to prevent reentrancy
@@ -198,7 +207,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
         m_channel->TransmitStart( f );
         Time transmit_time = m_channel->GetTransmissionTime( f );
 
-        NS_LOG_LOGIC( "transmitting " << f << " for " << transmit_time );
+        NS_LOG_LOGIC( "transmitting " << PeekPointer(f) << " for " << transmit_time );
 
         Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
     }
@@ -322,6 +331,19 @@ TocinoTx::CanTransmitFrom( uint32_t qnum ) const
 }
     
 bool
+TocinoTx::IsNextFlitHead( uint32_t qnum ) const
+{
+    NS_ASSERT( qnum < m_queues.size() );
+    NS_ASSERT( !m_queues[qnum]->IsEmpty() );
+
+    Ptr<const Packet> f = m_queues[qnum]->Peek();
+    TocinoFlitHeader h;
+    f->PeekHeader( h );
+
+    return h.IsHead();
+}
+    
+bool
 TocinoTx::IsNextFlitTail( uint32_t qnum ) const
 {
     NS_ASSERT( qnum < m_queues.size() );
@@ -339,6 +361,48 @@ TocinoTx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
 {
     NS_ASSERT( qnum < m_queues.size() );
     m_queues[qnum] = q;
+}
+
+void
+TocinoTx::DumpState()
+{
+    NS_LOG_LOGIC("transmitter=" << m_portNumber);
+    NS_LOG_LOGIC("  xState=" << m_xState);
+    for (uint32_t vc = 0; vc < 1; vc++)  // change the loop limit to enable more VCs
+    {
+        uint32_t owner =  m_arbiter->GetVCOwner(vc);
+        const char* xState_str = (m_xState[vc])? "XON":"XOFF";
+
+        if (owner == TocinoSimpleArbiter::ANY_PORT)
+        {
+            NS_LOG_LOGIC("   vc=" << vc << " owner=NONE " << xState_str);
+
+            // can only schedule head flit - which sources have head flit at front of queue
+            for (uint32_t src = 0; src < m_tnd->GetNPorts(); src++)
+            {
+                uint32_t q = (src * m_tnd->GetNVCs()) + vc;
+                if (m_queues[q]->Size() > 0)
+                {
+                    NS_LOG_LOGIC("   next=" << PeekPointer(m_queues[q]->At(0)) << 
+                        " src=" << src);
+                }
+            }
+        }
+        else
+        {
+            NS_LOG_LOGIC("   vc=" << vc << " owner=" << owner << " " << xState_str);
+
+            uint32_t q = (owner * m_tnd->GetNVCs()) + vc;
+            if (m_queues[q]->Size())
+            {
+                NS_LOG_LOGIC("   next=" << PeekPointer(m_queues[q]->At(0)));
+            }
+            else
+            {
+                NS_LOG_LOGIC("    empty queue");
+            }
+        }
+    }
 }
 
 } // namespace ns3

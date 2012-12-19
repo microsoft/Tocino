@@ -2,11 +2,13 @@
 #ifndef __TOCINO_TX_H__
 #define __TOCINO_TX_H__
 
+#include <deque>
 #include <stdint.h>
 
 #include "ns3/ptr.h"
 #include "ns3/packet.h"
 
+#include "tocino-arbiter.h"
 #include "tocino-flow-control.h"
 
 namespace ns3
@@ -28,6 +30,7 @@ public:
 
     void SetXState( const TocinoFlowControlState& );
 
+    bool IsVCPaused(const uint32_t vc);
     bool IsAnyVCPaused() const;
 
     void RemotePause( const uint8_t vc );
@@ -41,9 +44,12 @@ public:
    
     bool CanTransmitFrom( uint32_t qnum ) const;
 
+    bool IsNextFlitHead( uint32_t qnum ) const;
     bool IsNextFlitTail( uint32_t qnum ) const;
 
     void SetQueue( uint32_t, Ptr<CallbackQueue> );
+
+    void DumpState();
 
 private:
     const uint32_t m_portNumber;
@@ -57,7 +63,7 @@ private:
  
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-    std::vector< Ptr <CallbackQueue> > m_queues; // links to queues
+    std::deque< Ptr <CallbackQueue> > m_queues; // links to queues
 
     Ptr<TocinoChannel> m_channel; // link to channel
 

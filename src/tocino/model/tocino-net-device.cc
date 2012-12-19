@@ -409,19 +409,19 @@ void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 
     if (h.IsHead() && h.IsTail())
     {
-        NS_LOG_LOGIC( f << " singleton" );
+        NS_LOG_LOGIC( PeekPointer(f) << " singleton" );
     }
     else if (h.IsHead())
     {
-        NS_LOG_LOGIC( f << " head" );
+        NS_LOG_LOGIC( PeekPointer(f) << " head" );
     }
     else if (h.IsTail())
     {
-        NS_LOG_LOGIC( f << " tail" );
+        NS_LOG_LOGIC( PeekPointer(f) << " tail" );
     }
     else
     {
-        NS_LOG_LOGIC( f << " body" );
+        NS_LOG_LOGIC( PeekPointer(f) << " body" );
     }
 
     m_receivers[ GetHostPort() ]->Receive(f);
@@ -454,7 +454,7 @@ void TocinoNetDevice::TrySendFlits()
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
     // FIXME: Use some kind of packet ID here instead
-    NS_LOG_FUNCTION( f );
+    NS_LOG_FUNCTION( PeekPointer(f) );
     
     TocinoFlitHeader h;
     f->RemoveHeader( h );
@@ -486,8 +486,6 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 
     if( h.IsTail() )
     {
-        NS_ASSERT( m_incomingPacket != NULL );
-    
         EthernetHeader eh;
         EthernetTrailer et;
 
@@ -569,7 +567,7 @@ bool TocinoNetDevice::AllQuiet() const
    
     if( !m_outgoingFlits.empty() )
     {
-        NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
+        NS_LOG_LOGIC( "flit injection in progress" );
         quiet = false;
     }
 
@@ -577,7 +575,7 @@ bool TocinoNetDevice::AllQuiet() const
     {
         if( m_incomingPackets[i] != NULL )
         {
-            NS_LOG_LOGIC( "Not quiet: EjectFlits() in progress?" );
+            NS_LOG_LOGIC( "packet reassembly incomplete, source=" << m_incomingSources[i]);
             quiet = false;
         }
     }
@@ -586,7 +584,10 @@ bool TocinoNetDevice::AllQuiet() const
     {
         if( m_transmitters[i]->IsAnyVCPaused() )
         {
-            NS_LOG_LOGIC( "Not quiet: m_transmitters[" << i << "] is XOFF" );
+            quiet = false;
+        }
+        if( m_receivers[i]->IsAnyQueueBlocked() )
+        {
             quiet = false;
         }
     }
@@ -595,8 +596,20 @@ bool TocinoNetDevice::AllQuiet() const
     {
         if( !m_queues[i]->IsEmpty() )
         {
-            NS_LOG_LOGIC( "Not quiet: m_queue[" << i << "] not empty" );
             quiet = false;
+        }
+    }
+
+    if (!quiet)
+    {
+        for (unsigned i = 0; i < m_nPorts; i++)
+        {
+            m_transmitters[i]->DumpState();
+        }
+        
+        for (unsigned i = 0; i < m_nPorts; i++)
+        {
+            m_receivers[i]->DumpState();
         }
     }
 

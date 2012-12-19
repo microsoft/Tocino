@@ -34,15 +34,15 @@ TocinoTestSuite::TocinoTestSuite ()
     //LogComponentEnable("DefaultSimulatorImpl", (LogLevel)(LOG_LEVEL_FUNCTION|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     //LogComponentEnable("MapScheduler", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     
-    AddTestCase( new TestTocinoCallbackQueue );
-    AddTestCase( new TestTocinoFlitHeader );
-    AddTestCase( new TestTocinoFlitter );
-    AddTestCase( new TestTocinoFlowControl );
-    AddTestCase( new TestTocinoLoopback );
-    AddTestCase( new TestTocinoPointToPoint );
-    AddTestCase( new TestTocinoMultihop );
-    AddTestCase( new TestTocinoRing );
-    AddTestCase( new TestTocinoDeadlock );
+    // AddTestCase( new TestTocinoCallbackQueue );
+    // AddTestCase( new TestTocinoFlitHeader );
+    // AddTestCase( new TestTocinoFlitter );
+    // AddTestCase( new TestTocinoFlowControl );
+    // AddTestCase( new TestTocinoLoopback );
+    // AddTestCase( new TestTocinoPointToPoint );
+    // AddTestCase( new TestTocinoMultihop );
+    // AddTestCase( new TestTocinoRing );
+    // AddTestCase( new TestTocinoDeadlock );
     AddTestCase( new TestTocino3DTorus );
 }
 

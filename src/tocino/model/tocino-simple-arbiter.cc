@@ -137,6 +137,11 @@ TocinoSimpleArbiter::UpdateState( uint32_t winner )
     }
     else
     {
+        if (m_ttx->IsNextFlitHead(winner))
+        {
+            NS_LOG_LOGIC("vc=" << (uint32_t)m_tnd->QueueToVC(winner) 
+                << " assigned to src=" << m_tnd->QueueToPort(winner));
+        }
         // Remember mapping
         m_legalPort[ m_tnd->QueueToVC(winner) ] = m_tnd->QueueToPort(winner); 
     }
@@ -162,6 +167,11 @@ TocinoSimpleArbiter::Arbitrate()
     return winner;
 }
 
+uint32_t
+TocinoSimpleArbiter::GetVCOwner(uint32_t vc)
+{
+    return m_legalPort[vc];
+}
 const uint32_t TocinoSimpleArbiter::ANY_PORT = TOCINO_INVALID_PORT-1;
 
 }

@@ -137,7 +137,7 @@ CallbackQueue::DoEnqueue(Ptr<Packet> p)
 
     if (m_q.size() >= m_maxDepth) return false;
     
-    m_q.push (p);
+    m_q.push_back (p);
     DoCallbacks();
     return true;
 }
@@ -157,7 +157,7 @@ CallbackQueue::DoDequeue()
     if (m_q.empty ()) return 0;
 
     Ptr<Packet> p = m_q.front ();
-    m_q.pop ();
+    m_q.pop_front ();
     DoCallbacks();
     return p;
 }

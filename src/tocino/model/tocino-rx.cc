@@ -74,7 +74,7 @@ bool
 TocinoRx::IsVCBlocked( const uint8_t vc ) const
 {
     const uint32_t BASE = vc;
-    const uint32_t INCR = vc+1;
+    const uint32_t INCR = m_tnd->GetNVCs();
     
     for( uint32_t i = BASE; i < m_queues.size(); i += INCR )
     {
@@ -100,7 +100,7 @@ TocinoRx::Receive( Ptr<Packet> f )
     
     if( IsTocinoFlowControlFlit( f ) )
     {
-        NS_LOG_LOGIC( "got flow control flit " << f );
+        NS_LOG_LOGIC( "got flow control flit " << PeekPointer(f) );
        
         TocinoFlowControlState newXState = GetTocinoFlowControlState( f );
         m_tx->SetXState( newXState );
@@ -108,7 +108,7 @@ TocinoRx::Receive( Ptr<Packet> f )
         return;
     }
  
-    NS_LOG_LOGIC( "got " << f );
+    NS_LOG_LOGIC( "got " << PeekPointer(f) );
 
     // figure out where the flit goes; returns linearized <port, vc> index
     NS_ASSERT( m_router != NULL );
@@ -149,6 +149,31 @@ TocinoRx::SetReserveFlits( uint32_t numFlits )
     for( uint32_t i = 0; i < m_queues.size(); ++i )
     {
         m_queues[i]->SetFreeWM( numFlits );
+    }
+}
+
+void
+TocinoRx::DumpState()
+{
+    NS_LOG_LOGIC("receiver=" << m_portNumber);
+    for (uint32_t vc = 0; vc < 1; vc++) // change loop bound to enable additional VCs
+    {
+        if (IsVCBlocked(vc))
+        {
+            NS_LOG_LOGIC(" vc=" << vc << " BLOCKED");
+            for (uint32_t port = 0; port < m_tnd->GetNPorts(); port++)
+            {
+                uint32_t q = (port * m_tnd->GetNVCs()) + vc;
+                if (IsQueueBlocked(q))
+                {
+                    NS_LOG_LOGIC("  blocked on port=" << port);
+                    for (uint32_t i = 0; i < m_queues[q]->Size(); i++)
+                    {
+                        NS_LOG_LOGIC("   " << PeekPointer(m_queues[q]->At(i)));
+                    }
+                }
+            }
+        }
     }
 }
 

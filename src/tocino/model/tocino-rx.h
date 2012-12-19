@@ -39,6 +39,7 @@ public:
    
     void SetReserveFlits( uint32_t );
 
+    void DumpState();
 private:
     
     const uint32_t m_portNumber;
