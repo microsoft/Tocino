@@ -20,6 +20,7 @@
 #include "tocino-flit-header.h"
 #include "tocino-dimension-order-router.h"
 #include "tocino-simple-arbiter.h"
+#include "tocino-flit-id-tag.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoNetDevice");
 
@@ -323,6 +324,17 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
 
     NS_ASSERT_MSG( q.size() > 0, "Flitter must always produce at least one flit" );
 
+    const uint32_t ABS_PACKET_NUM = TocinoFlitIdTag::NextPacketNumber();
+    const uint32_t TOTAL_FLITS = q.size();
+
+    for( uint32_t i = 0; i < TOTAL_FLITS; ++i )
+    {
+        const uint32_t REL_FLIT_NUM = i+1;
+
+        TocinoFlitIdTag tag( ABS_PACKET_NUM, REL_FLIT_NUM, TOTAL_FLITS );
+        q[i]->AddPacketTag( tag );
+    }
+
     return q;
 }
 
@@ -409,19 +421,19 @@ void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 
     if (h.IsHead() && h.IsTail())
     {
-        NS_LOG_LOGIC( f << " singleton" );
+        NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " singleton" );
     }
     else if (h.IsHead())
     {
-        NS_LOG_LOGIC( f << " head" );
+        NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " head" );
     }
     else if (h.IsTail())
     {
-        NS_LOG_LOGIC( f << " tail" );
+        NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " tail" );
     }
     else
     {
-        NS_LOG_LOGIC( f << " body" );
+        NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " body" );
     }
 
     m_receivers[ GetHostPort() ]->Receive(f);
@@ -453,8 +465,7 @@ void TocinoNetDevice::TrySendFlits()
 
 void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 {
-    // FIXME: Use some kind of packet ID here instead
-    NS_LOG_FUNCTION( f );
+    NS_LOG_FUNCTION( GetTocinoFlitIdString( f ) );
     
     TocinoFlitHeader h;
     f->RemoveHeader( h );
@@ -462,9 +473,12 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
     NS_ASSERT( m_incomingPackets.size() == m_nVCs );
     NS_ASSERT( m_incomingSources.size() == m_nVCs );
 
-    uint8_t vc = h.GetVirtualChannel();
+    const uint8_t vc = h.GetVirtualChannel();
 
-    if( m_incomingPackets[vc] == NULL )
+    Ptr< Packet >& pkt = m_incomingPackets[vc];
+    TocinoAddress& src = m_incomingSources[vc];
+
+    if( pkt == NULL )
     {
         NS_ASSERT_MSG( h.IsHead(), "First flit must be head flit" );
         NS_ASSERT_MSG( h.GetDestination() == m_address,
@@ -473,33 +487,37 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         NS_ASSERT_MSG( h.GetType() == TocinoFlitHeader::ETHERNET,
             "Ejected packet type is not ethernet?" );
         
-        m_incomingPackets[vc] = f;
-        m_incomingSources[vc] = h.GetSource();
+        pkt = f;
+        src = h.GetSource();
     }
     else
     {
         NS_ASSERT( !h.IsHead() );
-        m_incomingPackets[vc]->AddAtEnd( f );
+        pkt->AddAtEnd( f );
     }
         
-    NS_ASSERT( m_incomingPackets[vc] != NULL );
+    NS_ASSERT( pkt != NULL );
 
     if( h.IsTail() )
     {
         EthernetHeader eh;
         EthernetTrailer et;
 
-        m_incomingPackets[vc]->RemoveHeader( eh );
-        m_incomingPackets[vc]->RemoveTrailer( et );
+        pkt->RemoveHeader( eh );
+        pkt->RemoveTrailer( et );
 
-        NS_ASSERT_MSG( eh.GetSource() == m_incomingSources[vc].AsMac48Address(),
+        NS_ASSERT_MSG( eh.GetSource() == src.AsMac48Address(),
             "Encapsulated Ethernet frame has a difference source than head flit" );
         
         NS_ASSERT_MSG( eh.GetDestination() == m_address.AsMac48Address(),
             "Encapsulated Ethernet frame has a foreign destination address?" );
 
-        m_rxCallback( this, m_incomingPackets[vc], eh.GetLengthType(), m_incomingSources[vc] );
-        m_incomingPackets[vc] = NULL;
+        TocinoFlitIdTag tag;
+        bool success = pkt->RemovePacketTag( tag );
+        NS_ASSERT_MSG( success == true, "Expected TocinoFlitIdTag" );
+
+        m_rxCallback( this, pkt, eh.GetLengthType(), src );
+        pkt = NULL;
     }
 }
 

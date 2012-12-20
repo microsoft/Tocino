@@ -4,6 +4,7 @@
 
 #include "tocino-flow-control.h"
 #include "tocino-flit-header.h"
+#include "tocino-flit-id-tag.h"
 
 namespace ns3
 {
@@ -23,8 +24,10 @@ GetTocinoFlowControlFlit( const TocinoFlowControlState& s )
     h.SetHead();
     h.SetTail();
     h.SetType( TocinoFlitHeader::LLC );
-
     f->AddHeader(h);
+
+    TocinoFlitIdTag tag( TocinoFlitIdTag::NextPacketNumber(), 1, 1 );
+    f->AddPacketTag( tag );
 
     return f;
 }

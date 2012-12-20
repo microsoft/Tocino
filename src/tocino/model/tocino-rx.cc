@@ -12,6 +12,7 @@
 #include "callback-queue.h"
 #include "tocino-misc.h"
 #include "tocino-router.h"
+#include "tocino-flit-id-tag.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
@@ -96,11 +97,13 @@ TocinoRx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
 void
 TocinoRx::Receive( Ptr<Packet> f )
 {
+    NS_LOG_FUNCTION( GetTocinoFlitIdString( f ) );
+
     uint32_t tx_q, tx_port;
     
     if( IsTocinoFlowControlFlit( f ) )
     {
-        NS_LOG_LOGIC( "got flow control flit " << f );
+        NS_LOG_LOGIC( "got flow control flit" );
        
         TocinoFlowControlState newXState = GetTocinoFlowControlState( f );
         m_tx->SetXState( newXState );
@@ -108,8 +111,6 @@ TocinoRx::Receive( Ptr<Packet> f )
         return;
     }
  
-    NS_LOG_LOGIC( "got " << f );
-
     // figure out where the flit goes; returns linearized <port, vc> index
     NS_ASSERT( m_router != NULL );
     tx_q = m_router->Route( f ); 

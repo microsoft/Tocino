@@ -17,6 +17,7 @@
 #include "tocino-channel.h"
 #include "tocino-misc.h"
 #include "tocino-arbiter.h"
+#include "tocino-flit-id-tag.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
@@ -177,7 +178,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
     if( m_portNumber == m_tnd->GetHostPort() ) 
     {
         // ejection port
-        NS_LOG_LOGIC( "ejecting " << f );
+        NS_LOG_LOGIC( "ejecting " << GetTocinoFlitIdString( f ) );
         
         // ejection port modeled as having infinite bandwidth and buffering
         // need to keep m_state == BUSY to this point to prevent reentrancy
@@ -198,7 +199,8 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
         m_channel->TransmitStart( f );
         Time transmit_time = m_channel->GetTransmissionTime( f );
 
-        NS_LOG_LOGIC( "transmitting " << f << " for " << transmit_time );
+        NS_LOG_LOGIC( "transmitting " << GetTocinoFlitIdString( f ) 
+            << " for " << transmit_time );
 
         Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
     }
