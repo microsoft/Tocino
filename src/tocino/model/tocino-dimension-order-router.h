@@ -6,6 +6,7 @@
 
 #include "tocino-router.h"
 #include "tocino-net-device.h"
+#include "tocino-address.h"
 
 namespace ns3
 {
@@ -23,14 +24,18 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     private:
 
-    bool ShouldRoutePositive( const uint32_t src, const uint32_t dst ) const;
+    bool TopologyHasWrapAround() const;
+
+    enum Direction { POS, NEG };
+    Direction DetermineRoutingDirection(
+            const TocinoAddress::Coordinate, 
+            const TocinoAddress::Coordinate ) const;
 
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoRx *m_trx;
 
-    // wrap-around support for rings/tori
-    static const int32_t NO_WRAP = -1;
-    int32_t m_wrapPoint;
+    static const TocinoAddress::Coordinate NO_WRAP = 0;
+    TocinoAddress::Coordinate m_wrapPoint;
 
     std::vector<uint32_t> m_currentRoutes;
 };

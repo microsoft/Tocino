@@ -6,7 +6,7 @@
 #include "ns3/node.h"
 #include "ns3/log.h"
 #include "ns3/config.h"
-#include "ns3/integer.h"
+#include "ns3/uinteger.h"
 #include "ns3/simulator.h"
 
 #include "ns3/tocino-helper.h"
@@ -193,7 +193,7 @@ TestTocinoRing::DoRun (void)
     TestHelper( 1, 123 );
     TestHelper( 2, 32 );
 
-    Config::SetDefault("ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( 2 ) );
+    Config::SetDefault("ns3::TocinoDimensionOrderRouter::WrapPoint", UintegerValue( 2 ) );
     
     TestHelper( 1, 20 );
     TestHelper( 1, 123 );
