@@ -76,6 +76,8 @@ main (int argc, char *argv[])
                 netDevices[i]->SetAddress( ta  ); // implicit conversion
 
                 apps[i] = CreateObject<All2All>();
+                apps[i]->SetStartTime(Seconds(1.0));
+                apps[i]->SetStopTime(Seconds(1.5));
 
                 nodes[i] = CreateObject<Node>();
                 nodes[i]->AddDevice(netDevices[i]);
@@ -130,11 +132,6 @@ main (int argc, char *argv[])
     }
 
     // cut it loose
-
-    LogComponentEnable("TocinoNetDevice", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-    //LogComponentEnable("TocinoTx",  (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-    //LogComponentEnable("TocinoRx", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
-    //LogComponentEnable("TocinoChannel", (LogLevel)(LOG_LEVEL_ALL|LOG_PREFIX_TIME|LOG_PREFIX_NODE));
     Simulator::Run ();
     Simulator::Destroy ();
     return 0;

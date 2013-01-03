@@ -44,6 +44,9 @@ All2All::All2All()
 {
     m_destRV = CreateObject<UniformRandomVariable>();
     m_dtRV = CreateObject<ExponentialRandomVariable>();
+
+    m_nPacketsIn = 0;
+    m_nPacketsOut = 0;
 }
 
 All2All::~All2All() {}
@@ -51,6 +54,9 @@ All2All::~All2All() {}
 void All2All::DoDispose(void)
 {
     m_netDevices.clear();
+    NS_LOG_UNCOND("NetDevice=" << m_myNetDevice->GetAddress()
+        << " nPacketsOut=" << m_nPacketsOut 
+        << " nPacketsIn=" << m_nPacketsIn);
 
   // chain up
   Application::DoDispose ();
@@ -64,6 +70,7 @@ void All2All::StartApplication ()
   Ptr<Node> node = GetNode();
   NS_ASSERT(node->GetNDevices() == 1);
   m_myNetDevice = node->GetDevice(0);
+  m_myNetDevice->SetReceiveCallback(MakeCallback(&All2All::ReceiveFromDevice, this));
 
   NS_ASSERT(m_netDevices.size() > 0); // comm targets
   Send();
@@ -72,13 +79,12 @@ void All2All::StartApplication ()
 void All2All::StopApplication ()
 {
   NS_LOG_FUNCTION(this);
+  Simulator::Cancel(m_sendEvent);
 }
 
 void
 All2All::AddRemote(Ptr<NetDevice> nd)
 {
-    NS_LOG_FUNCTION(this << nd);
-
     m_netDevices.push_back(nd);
 }
 
@@ -102,6 +108,7 @@ All2All::Send(void)
     uint32_t dest = m_destRV->GetInteger(0, m_netDevices.size()-1); // GetInteger includes endpoints
     Address da = m_netDevices[dest]->GetAddress();
     m_myNetDevice->Send(p, da, 0); // need a "raw" protocol type here
+    m_nPacketsOut++;
 
     // compute delay to next send and schedule event
     Time dt = Time(m_dtRV->GetValue(m_mtbs.GetDouble(), m_maxdt.GetDouble()));
@@ -112,6 +119,15 @@ void
 All2All::Receive(void)
 {
     NS_LOG_FUNCTION(this);
+}
+
+bool
+All2All::ReceiveFromDevice(Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t protocol, const Address& from)
+{
+    NS_LOG_FUNCTION(this);
+
+    m_nPacketsIn++;
+    return true;
 }
 
 } // namespace ns3

@@ -25,6 +25,7 @@ public:
     void ScheduleTransmit(Time dt);
     void Send(void);
     void Receive();
+    bool ReceiveFromDevice(Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address&);
 
 protected:
     virtual void DoDispose(void);
@@ -44,6 +45,10 @@ private:
 
     Ptr<UniformRandomVariable> m_destRV;
     Ptr<ExponentialRandomVariable> m_dtRV;
+
+    // statistics
+    uint32_t m_nPacketsOut;
+    uint32_t m_nPacketsIn;
 };
 
 } // namespace ns3
