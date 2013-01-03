@@ -89,13 +89,13 @@ uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p )
     TocinoFlitHeader h;
     p->PeekHeader( h );
 
-    int vc = h.GetVirtualChannel();
-
-    int outputPort = m_currentRoutes[vc];
+    const int inputVC = h.GetVirtualChannel();
+    int outputVC = m_tnd->QueueToVC( m_currentRoutes[inputVC] );
+    int outputPort = m_tnd->QueueToPort( m_currentRoutes[inputVC] );
 
     if( h.IsHead() )
     {
-        NS_ASSERT( m_currentRoutes[vc] == TOCINO_INVALID_PORT );
+        NS_ASSERT( m_currentRoutes[inputVC] == TOCINO_INVALID_QUEUE );
 
         TocinoAddress localAddr = m_tnd->GetTocinoAddress();
         TocinoAddress destAddr = h.GetDestination();
@@ -136,22 +136,26 @@ uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p )
             }
         }
         
+        //FIXME: always stay on same VC for now.
+        // This will change with the implementation of the
+        // dateline algorithm for deadlock avoidance
+        outputVC = inputVC;
+        
         NS_LOG_LOGIC( "routing to "
             << Tocino3dTorusPortNumberToString( outputPort ) );
 
-        m_currentRoutes[vc] = outputPort;
+        m_currentRoutes[inputVC] = m_tnd->PortToQueue( outputPort, outputVC );
     }
     
-    NS_ASSERT( m_currentRoutes[vc] != TOCINO_INVALID_PORT );
+    NS_ASSERT( m_currentRoutes[inputVC] != TOCINO_INVALID_QUEUE );
 
     if( h.IsTail() )
     {
-        m_currentRoutes[vc] = TOCINO_INVALID_PORT;
+        m_currentRoutes[inputVC] = TOCINO_INVALID_QUEUE;
         //NS_LOG_LOGIC("removing established path");
     }
-
-    //FIXME always stay on same VC for now
-    return m_tnd->PortToQueue( outputPort, vc ); 
+    
+    return m_tnd->PortToQueue( outputPort, outputVC );
 }
 
 }
