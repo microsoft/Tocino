@@ -345,13 +345,14 @@ bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t pr
 
 bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Address& dest, uint16_t protocolNumber )
 {
+    TocinoAddress source = TocinoAddress::ConvertFrom(src);
+    TocinoAddress destination = TocinoAddress::ConvertFrom(dest);
+
     NS_LOG_FUNCTION( packet << src << dest << protocolNumber );
 
     // Avoid modifying the passed-in packet.
     Ptr<Packet> p = packet->Copy();
 
-    TocinoAddress source = TocinoAddress::ConvertFrom(src);
-    TocinoAddress destination = TocinoAddress::ConvertFrom(dest);
 
     EthernetHeader eh( false );
     EthernetTrailer et;
@@ -582,6 +583,7 @@ bool TocinoNetDevice::AllQuiet() const
 {
     bool quiet = true;
 
+   
     if( !m_outgoingFlits.empty() )
     {
         NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
@@ -612,6 +614,19 @@ bool TocinoNetDevice::AllQuiet() const
         {
             NS_LOG_LOGIC( "Not quiet: m_queue[" << i << "] not empty" );
             quiet = false;
+        }
+    }
+
+    if (!quiet)
+    {
+        for (unsigned i = 0; i < m_nPorts; i++)
+        {
+            m_transmitters[i]->DumpState();
+        }
+        
+        for (unsigned i = 0; i < m_nPorts; i++)
+        {
+            m_receivers[i]->DumpState();
         }
     }
 

@@ -19,6 +19,7 @@ struct TocinoArbiter : public Object
 
     virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* ) = 0;
 
+    virtual uint32_t GetVCOwner(uint32_t) = 0;
     static const uint32_t DO_NOTHING;
 };
 

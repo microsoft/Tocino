@@ -2,7 +2,7 @@
 #ifndef __CALLBACK_QUEUE_H__
 #define __CALLBACK_QUEUE_H__
 
-#include <queue>
+#include <deque>
 #include "ns3/queue.h"
 #include "ns3/packet.h"
 #include "ns3/callback.h"
@@ -31,6 +31,7 @@ public:
     void SetFullWM(uint32_t n) {m_fullwm = (n>m_maxDepth)? 0:n;} // set low water mark
     void SetName(char *name) {strncpy(m_name, name, 31); m_name[31] = 0;}
     uint32_t Size() {return m_q.size();}
+    Ptr<Packet> At(uint32_t i) {return m_q.at(i);}
     
 private:
     static const uint32_t DEFAULT_MAXDEPTH = 8;
@@ -57,7 +58,7 @@ private:
     uint32_t m_maxDepth; // max depth of queue
     uint32_t m_freewm; // free queue entries less than or equal to this is called almostfull
     uint32_t m_fullwm; // full queue entries at and below this point is called almostempty
-    std::queue<Ptr<Packet> > m_q;
+    std::deque<Ptr<Packet> > m_q;
 };
 
 } // namespace ns3
