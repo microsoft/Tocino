@@ -212,6 +212,8 @@ void TestTocinoFlitHeader::TestDeserializeHead()
 void TestTocinoFlitHeader::TestDefaultSource()
 {
     TocinoFlitHeader h;
+    h.SetHead();
+
     NS_TEST_ASSERT_MSG_EQ( h.GetSource(), TocinoAddress( 0 ), "New header has non-zero source?" );
 }
 
@@ -258,6 +260,8 @@ void TestTocinoFlitHeader::TestDeserializeSource()
 void TestTocinoFlitHeader::TestDefaultDestination()
 {
     TocinoFlitHeader h;
+    h.SetHead();
+
     NS_TEST_ASSERT_MSG_EQ( h.GetDestination(), TocinoAddress( 0 ), "New header has non-zero dest?" );
 }
 

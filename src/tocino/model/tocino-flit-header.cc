@@ -149,23 +149,25 @@ uint32_t TocinoFlitHeader::Deserialize( Buffer::Iterator i )
 
 void TocinoFlitHeader::SetSource( TocinoAddress src )
 {
-    // Should we assert m_isHead?
+    NS_ASSERT( m_isHead );
     m_src = src;
 }
 
 void TocinoFlitHeader::SetDestination( TocinoAddress dest )
 {
-    // Should we assert m_isHead?
+    NS_ASSERT( m_isHead );
     m_dst = dest;
 }
 
 TocinoAddress TocinoFlitHeader::GetSource()
 {
+    NS_ASSERT( m_isHead );
     return m_src;
 }
 
 TocinoAddress TocinoFlitHeader::GetDestination()
 {
+    NS_ASSERT( m_isHead );
     return m_dst;
 }
     
