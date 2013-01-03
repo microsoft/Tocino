@@ -373,17 +373,17 @@ void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES
 }
 void TestTocino3DTorus::TestHelper()
 {
-    //TestCornerToCorner( 1, 20 );
-    //TestCornerToCorner( 1, 123 );
-    //TestCornerToCorner( 10, 32 );
+    TestCornerToCorner( 1, 20 );
+    TestCornerToCorner( 1, 123 );
+    TestCornerToCorner( 10, 32 );
     
-    //TestIncast( 1, 20 );
-    //TestIncast( 1, 123 );
-    //TestIncast( 10, 32 );
-    //TestIncast( 5, 458 );
+    TestIncast( 1, 20 );
+    TestIncast( 1, 123 );
+    TestIncast( 10, 32 );
+    TestIncast( 5, 458 );
     
-    //TestAllToAll( 1, 20 );
-    TestAllToAll( 1, 123 );
+    TestAllToAll( 1, 20 );
+    //TestAllToAll( 1, 123 );
     //TestAllToAll( 10, 32 );
 }
 
@@ -392,12 +392,12 @@ TestTocino3DTorus::DoRun()
 {
     // FIXME: Required to avoid queue overflow on incast test
     // Remove once this is automatic & based on channel delay
-    //Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
+    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
     
     m_radix = 3;
 
-    //Initialize();
-    //TestHelper();
+    Initialize();
+    TestHelper();
    
     Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", UintegerValue( m_radix-1 ) );
 
