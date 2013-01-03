@@ -1,7 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 #include "ns3/packet.h"
 #include "ns3/log.h"
-#include "ns3/integer.h"
+#include "ns3/uinteger.h"
 
 #include "tocino-dimension-order-router.h"
 #include "tocino-misc.h"
@@ -31,10 +31,10 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
     static TypeId tid = TypeId( "ns3::TocinoDimensionOrderRouter" )
         .SetParent<TocinoRouter>()
         .AddAttribute ("WrapPoint", 
-            "For loops/tori, the coordinate just before the wrap-around link",
-            IntegerValue (TocinoDimensionOrderRouter::NO_WRAP),
-            MakeIntegerAccessor (&TocinoDimensionOrderRouter::m_wrapPoint),
-            MakeIntegerChecker<int32_t> ())
+            "For rings/tori, the maximum coordinate value in any dimension",
+            UintegerValue (TocinoDimensionOrderRouter::NO_WRAP),
+            MakeUintegerAccessor (&TocinoDimensionOrderRouter::m_wrapPoint),
+            MakeUintegerChecker<TocinoAddress::Coordinate> ())
         .AddConstructor<TocinoDimensionOrderRouter>();
     return tid;
 }
@@ -52,7 +52,15 @@ void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd, const Toc
     m_currentRoutes.assign( m_tnd->GetNVCs(), TOCINO_INVALID_PORT );
 }
 
-bool TocinoDimensionOrderRouter::ShouldRoutePositive( const uint32_t src, const uint32_t dst ) const
+bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
+{
+    return m_wrapPoint != NO_WRAP;
+}
+
+TocinoDimensionOrderRouter::Direction
+TocinoDimensionOrderRouter::DetermineRoutingDirection(
+        const TocinoAddress::Coordinate src,
+        const TocinoAddress::Coordinate dst ) const
 {
     const int32_t delta = dst - src;
 
@@ -60,7 +68,7 @@ bool TocinoDimensionOrderRouter::ShouldRoutePositive( const uint32_t src, const 
 
     bool routePositive = delta > 0;
     
-    if( m_wrapPoint != NO_WRAP )
+    if( TopologyHasWrapAround() )
     {
         if( abs(delta) > m_wrapPoint/2 )
         {
@@ -68,7 +76,10 @@ bool TocinoDimensionOrderRouter::ShouldRoutePositive( const uint32_t src, const 
         }
     }
 
-    return routePositive;
+    if( routePositive )
+        return POS;
+
+    return NEG;
 }
 
 uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p ) 
@@ -78,97 +89,69 @@ uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p )
     TocinoFlitHeader h;
     p->PeekHeader( h );
 
-    const int VC = h.GetVirtualChannel();
+    int vc = h.GetVirtualChannel();
 
-    int outputPort = m_currentRoutes[VC];
+    int outputPort = m_currentRoutes[vc];
 
     if( h.IsHead() )
     {
-        NS_ASSERT( m_currentRoutes[VC] == TOCINO_INVALID_PORT );
+        NS_ASSERT( m_currentRoutes[vc] == TOCINO_INVALID_PORT );
 
-        TocinoAddress localAddr =
-            TocinoAddress::ConvertFrom( m_tnd->GetAddress() );
-
-        uint8_t x = localAddr.GetX();
-        uint8_t dx = h.GetDestination().GetX();
-
-        uint8_t y = localAddr.GetY();
-        uint8_t dy = h.GetDestination().GetY();
-
-        uint8_t z = localAddr.GetZ();
-        uint8_t dz = h.GetDestination().GetZ();
-
-        // dimension-order routing
-        // FIXME: generalize this to N dimensions? 
-
-        if( x != dx )
+        TocinoAddress localAddr = m_tnd->GetTocinoAddress();
+        TocinoAddress destAddr = h.GetDestination();
+       
+        if( destAddr == localAddr )
         {
-            if( ShouldRoutePositive( x, dx ) )
-            {
-                NS_LOG_LOGIC("routing to 0/x+");
-                outputPort = 0;
-            }
-            else
-            {
-                NS_LOG_LOGIC("routing to 1/x-");
-                outputPort = 1;
-            }
-        }
-        else if( y != dy )
-        {
-            NS_ASSERT( x == dx );
-
-            if( ShouldRoutePositive( y, dy ) ) 
-            {
-                NS_LOG_LOGIC("routing to 2/y+");
-                outputPort = 2;
-            }
-            else
-            {
-                NS_LOG_LOGIC("routing to 3/y-");
-                outputPort = 3;
-            }
-        }
-        else if( z != dz )
-        {
-            NS_ASSERT( x == dx );
-            NS_ASSERT( y == dy );
-
-            if( ShouldRoutePositive( z, dz ) ) 
-            {
-                NS_LOG_LOGIC("routing to 4/z+");
-                outputPort = 4;
-            }
-            else
-            {
-                NS_LOG_LOGIC("routing to 5/z-");
-                outputPort = 5;
-            }
+            // deliver successfully-routed flit to host
+            outputPort = m_tnd->GetHostPort(); 
         }
         else
         {
-            NS_ASSERT( x == dx );
-            NS_ASSERT( y == dy );
-            NS_ASSERT( z == dz );
-            
-            // deliver successfully-routed flit to host
-            NS_LOG_LOGIC("routing to 6/ejection");
-            outputPort = m_tnd->GetHostPort(); 
-        }
+            // dimension-order routing
+            for( int dim = 0; dim < TocinoAddress::DIM; ++dim )
+            {
+                TocinoAddress::Coordinate lc = localAddr.GetCoordinate(dim);
+                TocinoAddress::Coordinate dc = destAddr.GetCoordinate(dim);
 
-        m_currentRoutes[VC] = outputPort;
+                if( lc != dc )
+                {
+                    // FIXME: router should not be assuming this
+                    const int PORT_POS = dim*2;
+                    const int PORT_NEG = PORT_POS+1;
+
+                    Direction dir = DetermineRoutingDirection( lc, dc );
+
+                    if( dir == POS )
+                    {
+                        outputPort = PORT_POS;
+                    }
+                    else
+                    {
+                        NS_ASSERT( dir == NEG );
+                        outputPort = PORT_NEG;
+                    }
+
+                    break;
+                }
+            }
+        }
+        
+        NS_LOG_LOGIC( "routing to "
+            << Tocino3dTorusPortNumberToString( outputPort ) );
+
+        m_currentRoutes[vc] = outputPort;
     }
     
-    NS_ASSERT( m_currentRoutes[VC] != TOCINO_INVALID_PORT );
+    NS_ASSERT( m_currentRoutes[vc] != TOCINO_INVALID_PORT );
 
     if( h.IsTail() )
     {
-        m_currentRoutes[VC] = TOCINO_INVALID_PORT;
+        m_currentRoutes[vc] = TOCINO_INVALID_PORT;
         //NS_LOG_LOGIC("removing established path");
     }
 
     //FIXME always stay on same VC for now
-    return m_tnd->PortToQueue( outputPort, VC ); 
+    return m_tnd->PortToQueue( outputPort, vc ); 
 }
 
 }

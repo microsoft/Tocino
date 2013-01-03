@@ -22,7 +22,9 @@ class TocinoAddress
         m_address.raw = a;
     }
     
-    TocinoAddress( uint8_t x, uint8_t y, uint8_t z, uint8_t res = 0 )
+    typedef uint8_t Coordinate;
+    
+    TocinoAddress( Coordinate x, Coordinate y, Coordinate z, uint8_t res = 0 )
     {
         m_address.x = x;
         m_address.y = y;
@@ -81,19 +83,32 @@ class TocinoAddress
         return a;
     }
     
-    uint8_t GetX() const
+    Coordinate GetX() const
     {
         return m_address.x;
     }
     
-    uint8_t GetY() const
+    Coordinate GetY() const
     {
         return m_address.y;
     }
     
-    uint8_t GetZ() const
+    Coordinate GetZ() const
     {
         return m_address.z;
+    }
+  
+    // FIXME: TocinoAddress should probably
+    // become a class template with this as
+    // a non-type template parameter
+    static const int DIM = 3;
+
+    Coordinate GetCoordinate( int d ) const
+    {
+        NS_ASSERT( d >= 0 );
+        NS_ASSERT( d < DIM );
+
+        return m_address.coord[d];
     }
 
     private:
@@ -108,7 +123,15 @@ class TocinoAddress
     {
         struct
         {
-            uint8_t x, y, z;
+            union
+            {
+                struct
+                {
+                    Coordinate x, y, z;
+                };
+                Coordinate coord[DIM];
+            };
+
             uint8_t reserved  : 7;
             uint8_t multicast : 1;
         };

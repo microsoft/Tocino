@@ -28,4 +28,46 @@ void TocinoCustomizeLogging()
     LogSetTimePrinter( &TocinoTimePrinter );
 }
 
+std::string
+Tocino3dTorusPortNumberToString( const int port )
+{
+    if( port == 6 )
+    {
+        return "host";
+    }
+
+    std::ostringstream oss;
+
+    switch( port / 2 )
+    {
+        case 0:
+            oss << "x";
+            break;
+
+        case 1:
+            oss << "y";
+            break;
+
+        case 2:
+            oss << "z";
+            break;
+
+        default:
+            NS_ASSERT( false );
+            oss << "UNKNOWN PORT!";
+            break;
+    }
+
+    if( port % 2 == 0 )
+    {
+        oss << "+";
+    }
+    else
+    {
+        oss << "-";
+    }
+
+    return oss.str();
+}
+
 }

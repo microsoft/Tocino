@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <limits>
+#include <string>
 
 #define STATIC_ASSERT( condition, name )\
     typedef char assert_failed_ ## name [ (condition) ? 1 : -1 ];
@@ -19,6 +20,8 @@ namespace ns3
     const uint32_t TOCINO_MAX_VCS = 16;
 
     void TocinoCustomizeLogging();
+
+    std::string Tocino3dTorusPortNumberToString( const int port );
 }
 
 #endif //__TOCINO_MISC_H__

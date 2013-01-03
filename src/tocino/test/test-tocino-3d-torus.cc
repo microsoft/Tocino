@@ -1,7 +1,6 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include "ns3/config.h"
-#include "ns3/integer.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/simulator.h"
@@ -400,7 +399,7 @@ TestTocino3DTorus::DoRun()
     //Initialize();
     //TestHelper();
    
-    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", IntegerValue( m_radix-1 ) );
+    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", UintegerValue( m_radix-1 ) );
 
     Initialize();
     TestHelper();
