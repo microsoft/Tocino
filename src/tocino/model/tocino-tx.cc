@@ -11,14 +11,15 @@
 #include "ns3/uinteger.h"
 #include "ns3/data-rate.h"
 
-#include "tocino-tx.h"
-#include "tocino-rx.h"
 #include "callback-queue.h"
-#include "tocino-net-device.h"
-#include "tocino-channel.h"
-#include "tocino-misc.h"
 #include "tocino-arbiter.h"
+#include "tocino-channel.h"
+#include "tocino-flit-id-tag.h"
+#include "tocino-misc.h"
+#include "tocino-net-device.h"
+#include "tocino-rx.h"
 #include "tocino-simple-arbiter.h"
+#include "tocino-tx.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
@@ -186,7 +187,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
     if( m_portNumber == m_tnd->GetHostPort() ) 
     {
         // ejection port
-        NS_LOG_LOGIC( "ejecting " << PeekPointer(f) );
+        NS_LOG_LOGIC( "ejecting " << GetTocinoFlitIdString( f ) );
         
         // ejection port modeled as having infinite bandwidth and buffering
         // need to keep m_state == BUSY to this point to prevent reentrancy
@@ -207,7 +208,8 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
         m_channel->TransmitStart( f );
         Time transmit_time = m_channel->GetTransmissionTime( f );
 
-        NS_LOG_LOGIC( "transmitting " << PeekPointer(f) << " for " << transmit_time );
+        NS_LOG_LOGIC( "transmitting " << GetTocinoFlitIdString( f ) 
+            << " for " << transmit_time );
 
         Simulator::Schedule(transmit_time, &TocinoTx::TransmitEnd, this);
     }
@@ -383,7 +385,7 @@ TocinoTx::DumpState()
                 uint32_t q = (src * m_tnd->GetNVCs()) + vc;
                 if (m_queues[q]->Size() > 0)
                 {
-                    NS_LOG_LOGIC("   next=" << PeekPointer(m_queues[q]->At(0)) << 
+                    NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString(m_queues[q]->At(0)) << 
                         " src=" << src);
                 }
             }
@@ -395,7 +397,7 @@ TocinoTx::DumpState()
             uint32_t q = (owner * m_tnd->GetNVCs()) + vc;
             if (m_queues[q]->Size())
             {
-                NS_LOG_LOGIC("   next=" << PeekPointer(m_queues[q]->At(0)));
+                NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString(m_queues[q]->At(0)));
             }
             else
             {

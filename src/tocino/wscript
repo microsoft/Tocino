@@ -23,6 +23,7 @@ def build(bld):
         'model/tocino-dimension-order-router.cc',
         'model/tocino-arbiter.cc',
         'model/tocino-simple-arbiter.cc',
+        'model/tocino-flit-id-tag.cc',
         'helper/tocino-helper.cc',
         ]
 
@@ -62,6 +63,7 @@ def build(bld):
         'model/tocino-dimension-order-router.h',
         'model/tocino-arbiter.h',
         'model/tocino-simple-arbiter.h',
+        'model/tocino-flit-id-tag.h',
         'helper/tocino-helper.h',
         ]
 

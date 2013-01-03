@@ -97,10 +97,6 @@ TocinoChannel::TransmitStart (Ptr<Packet> p)
     }
     m_packet = p;
     
-    //char str[64];
-    //sprintf(str,"starting transmission of 0x%08x", (uint32_t)PeekPointer(p));
-    //NS_LOG_INFO(str);
- 
     transmit_time = GetTransmissionTime(p);
     Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
     return true;
