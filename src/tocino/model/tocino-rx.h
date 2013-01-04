@@ -41,7 +41,9 @@ public:
 
     void DumpState();
 private:
-    
+   
+    bool EnqueueHelper( Ptr<Packet>, uint32_t );
+
     const uint32_t m_portNumber;
 
     // link to owning TocinoNetDevice

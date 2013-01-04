@@ -94,12 +94,50 @@ TocinoRx::SetQueue( uint32_t qnum, Ptr<CallbackQueue> q )
     m_queues[qnum] = q;
 }
 
+bool
+TocinoRx::EnqueueHelper( Ptr<Packet> flit, uint32_t queue )
+{
+    // N.B.
+    // 
+    // We are about to enqueue into m_queues[queue].
+    // Afterward, if the receiver is blocked, the
+    // cause is unambiguous: it must be due to our
+    // enqueue. Thus, it is tempting to avoid a loop
+    // and full scan of all the queues by making the
+    // post-enqueue check into:
+    // 
+    // isNowAlmostfull = m_queues[queue]->IsAlmostFull()
+    //
+    // However, for symmetry (the "blocked" concept
+    // seems better here than "almost full"), as well
+    // as to avoid premature optimization, we will not
+    // do this.
+    //
+    //  -MAS
+    
+    uint8_t tx_vc = m_tnd->QueueToVC( queue );
+    
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+
+    NS_ASSERT_MSG( h.GetVirtualChannel() == tx_vc,
+        "attempt to enqueue flit with mismatched VC" );
+     
+    bool wasNotBlocked = !IsVCBlocked( tx_vc );
+    bool success = m_queues[queue]->Enqueue( flit );
+    bool isNowBlocked = IsVCBlocked( tx_vc );
+    
+    NS_ASSERT_MSG( success, "queue overrun " << queue );
+    
+    bool enqueueTriggeredBlock = wasNotBlocked && isNowBlocked;
+
+    return enqueueTriggeredBlock;
+}
+
 void
 TocinoRx::Receive( Ptr<Packet> f )
 {
     NS_LOG_FUNCTION( GetTocinoFlitIdString( f ) );
-
-    uint32_t tx_q, tx_port;
     
     if( IsTocinoFlowControlFlit( f ) )
     {
@@ -113,20 +151,16 @@ TocinoRx::Receive( Ptr<Packet> f )
  
     // figure out where the flit goes; returns linearized <port, vc> index
     NS_ASSERT( m_router != NULL );
-    tx_q = m_router->Route( f ); 
+    uint32_t tx_q = m_router->Route( f ); 
     
     NS_ASSERT_MSG( tx_q != TOCINO_INVALID_QUEUE, "Route failed" );
     
-    tx_port = m_tnd->QueueToPort( tx_q ); // extract port number from q index
-     
-    bool wasNotAlmostFull = !m_queues[tx_q]->IsAlmostFull();
+    uint32_t tx_port = m_tnd->QueueToPort( tx_q );
+    uint8_t tx_vc = m_tnd->QueueToVC( tx_q );
 
-    bool success = m_queues[tx_q]->Enqueue( f );
-    NS_ASSERT_MSG( success, "queue overrun?" );
+    bool enqueueTriggeredBlock = EnqueueHelper( f, tx_q );
 
-    bool isNowAlmostFull = m_queues[tx_q]->IsAlmostFull();
-
-    if( wasNotAlmostFull && isNowAlmostFull )
+    if( enqueueTriggeredBlock )
     {
         // FIXME:
         // We intend to model an ejection port that can never be full. Yet,
@@ -135,8 +169,7 @@ TocinoRx::Receive( Ptr<Packet> f )
 
         if( m_portNumber != m_tnd->GetHostPort() )
         {
-            uint8_t vc = m_tnd->QueueToVC( tx_q );
-            m_tx->RemotePause( vc );
+            m_tx->RemotePause( tx_vc );
         }
     }
 

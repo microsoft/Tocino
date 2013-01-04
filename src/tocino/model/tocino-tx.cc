@@ -233,6 +233,46 @@ TocinoTx::DoTransmitFlowControl()
     m_doUpdateXState.reset();
 }
 
+Ptr<Packet>
+TocinoTx::DequeueHelper( uint32_t queue, bool &dequeueTriggeredUnblock )
+{
+    // N.B.
+    // 
+    // We are about to dequeue from m_queues[queue].
+    // Afterward, if the receiver is unblocked, the
+    // cause is unambiguous: it must be due to our
+    // dequeue. Thus, it is tempting to avoid a loop
+    // and full scan of all the queues by making the
+    // pre-dequeue check into:
+    // 
+    // wasAlmostfull = m_queues[queue]->IsAlmostFull()
+    //
+    // However, for symmetry (the "blocked" concept
+    // seems better here than "almost full"), as well
+    // as to avoid premature optimization, we will not
+    // do this.
+    //
+    //  -MAS
+    
+    uint32_t rx_port = m_tnd->QueueToPort( queue );
+    uint8_t rx_vc = m_tnd->QueueToVC( queue );
+    
+    bool wasBlocked = m_tnd->GetReceiver(rx_port)->IsVCBlocked( rx_vc );
+    Ptr<Packet> flit = m_queues[queue]->Dequeue();
+    bool isNoLongerBlocked = !m_tnd->GetReceiver(rx_port)->IsVCBlocked( rx_vc );
+    
+    NS_ASSERT_MSG( flit != NULL, "queue underrun " << queue );
+
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+
+    NS_ASSERT_MSG( h.GetVirtualChannel() == rx_vc, "dequeued flit has wrong VC?" );
+            
+    dequeueTriggeredUnblock = wasBlocked && isNoLongerBlocked;
+    
+    return flit;
+}
+
 void
 TocinoTx::DoTransmit()
 {
@@ -249,36 +289,21 @@ TocinoTx::DoTransmit()
     }
     
     uint32_t rx_port = m_tnd->QueueToPort( winner );
+    uint8_t rx_vc = m_tnd->QueueToVC( winner );
 
-    // N.B.
-    //
-    // If isNoLongerBlocked == TRUE below, the cause is
-    // unambiguous: it must be due to our Dequeue().
-    // So, while it would be correct to call:
-    //      GetReceiver(rx_port)->IsAnyQueueBlocked()
-    // here, instead of:
-    //      m_queues[winner]->IsAlmostFull()
-    // We use the latter. There is really no need to
-    // scan all the receiver's queues.  We know which
-    // one matters
-    //  -MAS
-    bool wasAlmostFull = m_queues[winner]->IsAlmostFull();
+    bool dequeueTriggeredUnblock = false;
 
-    // Dequeue must occur whether the receiver was blocked or not 
-    Ptr<Packet> f = m_queues[winner]->Dequeue();
-    NS_ASSERT_MSG( f != NULL, "queue underrun" << winner );
-            
-    bool isNoLongerBlocked = !m_tnd->GetReceiver(rx_port)->IsAnyQueueBlocked();
+    Ptr<Packet> flit = DequeueHelper( winner, dequeueTriggeredUnblock );
 
-    SendToChannel( f );
+    SendToChannel( flit );
 
-    // If we just unblocked rx_port, resume the corresponding transmitter.
-    if( wasAlmostFull && isNoLongerBlocked )
+    // If we just unblocked rx_port, ask the corresponding
+    // transmitter to resume the remote node
+    if( dequeueTriggeredUnblock )
     {
         if( rx_port != m_tnd->GetHostPort() )
         {
-            uint8_t vc = m_tnd->QueueToVC( winner );
-            m_tnd->GetTransmitter(rx_port)->RemoteResume( vc );
+            m_tnd->GetTransmitter(rx_port)->RemoteResume( rx_vc );
         }
         else
         {

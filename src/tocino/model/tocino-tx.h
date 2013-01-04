@@ -71,6 +71,11 @@ private:
 
     void DoTransmitFlowControl();
 
+    // FIXME: Out parameters are ugly. Replace this with
+    // std::tuple and std::tie ASAP so we can return
+    // both the packet and the boolean at once.
+    Ptr<Packet> DequeueHelper( uint32_t, bool& );
+
     void DoTransmit();
 
     void TransmitEnd(); // can this be private? needs to be invoked by Simulator::Schedule()
