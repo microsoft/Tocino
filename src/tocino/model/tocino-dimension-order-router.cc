@@ -49,7 +49,7 @@ void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd, const Toc
 {
     m_tnd = tnd;
     m_trx = trx;
-    m_currentRoutes.assign( m_tnd->GetNVCs(), TOCINO_INVALID_PORT );
+    m_currentRoutes.assign( m_tnd->GetNVCs(), TOCINO_INVALID_QUEUE );
 }
 
 bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
@@ -82,23 +82,21 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     return NEG;
 }
 
-uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p ) 
+TocinoQueueDescriptor
+TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) 
 {
     NS_ASSERT( m_tnd != NULL );
 
-    TocinoFlitHeader h;
-    p->PeekHeader( h );
+    const int inputVC = GetTocinoFlitVirtualChannel( flit );
+    int outputVC = m_currentRoutes[inputVC].vc;
+    int outputPort = m_currentRoutes[inputVC].port;
 
-    const int inputVC = h.GetVirtualChannel();
-    int outputVC = m_tnd->QueueToVC( m_currentRoutes[inputVC] );
-    int outputPort = m_tnd->QueueToPort( m_currentRoutes[inputVC] );
-
-    if( h.IsHead() )
+    if( IsTocinoFlitHead( flit ) )
     {
         NS_ASSERT( m_currentRoutes[inputVC] == TOCINO_INVALID_QUEUE );
 
         TocinoAddress localAddr = m_tnd->GetTocinoAddress();
-        TocinoAddress destAddr = h.GetDestination();
+        TocinoAddress destAddr = GetTocinoFlitDestination( flit );
        
         if( destAddr == localAddr )
         {
@@ -144,18 +142,18 @@ uint32_t TocinoDimensionOrderRouter::Route( Ptr<const Packet> p )
         NS_LOG_LOGIC( "routing to "
             << Tocino3dTorusPortNumberToString( outputPort ) );
 
-        m_currentRoutes[inputVC] = m_tnd->PortToQueue( outputPort, outputVC );
+        m_currentRoutes[inputVC] = TocinoQueueDescriptor( outputPort, outputVC );
     }
     
     NS_ASSERT( m_currentRoutes[inputVC] != TOCINO_INVALID_QUEUE );
 
-    if( h.IsTail() )
+    if( IsTocinoFlitTail( flit ) )
     {
         m_currentRoutes[inputVC] = TOCINO_INVALID_QUEUE;
         //NS_LOG_LOGIC("removing established path");
     }
     
-    return m_tnd->PortToQueue( outputPort, outputVC );
+    return TocinoQueueDescriptor( outputPort, outputVC );
 }
 
 }

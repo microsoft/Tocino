@@ -71,10 +71,6 @@ public:
     // Get the injection/ejection port
     uint32_t GetHostPort() const;
 
-    uint32_t PortToQueue( uint32_t port, uint32_t vc ) const;
-    uint32_t QueueToPort( uint32_t queue ) const;
-    uint8_t QueueToVC( uint32_t queue ) const;
-
     std::deque< Ptr<Packet> > Flitter(
             const Ptr<Packet>,
             const TocinoAddress&,
@@ -127,7 +123,12 @@ private:
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
 
-    std::vector< Ptr <CallbackQueue> > m_queues;
+    typedef std::vector< Ptr<CallbackQueue> > VCVec;
+    typedef std::vector< VCVec > RxVec;
+    typedef std::vector< RxVec > QueueVec;
+
+    QueueVec m_queues;
+
     std::vector< TocinoTx* > m_transmitters;
     std::vector< TocinoRx* > m_receivers;
     

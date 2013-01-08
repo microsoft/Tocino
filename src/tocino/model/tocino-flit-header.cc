@@ -240,4 +240,36 @@ TocinoFlitHeader::Type TocinoFlitHeader::CheckedConvertToType( int t )
     return static_cast<TocinoFlitHeader::Type>( t );
 }
 
+bool IsTocinoFlitHead( Ptr<const Packet> flit )
+{
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+
+    return h.IsHead();
+}
+
+bool IsTocinoFlitTail( Ptr<const Packet> flit )
+{
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+
+    return h.IsTail();
+}
+
+uint8_t GetTocinoFlitVirtualChannel( Ptr<const Packet> flit )
+{
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+
+    return h.GetVirtualChannel();
+}
+
+TocinoAddress GetTocinoFlitDestination( Ptr<const Packet> flit )
+{
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+
+    return h.GetDestination();
+}
+
 }

@@ -19,10 +19,11 @@ public:
     
     TocinoSimpleArbiter();
 
-    uint32_t Arbitrate();
+    TocinoQueueDescriptor Arbitrate();
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* );
-    uint32_t GetVCOwner(uint32_t vc);
+    
+    uint32_t GetVCOwner( const uint8_t vc );
 
     static const uint32_t ANY_PORT;
 
@@ -30,10 +31,13 @@ private:
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoTx *m_ttx;
 
-    typedef std::vector<uint32_t> QueueVector;
+    typedef std::vector< TocinoQueueDescriptor > QueueVector;
+
     QueueVector BuildCandidateSet() const;
-    uint32_t FairSelectWinner( const QueueVector& ) const;
-    void UpdateState( uint32_t winner );
+
+    TocinoQueueDescriptor FairSelectWinner( const QueueVector& ) const;
+
+    void UpdateState( const TocinoQueueDescriptor );
 
     typedef std::vector<uint32_t> PortVector;
     PortVector m_legalPort;

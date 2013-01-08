@@ -20,7 +20,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* );
 
-    uint32_t Route( Ptr<const Packet> p );
+    TocinoQueueDescriptor Route( Ptr<const Packet> p );
 
     private:
 
@@ -37,7 +37,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     static const TocinoAddress::Coordinate NO_WRAP = 0;
     TocinoAddress::Coordinate m_wrapPoint;
 
-    std::vector<uint32_t> m_currentRoutes;
+    std::vector< TocinoQueueDescriptor > m_currentRoutes;
 };
 
 }

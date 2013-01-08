@@ -42,12 +42,15 @@ public:
     
     void Transmit();
    
-    bool CanTransmitFrom( uint32_t qnum ) const;
+    bool CanTransmitFrom( const uint32_t qnum, const uint8_t vc ) const;
 
-    bool IsNextFlitHead( uint32_t qnum ) const;
-    bool IsNextFlitTail( uint32_t qnum ) const;
+    bool IsNextFlitHead( const uint32_t port, const uint8_t vc ) const;
+    bool IsNextFlitHead( const TocinoQueueDescriptor qd ) const;
 
-    void SetQueue( uint32_t, Ptr<CallbackQueue> );
+    bool IsNextFlitTail( const uint32_t port, const uint8_t vc ) const;
+    bool IsNextFlitTail( const TocinoQueueDescriptor qd ) const;
+
+    void SetQueue( uint32_t, uint8_t, Ptr<CallbackQueue> );
 
     void DumpState();
 
@@ -63,7 +66,10 @@ private:
  
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-    std::deque< Ptr <CallbackQueue> > m_queues; // links to queues
+    typedef std::vector< Ptr<CallbackQueue> > VCVec;
+    typedef std::vector< VCVec > TxQueueVec;
+
+    TxQueueVec m_queues;
 
     Ptr<TocinoChannel> m_channel; // link to channel
 
@@ -74,7 +80,7 @@ private:
     // FIXME: Out parameters are ugly. Replace this with
     // std::tuple and std::tie ASAP so we can return
     // both the packet and the boolean at once.
-    Ptr<Packet> DequeueHelper( uint32_t, bool& );
+    Ptr<Packet> DequeueHelper( const uint32_t, const uint8_t, bool& );
 
     void DoTransmit();
 

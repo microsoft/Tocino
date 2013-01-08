@@ -2,6 +2,7 @@
 #define __TOCINO_FLIT_HEADER_H__
 
 #include "ns3/header.h"
+#include "ns3/packet.h"
 
 #include "tocino-address.h"
 
@@ -80,6 +81,11 @@ class TocinoFlitHeader : public Header
 
     Type m_type;
 };
+
+bool IsTocinoFlitHead( Ptr<const Packet> );
+bool IsTocinoFlitTail( Ptr<const Packet> );
+uint8_t GetTocinoFlitVirtualChannel( Ptr<const Packet> );
+TocinoAddress GetTocinoFlitDestination( Ptr<const Packet> );
 
 }
 

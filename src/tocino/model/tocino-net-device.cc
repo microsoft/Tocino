@@ -103,25 +103,31 @@ TocinoNetDevice::Initialize()
     ObjectFactory arbiterFactory;
     arbiterFactory.SetTypeId( m_arbiterTypeId );
 
-    uint32_t vc, i, j, k, base;
-
     // size data structures
     m_incomingPackets.resize(m_nVCs, NULL);
     m_incomingSources.resize(m_nVCs);
-    m_queues.resize(m_nPorts*m_nPorts*m_nVCs);
     m_receivers.resize(m_nPorts);
     m_transmitters.resize(m_nPorts);
 
     // create queues
-    // each port has nVCs queues to each port
-    for (i = 0; i < (m_nPorts * m_nPorts * m_nVCs); i++)
+    m_queues.resize( m_nPorts );
+    for( uint32_t rx_port = 0; rx_port < m_nPorts; ++rx_port )
     {
-        m_queues[i] = CreateObject<CallbackQueue>();
+        m_queues[rx_port].resize( m_nPorts );
+        for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
+        {
+            m_queues[rx_port][tx_port].resize( m_nVCs );
+            
+            for( uint8_t vc = 0; vc < m_nVCs; ++vc )
+            {
+                m_queues[rx_port][tx_port][vc] = CreateObject<CallbackQueue>();
+            }
+        }    
     }
   
     // create receivers and routers
     // create transmitters and arbiters
-    for (i = 0; i < m_nPorts; i++)
+    for ( uint32_t i = 0; i < m_nPorts; i++)
     {
         Ptr<TocinoArbiter> arbiter = arbiterFactory.Create<TocinoArbiter>();
         Ptr<TocinoRouter> router = routerFactory.Create<TocinoRouter>();
@@ -134,41 +140,20 @@ TocinoNetDevice::Initialize()
         router->Initialize( this, m_receivers[i] );
     }
   
-    // build linkage between rx and q
-    // each rx uses a block of nPorts*nVCs queues
-    // block for rx i is based at i*nPorts*nVCs
-    for (i = 0; i < m_nPorts; i++)
+    // build linkage between rx, tx and queues
+    for( uint32_t rx_port = 0; rx_port < m_nPorts; ++rx_port )
     {
-        base = i * m_nPorts * m_nVCs;
-        for (j = 0; j < (m_nPorts * m_nVCs); j++)
+        for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
         {
-            m_receivers[i]->SetQueue( j, m_queues[base + j] );
-        }
-    }
-
-    // build linkage between tx and q
-    // queues for tx are a set of nPorts blocks
-    // blocks for tx i are based at (i*nVCs)+(j*nPorts*nVCs); 0 < j < nPorts
-    // each block is nVCs in size
-    for (i = 0; i < m_nPorts; i++)
-    {
-        for (j = 0; j < m_nPorts; j++)
-        {
-            base = (i * m_nVCs) + (j * m_nPorts * m_nVCs);
-            k = (j * m_nVCs);
-            for (vc = 0; vc < m_nVCs; vc++)
+            for( uint8_t vc = 0; vc < m_nVCs; ++vc )
             {
-                // assign names to queues to help debug
-                // better name would include TocinoNetDevice id
-                char str[32];
-                sprintf(str,"%d:%d_%d", j, vc, i); // q name - src:vc_dst
-                m_queues[base + vc]->SetName(str);
-
-                m_transmitters[i]->SetQueue( k+vc, m_queues[base + vc] );
+                Ptr<CallbackQueue> queue = m_queues[rx_port][tx_port][vc];
+                
+                m_receivers[rx_port]->SetQueue( tx_port, vc, queue );
+                m_transmitters[tx_port]->SetQueue( rx_port, vc, queue );
             }
         }
     }
-
 }
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
@@ -417,23 +402,24 @@ TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
 
 void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 {
-    TocinoFlitHeader h;
-    f->PeekHeader(h);
+    const bool head = IsTocinoFlitHead( f );
+    const bool tail = IsTocinoFlitTail( f );
 
-    if (h.IsHead() && h.IsTail())
+    if( head && tail )  
     {
         NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " singleton" );
     }
-    else if (h.IsHead())
+    else if( head ) 
     {
         NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " head" );
     }
-    else if (h.IsTail())
+    else if( tail )
     {
         NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " tail" );
     }
     else
     {
+        NS_ASSERT( !head && !tail );
         NS_LOG_LOGIC( GetTocinoFlitIdString( f ) << " body" );
     }
 
@@ -451,6 +437,10 @@ void TocinoNetDevice::TrySendFlits()
     }
 
     NS_ASSERT( !m_outgoingFlits.empty() );
+
+    // ISSUE-REVIEW:
+    // We should probably be checking IsVCBlocked() here
+    // and passing the injection VC.
 
     while( !m_outgoingFlits.empty() &&
         !m_receivers[ GetHostPort() ]->IsAnyQueueBlocked() )
@@ -555,25 +545,6 @@ TocinoNetDevice::GetNQueues() const
 }
 
 uint32_t
-TocinoNetDevice::PortToQueue( uint32_t port, uint32_t vc ) const
-{
-    return (port * m_nVCs) + vc;
-}
-
-uint32_t
-TocinoNetDevice::QueueToPort( uint32_t queue ) const
-{
-    // Truncation here is *intentional* 
-    return queue / m_nVCs;
-}
-
-uint8_t
-TocinoNetDevice::QueueToVC( uint32_t queue ) const
-{
-    return queue % m_nVCs;
-}
-
-uint32_t
 TocinoNetDevice::GetHostPort() const
 {
     return m_nPorts - 1;
@@ -608,12 +579,26 @@ bool TocinoNetDevice::AllQuiet() const
         }
     }
     
-    for (int i = 0; i < (m_nPorts * m_nPorts * m_nVCs); i++)
+    for( uint32_t rx_port = 0; rx_port < m_nPorts; ++rx_port )
     {
-        if( !m_queues[i]->IsEmpty() )
+        for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
         {
-            NS_LOG_LOGIC( "Not quiet: m_queue[" << i << "] not empty" );
-            quiet = false;
+            for( uint8_t vc = 0; vc < m_nVCs; ++vc )
+            {
+                Ptr<CallbackQueue> queue = m_queues[rx_port][tx_port][vc];
+
+                if( !queue->IsEmpty() )
+                {
+                    NS_LOG_LOGIC( "Not quiet: "
+                        << "m_queue" 
+                        << "[" << rx_port << "]" 
+                        << "[" << tx_port << "]" 
+                        << "[" << vc << "]" 
+                        << " not empty" );
+
+                    quiet = false;
+                }
+            }
         }
     }
 

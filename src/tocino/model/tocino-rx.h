@@ -29,11 +29,11 @@ public:
 
     Ptr<NetDevice> GetNetDevice();
     
-    bool IsQueueBlocked( uint32_t ) const;
+    bool IsQueueBlocked( const uint32_t, const uint8_t ) const;
     bool IsAnyQueueBlocked() const ;
     bool IsVCBlocked( uint8_t ) const;
 
-    void SetQueue( uint32_t, Ptr<CallbackQueue> );
+    void SetQueue( uint32_t, uint8_t, Ptr<CallbackQueue> );
     
     void Receive(Ptr<Packet> p);
    
@@ -42,7 +42,7 @@ public:
     void DumpState();
 private:
    
-    bool EnqueueHelper( Ptr<Packet>, uint32_t );
+    bool EnqueueHelper( Ptr<Packet>, const uint32_t, const uint8_t );
 
     const uint32_t m_portNumber;
 
@@ -52,7 +52,10 @@ private:
     // corresponding transmitter
     TocinoTx * const m_tx;
 
-    std::vector< Ptr <CallbackQueue> > m_queues; // packet queues to write
+    typedef std::vector< Ptr<CallbackQueue> > VCVec;
+    typedef std::vector< VCVec > RxQueueVec;
+
+    RxQueueVec m_queues;
     
     Ptr<TocinoRouter> m_router;
 };
