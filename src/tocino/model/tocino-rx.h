@@ -29,20 +29,24 @@ public:
 
     Ptr<NetDevice> GetNetDevice();
     
-    bool IsQueueBlocked( const uint32_t, const uint8_t ) const;
+    bool IsQueueBlocked( const uint32_t, const uint8_t, const uint8_t ) const;
     bool IsAnyQueueBlocked() const ;
     bool IsVCBlocked( uint8_t ) const;
 
-    void SetQueue( uint32_t, uint8_t, Ptr<CallbackQueue> );
+    void SetQueue( uint32_t, uint8_t, uint8_t, Ptr<CallbackQueue> );
+   
+    bool RouteChangesVC( Ptr<const Packet>, const uint8_t ) const;
+    void RewriteFlitHeaderVC( Ptr<Packet>, const uint8_t ) const;
     
     void Receive(Ptr<Packet> p);
    
     void SetReserveFlits( uint32_t );
 
     void DumpState();
+
 private:
    
-    bool EnqueueHelper( Ptr<Packet>, const uint32_t, const uint8_t );
+    bool EnqueueHelper( Ptr<Packet>, const TocinoQueueDescriptor );
 
     const uint32_t m_portNumber;
 
@@ -52,8 +56,9 @@ private:
     // corresponding transmitter
     TocinoTx * const m_tx;
 
-    typedef std::vector< Ptr<CallbackQueue> > VCVec;
-    typedef std::vector< VCVec > RxQueueVec;
+    typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
+    typedef std::vector< OutputVCVec > InputVCVec;
+    typedef std::vector< InputVCVec > RxQueueVec;
 
     RxQueueVec m_queues;
     

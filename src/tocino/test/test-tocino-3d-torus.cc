@@ -96,19 +96,33 @@ void TestTocino3DTorus::Initialize()
 
 void TestTocino3DTorus::CheckAllQuiet()
 {
+    bool aq = true;
+
     for( int x = 0; x < m_radix; x++ )
     { 
         for( int y = 0; y < m_radix; y++ )
         { 
             for( int z = 0; z < m_radix; z++ )
             {
-                bool aq = m_netDevices[x][y][z]->AllQuiet();
-
-                NS_TEST_ASSERT_MSG_EQ( aq, true,
-                    "Net device (" << x << "," << y << "," << z << ") not quiet?" );
+                aq &= m_netDevices[x][y][z]->AllQuiet();
             }
         }
     }
+  
+    if( aq ) return;
+
+    for( int x = 0; x < m_radix; x++ )
+    { 
+        for( int y = 0; y < m_radix; y++ )
+        { 
+            for( int z = 0; z < m_radix; z++ )
+            {
+                m_netDevices[x][y][z]->DumpState();
+            }
+        }
+    }
+
+    NS_TEST_ASSERT_MSG_EQ( aq, true, "not all quiet?" );
 }
 
 void TestTocino3DTorus::Reset()
@@ -373,17 +387,17 @@ void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES
 }
 void TestTocino3DTorus::TestHelper()
 {
-    TestCornerToCorner( 1, 20 );
-    TestCornerToCorner( 1, 123 );
-    TestCornerToCorner( 10, 32 );
-    
-    TestIncast( 1, 20 );
-    TestIncast( 1, 123 );
-    TestIncast( 10, 32 );
-    TestIncast( 5, 458 );
-    
-    TestAllToAll( 1, 20 );
-    //TestAllToAll( 1, 123 );
+    //TestCornerToCorner( 1, 20 );
+    //TestCornerToCorner( 1, 123 );
+    //TestCornerToCorner( 10, 32 );
+    //
+    //TestIncast( 1, 20 );
+    //TestIncast( 1, 123 );
+    //TestIncast( 10, 32 );
+    //TestIncast( 5, 458 );
+    //
+    //TestAllToAll( 1, 20 );
+    TestAllToAll( 1, 123 );
     //TestAllToAll( 10, 32 );
 }
 
@@ -392,12 +406,12 @@ TestTocino3DTorus::DoRun()
 {
     // FIXME: Required to avoid queue overflow on incast test
     // Remove once this is automatic & based on channel delay
-    Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
+    //Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
     
     m_radix = 3;
 
-    Initialize();
-    TestHelper();
+    //Initialize();
+    //TestHelper();
    
     Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", UintegerValue( m_radix-1 ) );
 

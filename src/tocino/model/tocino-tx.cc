@@ -50,6 +50,10 @@ TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
     for( uint32_t port = 0; port < m_queues.size(); ++port )
     {
         m_queues[port].resize( m_tnd->GetNVCs() );
+        for( uint8_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
+        {
+            m_queues[port][vc].resize( m_tnd->GetNVCs() );
+        }
     }
 }
 
@@ -79,7 +83,7 @@ TocinoTx::GetPortNumber() const
 }
 
 bool
-TocinoTx::IsVCPaused(const uint32_t vc)
+TocinoTx::IsVCPaused( const uint32_t vc ) const
 {
     TocinoVCBitSet xoffBits = ~m_xState;
     return xoffBits[vc];
@@ -240,20 +244,19 @@ TocinoTx::DoTransmitFlowControl()
 
 Ptr<Packet>
 TocinoTx::DequeueHelper(
-        const uint32_t port,
-        const uint8_t vc,
+        const TocinoQueueDescriptor qd,
         bool &dequeueTriggeredUnblock )
 {
     // N.B.
     // 
-    // We are about to dequeue from m_queues[port][vc]
+    // We are about to dequeue from m_queues[...]
     // Afterward, if the receiver is unblocked, the
     // cause is unambiguous: it must be due to our
     // dequeue. Thus, it is tempting to avoid a loop
     // and full scan of all the queues by making the
     // pre-dequeue check into:
     // 
-    // wasAlmostfull = m_queues[queue][vc]->IsAlmostFull()
+    // wasAlmostfull = m_queues[...]->IsAlmostFull()
     //
     // However, for symmetry (the "blocked" concept
     // seems better here than "almost full"), as well
@@ -262,13 +265,20 @@ TocinoTx::DequeueHelper(
     //
     //  -MAS
     
-    bool wasBlocked = m_tnd->GetReceiver(port)->IsVCBlocked( vc );
-    Ptr<Packet> flit = m_queues[port][vc]->Dequeue();
-    bool isNoLongerBlocked = !m_tnd->GetReceiver(port)->IsVCBlocked( vc );
-    
-    NS_ASSERT_MSG( flit != NULL, "queue underrun " << port << ":" << vc );
+    bool wasBlocked
+        = m_tnd->GetReceiver(qd.port)->IsVCBlocked( qd.outputVC );
 
-    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == vc, "dequeued flit has wrong VC?" );
+    Ptr<Packet> flit = m_queues[qd.port][qd.inputVC][qd.outputVC]->Dequeue();
+
+    bool isNoLongerBlocked
+        = !m_tnd->GetReceiver(qd.port)->IsVCBlocked( qd.outputVC );
+    
+    NS_ASSERT_MSG( flit != NULL, "queue underrun "
+            << qd.port << ":"
+            << (uint32_t) qd.inputVC << ":"
+            << (uint32_t) qd.outputVC );
+
+    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == qd.outputVC, "dequeued flit has wrong VC?" );
             
     dequeueTriggeredUnblock = wasBlocked && isNoLongerBlocked;
     
@@ -292,7 +302,7 @@ TocinoTx::DoTransmit()
     
     bool dequeueTriggeredUnblock = false;
 
-    Ptr<Packet> flit = DequeueHelper( rx_q.port, rx_q.vc, dequeueTriggeredUnblock );
+    Ptr<Packet> flit = DequeueHelper( rx_q, dequeueTriggeredUnblock );
 
     SendToChannel( flit );
 
@@ -302,7 +312,7 @@ TocinoTx::DoTransmit()
     {
         if( rx_q.port != m_tnd->GetHostPort() )
         {
-            m_tnd->GetTransmitter(rx_q.port)->RemoteResume( rx_q.vc );
+            m_tnd->GetTransmitter(rx_q.port)->RemoteResume( rx_q.inputVC );
         }
         else
         {
@@ -333,18 +343,22 @@ TocinoTx::Transmit()
 }
 
 bool
-TocinoTx::CanTransmitFrom( const uint32_t port, const uint8_t vc ) const
+TocinoTx::CanTransmitFrom(
+        const uint32_t outputPort,
+        const uint8_t inputVC,
+        const uint8_t outputVC ) const
 {
-    NS_ASSERT( port < m_tnd->GetNPorts() );
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
+    NS_ASSERT( outputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
    
     // We can transmit from a queue iff
     //  -It is not empty
-    //  -The corresponding VC is enabled
+    //  -The corresponding output VC is enabled
     
-    if( !m_queues[port][vc]->IsEmpty() ) 
+    if( !m_queues[outputPort][inputVC][outputVC]->IsEmpty() ) 
     {
-        if( m_xState[vc] )
+        if( m_xState[outputVC] )
         {
             return true;
         }
@@ -352,15 +366,26 @@ TocinoTx::CanTransmitFrom( const uint32_t port, const uint8_t vc ) const
 
     return false;
 }
-    
-bool
-TocinoTx::IsNextFlitHead( const uint32_t port, const uint8_t vc ) const
-{
-    NS_ASSERT( port < m_tnd->GetNPorts() );
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
-    NS_ASSERT( !m_queues[port][vc]->IsEmpty() );
 
-    Ptr<const Packet> f = m_queues[port][vc]->Peek();
+bool
+TocinoTx::CanTransmitFrom( const TocinoQueueDescriptor qd ) const
+{
+    return CanTransmitFrom( qd.port, qd.inputVC, qd.outputVC );
+}
+
+bool
+TocinoTx::IsNextFlitHead( 
+        const uint32_t outputPort,
+        const uint8_t inputVC,
+        const uint8_t outputVC ) const
+{
+    NS_ASSERT( outputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+    
+    NS_ASSERT( !m_queues[outputPort][inputVC][outputVC]->IsEmpty() );
+
+    Ptr<const Packet> f = m_queues[outputPort][inputVC][outputVC]->Peek();
 
     return IsTocinoFlitHead( f );
 }
@@ -368,17 +393,22 @@ TocinoTx::IsNextFlitHead( const uint32_t port, const uint8_t vc ) const
 bool
 TocinoTx::IsNextFlitHead( const TocinoQueueDescriptor qd ) const
 {
-    return IsNextFlitHead( qd.port, qd.vc ); 
+    return IsNextFlitHead( qd.port, qd.inputVC, qd.outputVC ); 
 }
 
 bool
-TocinoTx::IsNextFlitTail( const uint32_t port, const uint8_t vc ) const
+TocinoTx::IsNextFlitTail(
+        const uint32_t outputPort,
+        const uint8_t inputVC,
+        const uint8_t outputVC ) const
 {
-    NS_ASSERT( port < m_tnd->GetNPorts() );
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
-    NS_ASSERT( !m_queues[port][vc]->IsEmpty() );
+    NS_ASSERT( outputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+    
+    NS_ASSERT( !m_queues[outputPort][inputVC][outputVC]->IsEmpty() );
 
-    Ptr<const Packet> f = m_queues[port][vc]->Peek();
+    Ptr<const Packet> f = m_queues[outputPort][inputVC][outputVC]->Peek();
     
     return IsTocinoFlitTail( f );
 }
@@ -386,16 +416,21 @@ TocinoTx::IsNextFlitTail( const uint32_t port, const uint8_t vc ) const
 bool
 TocinoTx::IsNextFlitTail( const TocinoQueueDescriptor qd ) const
 {
-    return IsNextFlitTail( qd.port, qd.vc ); 
+    return IsNextFlitTail( qd.port, qd.inputVC, qd.outputVC ); 
 }
 
 void
-TocinoTx::SetQueue( uint32_t port, uint8_t vc, Ptr<CallbackQueue> q )
+TocinoTx::SetQueue(
+        uint32_t outputPort,
+        uint8_t inputVC,
+        uint8_t outputVC,
+        Ptr<CallbackQueue> q )
 {
-    NS_ASSERT( port < m_tnd->GetNPorts() );
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
+    NS_ASSERT( outputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
 
-    m_queues[port][vc] = q;
+    m_queues[outputPort][inputVC][outputVC] = q;
 }
 
 void
@@ -403,32 +438,36 @@ TocinoTx::DumpState()
 {
     NS_LOG_LOGIC("transmitter=" << m_portNumber);
     NS_LOG_LOGIC("  xState=" << m_xState);
-    for (uint32_t vc = 0; vc < 1; vc++)  // change the loop limit to enable more VCs
+    for( uint32_t outVC = 0; outVC < m_tnd->GetNVCs(); outVC++ )
     {
-        uint32_t owner =  m_arbiter->GetVCOwner(vc);
-        const char* xState_str = (m_xState[vc])? "XON":"XOFF";
+        const char* xState_str = (m_xState[outVC])? "XON":"XOFF";
+        
+        TocinoQueueDescriptor owner = m_arbiter->GetVCOwner( outVC );
 
-        if (owner == TocinoSimpleArbiter::ANY_PORT)
+        if( owner == TocinoSimpleArbiter::ANY_QUEUE )
         {
-            NS_LOG_LOGIC("   vc=" << vc << " owner=NONE " << xState_str);
+            NS_LOG_LOGIC("   outVC=" << outVC << " owner=NONE " << xState_str);
 
             // can only schedule head flit - which sources have head flit at front of queue
-            for (uint32_t src = 0; src < m_tnd->GetNPorts(); src++)
+            for( uint32_t inputPort = 0; inputPort < m_tnd->GetNPorts(); inputPort++ )
             {
-                if (m_queues[src][vc]->Size() > 0)
+                for( uint32_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
                 {
-                    NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString(m_queues[src][vc]->At(0)) << 
-                        " src=" << src);
+                    if (m_queues[inputPort][inVC][outVC]->Size() > 0)
+                    {
+                        NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString(m_queues[inputPort][inVC][outVC]->At(0)) << 
+                                " inputPort=" << inputPort << " inVC=" << inVC );
+                    }
                 }
             }
         }
         else
         {
-            NS_LOG_LOGIC("   vc=" << vc << " owner=" << owner << " " << xState_str);
+            NS_LOG_LOGIC("   outVC=" << outVC << " owning inputPort=" << owner.port << " inVC=" << (uint32_t) owner.inputVC << " " << xState_str);
 
-            if (m_queues[owner][vc]->Size())
+            if (m_queues[owner.port][owner.inputVC][outVC]->Size())
             {
-                NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString(m_queues[owner][vc]->At(0)));
+                NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString(m_queues[owner.port][owner.inputVC][outVC]->At(0)));
             }
             else
             {

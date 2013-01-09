@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
 #include <cstdio>
+#include <sstream>
 
 #include "ns3/assert.h"
 #include "ns3/log.h"
@@ -12,6 +13,7 @@
 #include "callback-queue.h"
 #include "tocino-misc.h"
 #include "tocino-router.h"
+#include "tocino-dimension-order-router.h"
 #include "tocino-flit-id-tag.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
@@ -39,6 +41,10 @@ TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
     for( uint32_t port = 0; port < m_queues.size(); ++port )
     {
         m_queues[port].resize( m_tnd->GetNVCs() );
+        for( uint8_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
+        {
+            m_queues[port][vc].resize( m_tnd->GetNVCs() );
+        }
     }
 }
 
@@ -58,23 +64,48 @@ TocinoRx::GetNetDevice()
 }
 
 bool
-TocinoRx::IsQueueBlocked( const uint32_t port, const uint8_t vc ) const
+TocinoRx::IsQueueBlocked(
+        const uint32_t outputPort,
+        const uint8_t inputVC,
+        const uint8_t outputVC ) const
 {
-    NS_ASSERT( port < m_tnd->GetNPorts() );
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
+    NS_ASSERT( outputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
 
-    return m_queues[port][vc]->IsAlmostFull();
+    return m_queues[outputPort][inputVC][outputVC]->IsAlmostFull();
 }
 
 // ISSUE-REVIEW: Should this function exist at all?
 bool
 TocinoRx::IsAnyQueueBlocked() const
 {
-    for( uint32_t port = 0; port < m_tnd->GetNPorts(); ++port )
+    for( uint32_t outputPort = 0; outputPort < m_tnd->GetNPorts(); ++outputPort )
     {
-        for( uint8_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
+        for( uint8_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
         {
-            if( IsQueueBlocked( port, vc ) )
+            for( uint8_t outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
+            {
+                if( IsQueueBlocked( outputPort, inputVC, outputVC ) )
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool
+TocinoRx::IsVCBlocked( const uint8_t outputVC ) const
+{
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+
+    for( uint32_t outputPort = 0; outputPort < m_tnd->GetNPorts(); ++outputPort )
+    {
+        for( uint8_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+        {
+            if( IsQueueBlocked( outputPort, inputVC, outputVC ) )
             {
                 return true;
             }
@@ -83,43 +114,48 @@ TocinoRx::IsAnyQueueBlocked() const
     return false;
 }
 
-bool
-TocinoRx::IsVCBlocked( const uint8_t vc ) const
+void
+TocinoRx::SetQueue(
+        uint32_t outputPort,
+        uint8_t inputVC,
+        uint8_t outputVC,
+        Ptr<CallbackQueue> q )
 {
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
+    NS_ASSERT( outputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
 
-    for( uint32_t port = 0; port < m_tnd->GetNPorts(); ++port )
-    {
-        if( IsQueueBlocked( port, vc ) )
-        {
-            return true;
-        }
-    }
-    return false;
+    m_queues[outputPort][inputVC][outputVC] = q;
 }
 
 void
-TocinoRx::SetQueue( uint32_t port, uint8_t vc, Ptr<CallbackQueue> q )
+TocinoRx::RewriteFlitHeaderVC( Ptr<Packet> f, const uint8_t newVC ) const
 {
-    NS_ASSERT( port < m_tnd->GetNPorts() );
-    NS_ASSERT( vc < m_tnd->GetNVCs() );
+    TocinoFlitHeader h;
+    f->RemoveHeader( h );
+    
+    uint8_t currentVC = h.GetVirtualChannel();
 
-    m_queues[port][vc] = q;
+    NS_ASSERT_MSG( newVC != currentVC, "Pointless rewrite?" );
+
+    h.SetVirtualChannel( newVC );
+
+    f->AddHeader( h );
 }
 
 bool
-TocinoRx::EnqueueHelper( Ptr<Packet> flit, const uint32_t port, const uint8_t vc )
+TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoQueueDescriptor qd )
 {
     // N.B.
     // 
-    // We are about to enqueue into m_queues[port][vc].
+    // We are about to enqueue into m_queues[...].
     // Afterward, if the receiver is blocked, the
     // cause is unambiguous: it must be due to our
     // enqueue. Thus, it is tempting to avoid a loop
     // and full scan of all the queues by making the
     // post-enqueue check into:
     // 
-    // isNowAlmostfull = m_queues[queue][vc]->IsAlmostFull()
+    // isNowAlmostfull = m_queues[...]->IsAlmostFull()
     //
     // However, for symmetry (the "blocked" concept
     // seems better here than "almost full"), as well
@@ -128,14 +164,20 @@ TocinoRx::EnqueueHelper( Ptr<Packet> flit, const uint32_t port, const uint8_t vc
     //
     //  -MAS
     
-    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == vc,
+    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == qd.outputVC,
         "attempt to enqueue flit with mismatched VC" );
      
-    bool wasNotBlocked = !IsVCBlocked( vc );
-    bool success = m_queues[port][vc]->Enqueue( flit );
-    bool isNowBlocked = IsVCBlocked( vc );
+    bool wasNotBlocked = !IsVCBlocked( qd.outputVC );
+
+    bool success
+        = m_queues[qd.port][qd.inputVC][qd.outputVC]->Enqueue( flit );
+
+    bool isNowBlocked = IsVCBlocked( qd.outputVC );
     
-    NS_ASSERT_MSG( success, "queue overrun " << port << ":" << vc );
+    NS_ASSERT_MSG( success, "queue overrun "
+            << qd.port << ":"
+            << (uint32_t) qd.inputVC << ":"
+            << (uint32_t) qd.outputVC );
     
     bool enqueueTriggeredBlock = wasNotBlocked && isNowBlocked;
 
@@ -157,13 +199,20 @@ TocinoRx::Receive( Ptr<Packet> f )
         return;
     }
  
-    // figure out where the flit goes; returns linearized <port, vc> index
     NS_ASSERT( m_router != NULL );
+    
+    // figure out where the flit goes
     TocinoQueueDescriptor tx_q = m_router->Route( f ); 
     
     NS_ASSERT_MSG( tx_q != TOCINO_INVALID_QUEUE, "Route failed" );
-    
-    bool enqueueTriggeredBlock = EnqueueHelper( f, tx_q.port, tx_q.vc );
+
+    // Router may have elected to change virtual channels
+    if( tx_q.inputVC != tx_q.outputVC )
+    {
+        RewriteFlitHeaderVC( f, tx_q.outputVC );
+    }
+   
+    bool enqueueTriggeredBlock = EnqueueHelper( f, tx_q );
 
     if( enqueueTriggeredBlock )
     {
@@ -174,22 +223,25 @@ TocinoRx::Receive( Ptr<Packet> f )
 
         if( m_portNumber != m_tnd->GetHostPort() )
         {
-            m_tx->RemotePause( tx_q.vc );
+            m_tx->RemotePause( tx_q.inputVC );
         }
     }
 
     // kick the transmitter
-    m_tnd->GetTransmitter(tx_q.port)->Transmit();
+    m_tnd->GetTransmitter( tx_q.port )->Transmit();
 }
 
 void
 TocinoRx::SetReserveFlits( uint32_t numFlits )
 {
-    for( uint32_t port = 0; port < m_tnd->GetNPorts(); ++port )
+    for( uint32_t outputPort = 0; outputPort < m_tnd->GetNPorts(); ++outputPort )
     {
-        for( uint8_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
+        for( uint8_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
         {
-            m_queues[port][vc]->SetFreeWM( numFlits );
+            for( uint8_t outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
+            {
+                m_queues[outputPort][inputVC][outputVC]->SetFreeWM( numFlits );
+            }
         }
     }
 }
@@ -198,24 +250,46 @@ void
 TocinoRx::DumpState()
 {
     NS_LOG_LOGIC("receiver=" << m_portNumber);
-    for (uint32_t vc = 0; vc < 1; vc++) // change loop bound to enable additional VCs
+    for( uint32_t outVC = 0; outVC < m_tnd->GetNVCs(); ++outVC )
     {
-        if (IsVCBlocked(vc))
+        if( IsVCBlocked( outVC ) )
         {
-            NS_LOG_LOGIC(" vc=" << vc << " BLOCKED");
-            for (uint32_t port = 0; port < m_tnd->GetNPorts(); port++)
+            NS_LOG_LOGIC(" outVC=" << outVC << " BLOCKED");
+        }
+        else
+        {
+            NS_LOG_LOGIC(" outVC=" << outVC << " not blocked");
+        }
+
+        for( uint32_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
+        {
+            TocinoQueueDescriptor qd = m_router->GetCurrentRoute( inVC );
+
+            if( qd != TOCINO_INVALID_QUEUE )
             {
-                if (IsQueueBlocked(port, vc))
+                NS_LOG_LOGIC("  route in-progress to outputPort=" << qd.port 
+                        << " inVC=" << (uint32_t) qd.inputVC
+                        << " outVC=" << (uint32_t) qd.outputVC );
+            }
+
+            for( uint32_t outputPort = 0; outputPort < m_tnd->GetNPorts(); ++outputPort )
+            {
+                if( IsQueueBlocked( outputPort, inVC, outVC ) )
                 {
-                    NS_LOG_LOGIC("  blocked on port=" << port);
-                    for (uint32_t i = 0; i < m_queues[port][vc]->Size(); i++)
+                    NS_LOG_LOGIC("  blocked on outputPort=" << outputPort << " inVC=" << inVC);
+
+                    Ptr<CallbackQueue> queue = m_queues[outputPort][inVC][outVC];
+
+                    for( uint32_t i = 0; i < queue->Size(); i++ )
                     {
-                        NS_LOG_LOGIC("   " << GetTocinoFlitIdString(m_queues[port][vc]->At(i)));
+                        NS_LOG_LOGIC("   " << GetTocinoFlitIdString( queue->At(i) ) );
                     }
                 }
             }
         }
     }
+
+
 }
 
 } // namespace ns3

@@ -47,37 +47,49 @@ void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* 
 {
     m_tnd = tnd;
     m_ttx = ttx;
-    m_legalPort.assign( m_tnd->GetNVCs(), ANY_PORT );
+    m_legalQueue.assign( m_tnd->GetNVCs(), ANY_QUEUE );
 }
 
 TocinoSimpleArbiter::QueueVector
 TocinoSimpleArbiter::BuildCandidateSet() const
 {
-    NS_ASSERT( m_tnd->GetNVCs() == m_legalPort.size() );
+    NS_ASSERT( m_tnd->GetNVCs() == m_legalQueue.size() );
 
     QueueVector candidates;
 
-    for( uint8_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
+    for( uint8_t outVC = 0; outVC < m_tnd->GetNVCs(); ++outVC )
     {
-        if( m_legalPort[vc] == ANY_PORT )
+        if( m_legalQueue[outVC] == ANY_QUEUE )
         {
-            // can select any port that is ready
-            for( uint32_t port = 0; port < m_tnd->GetNPorts(); ++port )
+            // can select any queue that is ready
+            for( uint32_t outPort = 0; outPort < m_tnd->GetNPorts(); ++outPort )
             {
-                if( m_ttx->CanTransmitFrom( port, vc ) )
+                for( uint8_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
                 {
-                    candidates.push_back( TocinoQueueDescriptor( port, vc ) );
+                    TocinoQueueDescriptor qd( outPort, inVC, outVC );
+
+                    if( m_ttx->CanTransmitFrom( qd ) )
+                    {
+                        NS_ASSERT( m_ttx->IsNextFlitHead( qd ) );
+
+                        candidates.push_back( qd );
+                    }
                 }
+
             }
         }
         else
         {
-            // can only select the allocated port, if ready
-            uint32_t port = m_legalPort[vc];
+            // can only select the allocated queue, if ready
+            TocinoQueueDescriptor qd = m_legalQueue[outVC];
 
-            if( m_ttx->CanTransmitFrom( port, vc ) )
+            NS_ASSERT( m_legalQueue[outVC].outputVC == outVC );
+
+            if( m_ttx->CanTransmitFrom( qd ) )
             {
-                candidates.push_back( TocinoQueueDescriptor( port, vc ) );
+                NS_ASSERT( !m_ttx->IsNextFlitHead( qd ) );
+
+                candidates.push_back( qd );
             }
         }
     }
@@ -131,17 +143,18 @@ TocinoSimpleArbiter::UpdateState( const TocinoQueueDescriptor winner )
     if( m_ttx->IsNextFlitTail( winner ) )
     {
         // Flow ending, reset
-        m_legalPort[ winner.vc ] = ANY_PORT;
+        m_legalQueue[ winner.outputVC ] = ANY_QUEUE;
     }
     else
     {
         if (m_ttx->IsNextFlitHead( winner ) )
         {
-            NS_LOG_LOGIC( "vc=" << (uint32_t) winner.vc 
+            // FIXME, print both inVC and outVC?
+            NS_LOG_LOGIC( "vc=" << (uint32_t) winner.outputVC 
                 << " assigned to src=" << winner.port );
         }
         // Remember mapping
-        m_legalPort[ winner.vc ] = winner.port; 
+        m_legalQueue[ winner.outputVC ] = winner;
     }
 }
 
@@ -160,16 +173,22 @@ TocinoSimpleArbiter::Arbitrate()
 
     UpdateState( winner );
 
-    NS_LOG_LOGIC( "Winner is " << winner.port << ":" << winner.vc );
+    NS_LOG_LOGIC( "Winner is "
+        << winner.port << ":"
+        << (uint32_t) winner.outputVC );
 
     return winner;
 }
 
-uint32_t
-TocinoSimpleArbiter::GetVCOwner( const uint8_t vc)
+TocinoQueueDescriptor
+TocinoSimpleArbiter::GetVCOwner( const uint8_t vc ) const
 {
-    return m_legalPort[vc];
-}
-const uint32_t TocinoSimpleArbiter::ANY_PORT = TOCINO_INVALID_PORT-1;
+    NS_ASSERT( vc < m_legalQueue.size() );
 
+    return m_legalQueue[vc];
+}
+
+const TocinoQueueDescriptor TocinoSimpleArbiter::ANY_QUEUE = 
+    TocinoQueueDescriptor( TOCINO_INVALID_PORT-1, 
+            TOCINO_INVALID_VC-1, TOCINO_INVALID_VC-1 );
 }

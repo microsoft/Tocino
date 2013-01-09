@@ -22,8 +22,8 @@ TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
     c->SetReceiver( rx_nd->GetReceiver( rx_port ) );
  
     // ISSUE-REVIEW: does this really belong here?
-    //uint32_t reserve = c->FlitBuffersRequired();
-    //rx_nd->GetReceiver( rx_port )->SetReserveFlits( reserve );
+    uint32_t reserve = c->FlitBuffersRequired();
+    rx_nd->GetReceiver( rx_port )->SetReserveFlits( reserve );
 
     return c;
 }

@@ -2,7 +2,6 @@
 #ifndef __TOCINO_TX_H__
 #define __TOCINO_TX_H__
 
-#include <deque>
 #include <stdint.h>
 
 #include "ns3/ptr.h"
@@ -30,7 +29,7 @@ public:
 
     void SetXState( const TocinoFlowControlState& );
 
-    bool IsVCPaused(const uint32_t vc);
+    bool IsVCPaused( const uint32_t vc ) const;
     bool IsAnyVCPaused() const;
 
     void RemotePause( const uint8_t vc );
@@ -42,18 +41,18 @@ public:
     
     void Transmit();
    
-    bool CanTransmitFrom( const uint32_t qnum, const uint8_t vc ) const;
+    bool CanTransmitFrom( const uint32_t, const uint8_t, const uint8_t ) const;
+    bool CanTransmitFrom( const TocinoQueueDescriptor qd ) const;
 
-    bool IsNextFlitHead( const uint32_t port, const uint8_t vc ) const;
+    bool IsNextFlitHead( const uint32_t, const uint8_t, const uint8_t ) const;
     bool IsNextFlitHead( const TocinoQueueDescriptor qd ) const;
 
-    bool IsNextFlitTail( const uint32_t port, const uint8_t vc ) const;
+    bool IsNextFlitTail( const uint32_t, const uint8_t, const uint8_t ) const;
     bool IsNextFlitTail( const TocinoQueueDescriptor qd ) const;
 
-    void SetQueue( uint32_t, uint8_t, Ptr<CallbackQueue> );
+    void SetQueue( uint32_t, uint8_t, uint8_t, Ptr<CallbackQueue> );
 
     void DumpState();
-
 private:
     const uint32_t m_portNumber;
   
@@ -66,8 +65,9 @@ private:
  
     const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
 
-    typedef std::vector< Ptr<CallbackQueue> > VCVec;
-    typedef std::vector< VCVec > TxQueueVec;
+    typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
+    typedef std::vector< OutputVCVec > InputVCVec;
+    typedef std::vector< InputVCVec > TxQueueVec;
 
     TxQueueVec m_queues;
 
@@ -80,7 +80,7 @@ private:
     // FIXME: Out parameters are ugly. Replace this with
     // std::tuple and std::tie ASAP so we can return
     // both the packet and the boolean at once.
-    Ptr<Packet> DequeueHelper( const uint32_t, const uint8_t, bool& );
+    Ptr<Packet> DequeueHelper( const TocinoQueueDescriptor, bool& );
 
     void DoTransmit();
 

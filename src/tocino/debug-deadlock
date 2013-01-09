@@ -1,0 +1,25 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DOTFILE=$0.dot
+PNGFILE=$0.png
+
+echo "digraph foo {" > $DOTFILE
+echo " //page=\"8.5,11\";" >> $DOTFILE
+echo " //ratio=compress;" >> $DOTFILE
+echo " //orientation=landscape;" >> $DOTFILE
+echo " //rotate=90;" >> $DOTFILE
+pushd ../..
+./waf --run "test-runner --suite=tocino" 2>&1 | grep DebugDeadlock | cut -c 15- >> $DIR/$DOTFILE
+popd
+echo "}" >> $DOTFILE
+
+# make a single, possibly giant, image of everything
+ccomps -x $DOTFILE | dot | gvpack -g -m 50 -array6 | neato -s -n2 -Tpng -o $PNGFILE
+
+# make separate images for each connected component
+ccomps -zx -o $0.subgraph.dot $DOTFILE
+dot -Tpng -O $0.subgraph*.dot
+
+# launch viewer
+eog *.png

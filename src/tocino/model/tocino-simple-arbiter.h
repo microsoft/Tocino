@@ -23,9 +23,9 @@ public:
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* );
     
-    uint32_t GetVCOwner( const uint8_t vc );
+    TocinoQueueDescriptor GetVCOwner( const uint8_t vc ) const;
 
-    static const uint32_t ANY_PORT;
+    static const TocinoQueueDescriptor ANY_QUEUE;
 
 private:
     Ptr<TocinoNetDevice> m_tnd;
@@ -39,8 +39,8 @@ private:
 
     void UpdateState( const TocinoQueueDescriptor );
 
-    typedef std::vector<uint32_t> PortVector;
-    PortVector m_legalPort;
+    typedef std::vector< TocinoQueueDescriptor > QueueDescriptorVector;
+    QueueDescriptorVector m_legalQueue;
     
 #ifdef TOCINO_VC_STRESS_MODE
     mutable uint8_t m_lastVC;

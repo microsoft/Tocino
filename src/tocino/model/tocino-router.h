@@ -20,6 +20,8 @@ struct TocinoRouter : public Object
 
     virtual TocinoQueueDescriptor Route( Ptr<const Packet> p ) = 0;
 
+    virtual TocinoQueueDescriptor GetCurrentRoute( uint8_t ) const = 0;
+
     virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* ) = 0;
 };
 

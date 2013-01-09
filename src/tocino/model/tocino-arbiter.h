@@ -22,7 +22,7 @@ struct TocinoArbiter : public Object
     virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* ) = 0;
 
     // ISSUE-REVIEW: should this really be in every arbiter?
-    virtual uint32_t GetVCOwner( const uint8_t ) = 0;
+    virtual TocinoQueueDescriptor GetVCOwner( const uint8_t ) const = 0;
 
     static const TocinoQueueDescriptor DO_NOTHING;
 };

@@ -78,7 +78,9 @@ public:
             const TocinoFlitHeader::Type );
    
     bool AllQuiet() const;
-    
+   
+    void DumpState() const;
+
     // Attempt to send m_currentFlits
     void TrySendFlits();
 
@@ -123,9 +125,11 @@ private:
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
 
-    typedef std::vector< Ptr<CallbackQueue> > VCVec;
-    typedef std::vector< VCVec > RxVec;
-    typedef std::vector< RxVec > QueueVec;
+    // 4D vector: m_queues[rx_port][tx_port][rx_vc][tx_vc]
+    typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
+    typedef std::vector< OutputVCVec > InputVCVec;
+    typedef std::vector< InputVCVec > PortVec;
+    typedef std::vector< PortVec > QueueVec;
 
     QueueVec m_queues;
 

@@ -22,14 +22,23 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     TocinoQueueDescriptor Route( Ptr<const Packet> p );
 
+    TocinoQueueDescriptor GetCurrentRoute( uint8_t ) const;
+
     private:
 
     bool TopologyHasWrapAround() const;
 
     enum Direction { POS, NEG };
+
     Direction DetermineRoutingDirection(
             const TocinoAddress::Coordinate, 
             const TocinoAddress::Coordinate ) const;
+
+    bool RouteCrossesDateline(
+            const TocinoAddress::Coordinate,
+            const Direction ) const;
+    
+    bool RouteChangesDirection( const uint32_t ) const;
 
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoRx *m_trx;

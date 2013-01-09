@@ -117,10 +117,14 @@ TocinoNetDevice::Initialize()
         for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
         {
             m_queues[rx_port][tx_port].resize( m_nVCs );
-            
-            for( uint8_t vc = 0; vc < m_nVCs; ++vc )
+            for( uint8_t rx_vc = 0; rx_vc < m_nVCs; ++rx_vc )
             {
-                m_queues[rx_port][tx_port][vc] = CreateObject<CallbackQueue>();
+                m_queues[rx_port][tx_port][rx_vc].resize( m_nVCs );
+                for( uint8_t tx_vc = 0; tx_vc < m_nVCs; ++tx_vc )
+                {
+                    m_queues[rx_port][tx_port][rx_vc][tx_vc]
+                        = CreateObject<CallbackQueue>();
+                }
             }
         }    
     }
@@ -145,12 +149,16 @@ TocinoNetDevice::Initialize()
     {
         for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
         {
-            for( uint8_t vc = 0; vc < m_nVCs; ++vc )
+            for( uint8_t rx_vc = 0; rx_vc < m_nVCs; ++rx_vc )
             {
-                Ptr<CallbackQueue> queue = m_queues[rx_port][tx_port][vc];
-                
-                m_receivers[rx_port]->SetQueue( tx_port, vc, queue );
-                m_transmitters[tx_port]->SetQueue( rx_port, vc, queue );
+                for( uint8_t tx_vc = 0; tx_vc < m_nVCs; ++tx_vc )
+                {
+                    Ptr<CallbackQueue> queue
+                        = m_queues[rx_port][tx_port][rx_vc][tx_vc];
+
+                    m_receivers[rx_port]->SetQueue( tx_port, rx_vc, tx_vc, queue );
+                    m_transmitters[tx_port]->SetQueue( rx_port, rx_vc, tx_vc, queue );
+                }
             }
         }
     }
@@ -583,39 +591,45 @@ bool TocinoNetDevice::AllQuiet() const
     {
         for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
         {
-            for( uint8_t vc = 0; vc < m_nVCs; ++vc )
+            for( uint32_t rx_vc = 0; rx_vc < m_nVCs; ++rx_vc )
             {
-                Ptr<CallbackQueue> queue = m_queues[rx_port][tx_port][vc];
-
-                if( !queue->IsEmpty() )
+                for( uint32_t tx_vc = 0; tx_vc < m_nVCs; ++tx_vc )
                 {
-                    NS_LOG_LOGIC( "Not quiet: "
-                        << "m_queue" 
-                        << "[" << rx_port << "]" 
-                        << "[" << tx_port << "]" 
-                        << "[" << vc << "]" 
-                        << " not empty" );
+                    Ptr<CallbackQueue> queue
+                        = m_queues[rx_port][tx_port][rx_vc][tx_vc];
 
-                    quiet = false;
+                    if( !queue->IsEmpty() )
+                    {
+                        NS_LOG_LOGIC( "Not quiet: "
+                                << "m_queue" 
+                                << "[" << rx_port << "]" 
+                                << "[" << tx_port << "]" 
+                                << "[" << rx_vc << "]" 
+                                << "[" << tx_vc << "]" 
+                                << " not empty" );
+
+                        quiet = false;
+                    }
                 }
             }
         }
     }
+	
+    return quiet;
+}
 
-    if (!quiet)
+void
+TocinoNetDevice::DumpState() const
+{
+    for (unsigned i = 0; i < m_nPorts; i++)
     {
-        for (unsigned i = 0; i < m_nPorts; i++)
-        {
-            m_transmitters[i]->DumpState();
-        }
-        
-        for (unsigned i = 0; i < m_nPorts; i++)
-        {
-            m_receivers[i]->DumpState();
-        }
+        m_transmitters[i]->DumpState();
     }
 
-    return quiet;
+    for (unsigned i = 0; i < m_nPorts; i++)
+    {
+        m_receivers[i]->DumpState();
+    }
 }
 
 #pragma pop_macro("NS_LOG_APPEND_CONTEXT")
