@@ -53,6 +53,7 @@ public:
     void SetQueue( uint32_t, uint8_t, uint8_t, Ptr<CallbackQueue> );
 
     void DumpState();
+
 private:
     const uint32_t m_portNumber;
   
@@ -84,7 +85,10 @@ private:
 
     void DoTransmit();
 
-    void TransmitEnd(); // can this be private? needs to be invoked by Simulator::Schedule()
+    void TransmitEnd();
+
+    Ptr<const Packet>
+        PeekNextFlit( const uint32_t, const uint8_t, const uint8_t ) const;
 
     Ptr<TocinoArbiter> m_arbiter;
 };

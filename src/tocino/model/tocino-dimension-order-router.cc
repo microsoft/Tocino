@@ -99,12 +99,12 @@ TocinoDimensionOrderRouter::RouteCrossesDateline(
     return false;
 }
 
-// FIXME: should this be called RouteChangesDimension?
 bool 
-TocinoDimensionOrderRouter::RouteChangesDirection( const uint32_t outputPort ) const
+TocinoDimensionOrderRouter::RouteChangesDimension( const uint32_t outputPort ) const
 {
     const uint32_t inputPort = m_trx->GetPortNumber();
 
+    // ISSUE-REVIEW: what if outputPort == host port?
     if( inputPort == m_tnd->GetHostPort() )
     {
         return false;
@@ -192,11 +192,10 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit )
             // Default operation is not to switch VC
             outputVC = inputVC;
   
-#if 1
             // Dateline algorithm for deadlock avoidance in rings/tori
             if( TopologyHasWrapAround() )
             {
-                if( RouteChangesDirection( outputPort ) )
+                if( RouteChangesDimension( outputPort ) )
                 {
                     // Reset to virtual channel zero
                     outputVC = 0;
@@ -210,7 +209,6 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit )
                     outputVC = inputVC + 1;
                 }
             }
-#endif
         }
         
         NS_ASSERT( outputPort != TOCINO_INVALID_PORT );
@@ -269,7 +267,7 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit )
     if( IsTocinoFlitTail( flit ) )    
     {
         NS_LOG_LOGIC( "tail flit, clearing state for input VC "
-            << (uint32_t ) inputVC );
+            << (uint32_t) inputVC );
 
         m_currentRoutes[inputVC] = TOCINO_INVALID_QUEUE;
     }

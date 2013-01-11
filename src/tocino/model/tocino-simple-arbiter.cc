@@ -62,11 +62,11 @@ TocinoSimpleArbiter::BuildCandidateSet() const
         if( m_legalQueue[outVC] == ANY_QUEUE )
         {
             // can select any queue that is ready
-            for( uint32_t outPort = 0; outPort < m_tnd->GetNPorts(); ++outPort )
+            for( uint32_t inPort = 0; inPort < m_tnd->GetNPorts(); ++inPort )
             {
                 for( uint8_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
                 {
-                    TocinoQueueDescriptor qd( outPort, inVC, outVC );
+                    TocinoQueueDescriptor qd( inPort, inVC, outVC );
 
                     if( m_ttx->CanTransmitFrom( qd ) )
                     {

@@ -42,7 +42,7 @@ TocinoTestSuite::TocinoTestSuite ()
     //AddTestCase( new TestTocinoPointToPoint );
     //AddTestCase( new TestTocinoMultihop );
     //AddTestCase( new TestTocinoRing );
-    //AddTestCase( new TestTocinoDeadlock );
+    AddTestCase( new TestTocinoDeadlock );
     AddTestCase( new TestTocino3DTorus );
 }
 

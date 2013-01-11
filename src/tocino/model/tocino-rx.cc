@@ -96,14 +96,18 @@ TocinoRx::IsAnyQueueBlocked() const
     return false;
 }
 
+// ISSUE-REVIEW: the argument here MUST be an inputVC.
+// It's not a meaningful question otherwise.  Perhaps
+// we should create an InputVC type, so the compiler
+// can help us avoid a mistake?
 bool
-TocinoRx::IsVCBlocked( const uint8_t outputVC ) const
+TocinoRx::IsVCBlocked( const uint8_t inputVC ) const
 {
-    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
 
     for( uint32_t outputPort = 0; outputPort < m_tnd->GetNPorts(); ++outputPort )
     {
-        for( uint8_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+        for( uint8_t outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
         {
             if( IsQueueBlocked( outputPort, inputVC, outputVC ) )
             {
@@ -167,12 +171,12 @@ TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoQueueDescriptor qd )
     NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == qd.outputVC,
         "attempt to enqueue flit with mismatched VC" );
      
-    bool wasNotBlocked = !IsVCBlocked( qd.outputVC );
+    bool wasNotBlocked = !IsVCBlocked( qd.inputVC );
 
     bool success
         = m_queues[qd.port][qd.inputVC][qd.outputVC]->Enqueue( flit );
 
-    bool isNowBlocked = IsVCBlocked( qd.outputVC );
+    bool isNowBlocked = IsVCBlocked( qd.inputVC );
     
     NS_ASSERT_MSG( success, "queue overrun "
             << qd.port << ":"
@@ -250,46 +254,56 @@ void
 TocinoRx::DumpState()
 {
     NS_LOG_LOGIC("receiver=" << m_portNumber);
-    for( uint32_t outVC = 0; outVC < m_tnd->GetNVCs(); ++outVC )
+    for( uint32_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
     {
-        if( IsVCBlocked( outVC ) )
+        if( IsVCBlocked( inVC ) )
         {
-            NS_LOG_LOGIC(" outVC=" << outVC << " BLOCKED");
+            NS_LOG_LOGIC(" inVC=" << inVC << " BLOCKED");
         }
         else
         {
-            NS_LOG_LOGIC(" outVC=" << outVC << " not blocked");
+            NS_LOG_LOGIC(" inVC=" << inVC << " not blocked");
         }
 
-        for( uint32_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
+        for( uint32_t outVC = 0; outVC < m_tnd->GetNVCs(); ++outVC )
         {
             TocinoQueueDescriptor qd = m_router->GetCurrentRoute( inVC );
 
             if( qd != TOCINO_INVALID_QUEUE )
             {
-                NS_LOG_LOGIC("  route in-progress to outputPort=" << qd.port 
-                        << " inVC=" << (uint32_t) qd.inputVC
-                        << " outVC=" << (uint32_t) qd.outputVC );
+                if( (qd.inputVC == inVC) && (qd.outputVC == outVC) )
+                {
+                    NS_LOG_LOGIC("  route in-progress to outputPort=" << qd.port 
+                            << " outVC=" << (uint32_t) qd.outputVC );
+                }
             }
 
             for( uint32_t outputPort = 0; outputPort < m_tnd->GetNPorts(); ++outputPort )
             {
-                if( IsQueueBlocked( outputPort, inVC, outVC ) )
+                Ptr<CallbackQueue> queue = m_queues[outputPort][inVC][outVC];
+                
+                if( queue->Size() > 0 )
                 {
-                    NS_LOG_LOGIC("  blocked on outputPort=" << outputPort << " inVC=" << inVC);
-
-                    Ptr<CallbackQueue> queue = m_queues[outputPort][inVC][outVC];
+                    if( IsQueueBlocked( outputPort, inVC, outVC ) )
+                    {
+                        NS_LOG_LOGIC("  queue for outputPort=" 
+                                << outputPort << " outVC=" << outVC << " BLOCKED" );
+                    }
+                    else
+                    {
+                        NS_LOG_LOGIC("  queue for outputPort=" 
+                                << outputPort << " outVC=" << outVC << " not blocked" );
+                    }
 
                     for( uint32_t i = 0; i < queue->Size(); i++ )
                     {
                         NS_LOG_LOGIC("   " << GetTocinoFlitIdString( queue->At(i) ) );
                     }
                 }
+
             }
         }
     }
-
-
 }
 
 } // namespace ns3

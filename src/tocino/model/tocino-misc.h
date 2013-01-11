@@ -19,12 +19,11 @@ namespace ns3
     {
         // N.B.
         //
-        // Whether this represents input port or output port
-        // is in "the eye of the client."  In most cases it
-        // will be an output port.  Arbiter, however, considers
-        // it an input port.
-        //
-        // We call the member simply "port" to avoid confusion.
+        // In the Rx/Router, this represents an output port.
+        // In the Tx/Arbiter, it's an input port.  Here we
+        // call the member simply "port" to avoid confusion.
+        //  -MAS
+        
         uint32_t port;
 
         uint8_t inputVC;

@@ -38,7 +38,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
             const TocinoAddress::Coordinate,
             const Direction ) const;
     
-    bool RouteChangesDirection( const uint32_t ) const;
+    bool RouteChangesDimension( const uint32_t ) const;
 
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoRx *m_trx;
