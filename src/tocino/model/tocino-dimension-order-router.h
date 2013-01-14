@@ -20,11 +20,14 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* );
 
-    TocinoQueueDescriptor Route( Ptr<const Packet> p );
+    TocinoQueueDescriptor Route( const uint32_t );
 
     TocinoQueueDescriptor GetCurrentRoute( uint8_t ) const;
 
     private:
+
+    TocinoQueueDescriptor ComputeNewRoute( Ptr<const Packet> ) const;
+    bool NewRouteIsLegal( const TocinoQueueDescriptor ) const;
 
     bool TopologyHasWrapAround() const;
 
@@ -39,6 +42,8 @@ class TocinoDimensionOrderRouter : public TocinoRouter
             const Direction ) const;
     
     bool RouteChangesDimension( const uint32_t ) const;
+
+    bool TransmitterCanAcceptFlit( const uint32_t, const uint32_t ) const;
 
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoRx *m_trx;

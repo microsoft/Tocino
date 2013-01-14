@@ -109,26 +109,6 @@ TocinoNetDevice::Initialize()
     m_receivers.resize(m_nPorts);
     m_transmitters.resize(m_nPorts);
 
-    // create queues
-    m_queues.resize( m_nPorts );
-    for( uint32_t rx_port = 0; rx_port < m_nPorts; ++rx_port )
-    {
-        m_queues[rx_port].resize( m_nPorts );
-        for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
-        {
-            m_queues[rx_port][tx_port].resize( m_nVCs );
-            for( uint8_t rx_vc = 0; rx_vc < m_nVCs; ++rx_vc )
-            {
-                m_queues[rx_port][tx_port][rx_vc].resize( m_nVCs );
-                for( uint8_t tx_vc = 0; tx_vc < m_nVCs; ++tx_vc )
-                {
-                    m_queues[rx_port][tx_port][rx_vc][tx_vc]
-                        = CreateObject<CallbackQueue>();
-                }
-            }
-        }    
-    }
-  
     // create receivers and routers
     // create transmitters and arbiters
     for ( uint32_t i = 0; i < m_nPorts; i++)
@@ -142,25 +122,6 @@ TocinoNetDevice::Initialize()
 
         arbiter->Initialize( this, m_transmitters[i] );
         router->Initialize( this, m_receivers[i] );
-    }
-  
-    // build linkage between rx, tx and queues
-    for( uint32_t rx_port = 0; rx_port < m_nPorts; ++rx_port )
-    {
-        for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
-        {
-            for( uint8_t rx_vc = 0; rx_vc < m_nVCs; ++rx_vc )
-            {
-                for( uint8_t tx_vc = 0; tx_vc < m_nVCs; ++tx_vc )
-                {
-                    Ptr<CallbackQueue> queue
-                        = m_queues[rx_port][tx_port][rx_vc][tx_vc];
-
-                    m_receivers[rx_port]->SetQueue( tx_port, rx_vc, tx_vc, queue );
-                    m_transmitters[tx_port]->SetQueue( rx_port, rx_vc, tx_vc, queue );
-                }
-            }
-        }
     }
 }
 
@@ -547,12 +508,6 @@ TocinoNetDevice::GetNVCs() const
 }
 
 uint32_t
-TocinoNetDevice::GetNQueues() const
-{
-    return m_nPorts * m_nVCs;
-}
-
-uint32_t
 TocinoNetDevice::GetHostPort() const
 {
     return m_nPorts - 1;
@@ -562,7 +517,6 @@ bool TocinoNetDevice::AllQuiet() const
 {
     bool quiet = true;
 
-   
     if( !m_outgoingFlits.empty() )
     {
         NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
@@ -580,38 +534,14 @@ bool TocinoNetDevice::AllQuiet() const
 
     for (unsigned i = 0; i < m_nPorts; i++)
     {
-        if( m_transmitters[i]->IsAnyVCPaused() )
+        if( !m_receivers[i]->AllQuiet() )
         {
-            NS_LOG_LOGIC( "Not quiet: m_transmitters[" << i << "] is XOFF" );
             quiet = false;
         }
-    }
     
-    for( uint32_t rx_port = 0; rx_port < m_nPorts; ++rx_port )
-    {
-        for( uint32_t tx_port = 0; tx_port < m_nPorts; ++tx_port )
+        if( !m_transmitters[i]->AllQuiet() )
         {
-            for( uint32_t rx_vc = 0; rx_vc < m_nVCs; ++rx_vc )
-            {
-                for( uint32_t tx_vc = 0; tx_vc < m_nVCs; ++tx_vc )
-                {
-                    Ptr<CallbackQueue> queue
-                        = m_queues[rx_port][tx_port][rx_vc][tx_vc];
-
-                    if( !queue->IsEmpty() )
-                    {
-                        NS_LOG_LOGIC( "Not quiet: "
-                                << "m_queue" 
-                                << "[" << rx_port << "]" 
-                                << "[" << tx_port << "]" 
-                                << "[" << rx_vc << "]" 
-                                << "[" << tx_vc << "]" 
-                                << " not empty" );
-
-                        quiet = false;
-                    }
-                }
-            }
+            quiet = false;
         }
     }
 	

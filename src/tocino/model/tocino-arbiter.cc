@@ -19,7 +19,6 @@ TypeId TocinoArbiter::GetTypeId(void)
 
 // N.B. This is intentionally distinct from TOCINO_INVALID_QUEUE
 const TocinoQueueDescriptor TocinoArbiter::DO_NOTHING = 
-    TocinoQueueDescriptor( TOCINO_INVALID_PORT-1, 
-            TOCINO_INVALID_VC-1, TOCINO_INVALID_VC-1 );
+    TocinoQueueDescriptor( TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1 );
 
 }

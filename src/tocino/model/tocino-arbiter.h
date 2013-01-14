@@ -5,7 +5,7 @@
 #include "ns3/object.h"
 #include "ns3/ptr.h"
 
-#include "tocino-misc.h"
+#include "tocino-queue-descriptor.h"
 
 namespace ns3
 {
@@ -21,8 +21,7 @@ struct TocinoArbiter : public Object
 
     virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* ) = 0;
 
-    // ISSUE-REVIEW: should this really be in every arbiter?
-    virtual TocinoQueueDescriptor GetVCOwner( const uint8_t ) const = 0;
+    virtual TocinoQueueDescriptor GetVCOwner( const uint32_t ) const = 0;
 
     static const TocinoQueueDescriptor DO_NOTHING;
 };

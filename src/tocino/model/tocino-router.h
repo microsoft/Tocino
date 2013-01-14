@@ -5,7 +5,7 @@
 #include "ns3/object.h"
 #include "ns3/ptr.h"
 
-#include "tocino-misc.h"
+#include "tocino-queue-descriptor.h"
 
 namespace ns3
 {
@@ -18,11 +18,13 @@ struct TocinoRouter : public Object
 {
     static TypeId GetTypeId( void );
 
-    virtual TocinoQueueDescriptor Route( Ptr<const Packet> p ) = 0;
+    virtual TocinoQueueDescriptor Route( const uint32_t ) = 0;
 
     virtual TocinoQueueDescriptor GetCurrentRoute( uint8_t ) const = 0;
 
     virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* ) = 0;
+    
+    static const TocinoQueueDescriptor CANNOT_ROUTE;
 };
 
 }

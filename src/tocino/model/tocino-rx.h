@@ -29,26 +29,34 @@ public:
 
     Ptr<NetDevice> GetNetDevice();
     
-    bool IsQueueBlocked( const uint32_t, const uint8_t, const uint8_t ) const;
+    bool IsQueueBlocked( const uint32_t, const uint32_t, const uint32_t ) const;
     bool IsAnyQueueBlocked() const ;
-    bool IsVCBlocked( uint8_t ) const;
+    bool IsVCBlocked( uint32_t ) const;
 
-    void SetQueue( uint32_t, uint8_t, uint8_t, Ptr<CallbackQueue> );
-   
-    bool RouteChangesVC( Ptr<const Packet>, const uint8_t ) const;
-    void RewriteFlitHeaderVC( Ptr<Packet>, const uint8_t ) const;
+    Ptr<const Packet> PeekNextFlit( const uint32_t ) const;
+    bool CanRouteFrom( uint32_t ) const;
+
+    void RewriteFlitHeaderVC( Ptr<Packet>, const uint32_t ) const;
     
     void Receive(Ptr<Packet> p);
-   
-    void SetReserveFlits( uint32_t );
+    
+    void TryRouteFlit();
 
-    void DumpState();
+    void SetReserveFlits( uint32_t );
+    
+    bool AllQuiet() const;
+    void DumpState() const;
 
 private:
    
-    bool EnqueueHelper( Ptr<Packet>, const TocinoQueueDescriptor );
+    bool EnqueueHelper( Ptr<Packet>, const uint32_t );
+    
+    // FIXME: Out parameters are ugly. Replace this with
+    // std::tuple and std::tie ASAP so we can return
+    // both the packet and the boolean at once.
+    Ptr<Packet> DequeueHelper( const uint32_t, bool& );
 
-    const uint32_t m_portNumber;
+    const uint32_t m_inputPortNumber;
 
     // link to owning TocinoNetDevice
     const Ptr<TocinoNetDevice> m_tnd;
@@ -56,11 +64,10 @@ private:
     // corresponding transmitter
     TocinoTx * const m_tx;
 
-    typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
-    typedef std::vector< OutputVCVec > InputVCVec;
-    typedef std::vector< InputVCVec > RxQueueVec;
-
-    RxQueueVec m_queues;
+    // The inputQueues are per input virtual channel.
+    // These are used mainly for correctness: to
+    // tolerate XOFF delay.
+    std::vector< Ptr<CallbackQueue> > m_inputQueues;
     
     Ptr<TocinoRouter> m_router;
 };

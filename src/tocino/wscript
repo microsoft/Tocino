@@ -59,6 +59,7 @@ def build(bld):
         'model/tocino-flit-header.h',
         'model/tocino-flow-control.h',
         'model/tocino-misc.h',
+        'model/tocino-queue-descriptor.h',
         'model/tocino-router.h',
         'model/tocino-dimension-order-router.h',
         'model/tocino-arbiter.h',

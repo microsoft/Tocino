@@ -8,6 +8,7 @@
 
 #include "tocino-misc.h"
 #include "tocino-tx.h"
+#include "tocino-flit-id-tag.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoSimpleArbiter");
 
@@ -64,18 +65,14 @@ TocinoSimpleArbiter::BuildCandidateSet() const
             // can select any queue that is ready
             for( uint32_t inPort = 0; inPort < m_tnd->GetNPorts(); ++inPort )
             {
-                for( uint8_t inVC = 0; inVC < m_tnd->GetNVCs(); ++inVC )
+                TocinoQueueDescriptor qd( inPort, outVC );
+
+                if( m_ttx->CanTransmitFrom( qd ) )
                 {
-                    TocinoQueueDescriptor qd( inPort, inVC, outVC );
+                    NS_ASSERT( m_ttx->IsNextFlitHead( qd ) );
 
-                    if( m_ttx->CanTransmitFrom( qd ) )
-                    {
-                        NS_ASSERT( m_ttx->IsNextFlitHead( qd ) );
-
-                        candidates.push_back( qd );
-                    }
+                    candidates.push_back( qd );
                 }
-
             }
         }
         else
@@ -83,7 +80,7 @@ TocinoSimpleArbiter::BuildCandidateSet() const
             // can only select the allocated queue, if ready
             TocinoQueueDescriptor qd = m_legalQueue[outVC];
 
-            NS_ASSERT( m_legalQueue[outVC].outputVC == outVC );
+            NS_ASSERT( m_legalQueue[outVC].GetVirtualChannel() == outVC );
 
             if( m_ttx->CanTransmitFrom( qd ) )
             {
@@ -105,7 +102,7 @@ TocinoSimpleArbiter::FairSelectWinner( const QueueVector& cand ) const
 #ifndef TOCINO_VC_STRESS_MODE
     return cand[ rv.GetInteger( 0, cand.size()-1 ) ];
 #else
-    // try to select a different vc than last time
+    // try to select a different outVC than last time
     TocinoQueueDecriptor winner;
     QueueVector newCand;
    
@@ -113,9 +110,9 @@ TocinoSimpleArbiter::FairSelectWinner( const QueueVector& cand ) const
     {
         for( unsigned i = 0; i < cand.size(); ++i )
         {
-            uint8_t vc = cand[i].vc;
+            uint8_t outVC = cand[i].outVC;
 
-            if( vc != m_lastVC )
+            if( outVC != m_lastVC )
             {
                 newCand.push_back( cand[i] );
             }
@@ -132,7 +129,7 @@ TocinoSimpleArbiter::FairSelectWinner( const QueueVector& cand ) const
         winner = newCand[ rv.GetInteger( 0, newCand.size()-1 ) ];
     }
     
-    m_lastVC = winner.vc;
+    m_lastVC = winner.outVC;
     return winner;
 #endif 
 }
@@ -140,21 +137,25 @@ TocinoSimpleArbiter::FairSelectWinner( const QueueVector& cand ) const
 void
 TocinoSimpleArbiter::UpdateState( const TocinoQueueDescriptor winner )
 {
+    const uint32_t outputVC = winner.GetVirtualChannel();
+    const uint32_t inputPort = winner.GetPort();
+
     if( m_ttx->IsNextFlitTail( winner ) )
     {
         // Flow ending, reset
-        m_legalQueue[ winner.outputVC ] = ANY_QUEUE;
+        m_legalQueue[ outputVC ] = ANY_QUEUE;
     }
     else
     {
         if (m_ttx->IsNextFlitHead( winner ) )
         {
-            // FIXME, print both inVC and outVC?
-            NS_LOG_LOGIC( "vc=" << (uint32_t) winner.outputVC 
-                << " assigned to src=" << winner.port );
+            NS_LOG_LOGIC( "outputVC="
+                    << outputVC
+                    << " assigned to inputPort="
+                    << inputPort );
         }
         // Remember mapping
-        m_legalQueue[ winner.outputVC ] = winner;
+        m_legalQueue[ outputVC ] = winner;
     }
 }
 
@@ -165,30 +166,31 @@ TocinoSimpleArbiter::Arbitrate()
 
     if( candidates.empty() )
     {
-        NS_LOG_LOGIC( "No candidates" );
+        NS_LOG_LOGIC( "no candidates" );
         return DO_NOTHING;
     }
 
     TocinoQueueDescriptor winner = FairSelectWinner( candidates );
 
     UpdateState( winner );
+    
+    const uint32_t outputVC = winner.GetVirtualChannel();
+    const uint32_t inputPort = winner.GetPort();
 
-    NS_LOG_LOGIC( "Winner is "
-        << winner.port << ":"
-        << (uint32_t) winner.outputVC );
-
+    NS_LOG_LOGIC( "winner is inputPort=" << inputPort 
+            << ", outputVC=" << outputVC );
+            
     return winner;
 }
 
 TocinoQueueDescriptor
-TocinoSimpleArbiter::GetVCOwner( const uint8_t vc ) const
+TocinoSimpleArbiter::GetVCOwner( const uint32_t outVC ) const
 {
-    NS_ASSERT( vc < m_legalQueue.size() );
+    NS_ASSERT( outVC < m_legalQueue.size() );
 
-    return m_legalQueue[vc];
+    return m_legalQueue[outVC];
 }
 
 const TocinoQueueDescriptor TocinoSimpleArbiter::ANY_QUEUE = 
-    TocinoQueueDescriptor( TOCINO_INVALID_PORT-1, 
-            TOCINO_INVALID_VC-1, TOCINO_INVALID_VC-1 );
+    TocinoQueueDescriptor( TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1 );
 }

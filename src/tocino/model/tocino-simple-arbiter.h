@@ -23,7 +23,7 @@ public:
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* );
     
-    TocinoQueueDescriptor GetVCOwner( const uint8_t vc ) const;
+    TocinoQueueDescriptor GetVCOwner( const uint32_t ) const;
 
     static const TocinoQueueDescriptor ANY_QUEUE;
 

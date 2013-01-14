@@ -29,33 +29,34 @@ public:
 
     void SetXState( const TocinoFlowControlState& );
 
-    bool IsVCPaused( const uint32_t vc ) const;
-    bool IsAnyVCPaused() const;
+    bool IsVCPaused( const uint32_t ) const;
 
-    void RemotePause( const uint8_t vc );
-    void RemoteResume( const uint8_t vc );
+    void RemotePause( const uint32_t );
+    void RemoteResume( const uint32_t );
     
-    void SetChannel(Ptr<TocinoChannel> channel);
+    void SetChannel( Ptr<TocinoChannel> channel );
 
     Ptr<NetDevice> GetNetDevice();
     
     void Transmit();
    
-    bool CanTransmitFrom( const uint32_t, const uint8_t, const uint8_t ) const;
-    bool CanTransmitFrom( const TocinoQueueDescriptor qd ) const;
+    bool CanAcceptFlit( const uint32_t, const uint32_t ) const;
+    void AcceptFlit( const uint32_t, const uint32_t, Ptr<Packet> );
 
-    bool IsNextFlitHead( const uint32_t, const uint8_t, const uint8_t ) const;
-    bool IsNextFlitHead( const TocinoQueueDescriptor qd ) const;
+    bool CanTransmitFrom( const uint32_t, const uint32_t ) const;
+    bool CanTransmitFrom( const TocinoQueueDescriptor ) const;
 
-    bool IsNextFlitTail( const uint32_t, const uint8_t, const uint8_t ) const;
-    bool IsNextFlitTail( const TocinoQueueDescriptor qd ) const;
+    bool IsNextFlitHead( const uint32_t, const uint32_t ) const;
+    bool IsNextFlitHead( const TocinoQueueDescriptor ) const;
 
-    void SetQueue( uint32_t, uint8_t, uint8_t, Ptr<CallbackQueue> );
-
-    void DumpState();
+    bool IsNextFlitTail( const uint32_t, const uint32_t ) const;
+    bool IsNextFlitTail( const TocinoQueueDescriptor ) const;
+    
+    bool AllQuiet() const;
+    void DumpState() const;
 
 private:
-    const uint32_t m_portNumber;
+    const uint32_t m_outputPortNumber;
   
     TocinoFlowControlState m_xState;
     TocinoFlowControlState m_remoteXState;
@@ -64,13 +65,14 @@ private:
 
     enum TocinoTransmitterState {IDLE, BUSY} m_state;
  
-    const Ptr<TocinoNetDevice> m_tnd; // link to owning TocinoNetDevice
+    const Ptr<TocinoNetDevice> m_tnd;
 
+    // The outputQueues are virtualized per input, to
+    // avoid head-of-line blocking.
+    //
+    // These queues are mostly for performance.
     typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
-    typedef std::vector< OutputVCVec > InputVCVec;
-    typedef std::vector< InputVCVec > TxQueueVec;
-
-    TxQueueVec m_queues;
+    std::vector< OutputVCVec > m_outputQueues;
 
     Ptr<TocinoChannel> m_channel; // link to channel
 
@@ -78,17 +80,12 @@ private:
 
     void DoTransmitFlowControl();
 
-    // FIXME: Out parameters are ugly. Replace this with
-    // std::tuple and std::tie ASAP so we can return
-    // both the packet and the boolean at once.
-    Ptr<Packet> DequeueHelper( const TocinoQueueDescriptor, bool& );
-
     void DoTransmit();
 
     void TransmitEnd();
 
     Ptr<const Packet>
-        PeekNextFlit( const uint32_t, const uint8_t, const uint8_t ) const;
+        PeekNextFlit( const uint32_t, const uint32_t ) const;
 
     Ptr<TocinoArbiter> m_arbiter;
 };

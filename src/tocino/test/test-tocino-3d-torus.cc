@@ -380,8 +380,12 @@ void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES
     CheckAllQuiet();
 
     const int NODES = m_radix * m_radix * m_radix;
-    NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), NODES*(NODES-1)*COUNT, "Unexpected total packet count" );
-    NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), NODES*(NODES-1)*BYTES*COUNT, "Unexpected total packet bytes" );
+    
+    NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), NODES*(NODES-1)*COUNT,
+            "Unexpected total packet count" );
+
+    NS_TEST_ASSERT_MSG_EQ( GetTotalBytes(), NODES*(NODES-1)*BYTES*COUNT,
+            "Unexpected total packet bytes" );
 
     Simulator::Destroy();
 }
@@ -398,25 +402,22 @@ void TestTocino3DTorus::TestHelper()
     
     TestAllToAll( 1, 20 );
     TestAllToAll( 1, 123 );
-    //TestAllToAll( 10, 32 );
+    TestAllToAll( 10, 32 );
 }
 
 void
 TestTocino3DTorus::DoRun()
 {
-    // FIXME: Required to avoid queue overflow on incast test
-    // Remove once this is automatic & based on channel delay
-    //Config::SetDefault("ns3::CallbackQueue::FreeWaterMark", UintegerValue(6));
-    
     m_radix = 3;
 
     Initialize();
     TestHelper();
    
-    //Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint", UintegerValue( m_radix-1 ) );
+    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint",
+            UintegerValue( m_radix-1 ) );
 
-    //Initialize();
-    //TestHelper();
+    Initialize();
+    TestHelper();
 
     Config::Reset();
 }

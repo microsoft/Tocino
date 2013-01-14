@@ -14,51 +14,6 @@ namespace ns3
     const uint32_t TOCINO_INVALID_PORT = std::numeric_limits<uint32_t>::max();
     const uint8_t TOCINO_INVALID_VC = std::numeric_limits<uint8_t>::max();
 
-    // ISSUE-REVIEW: consider moving this to its own file
-    struct TocinoQueueDescriptor
-    {
-        // N.B.
-        //
-        // In the Rx/Router, this represents an output port.
-        // In the Tx/Arbiter, it's an input port.  Here we
-        // call the member simply "port" to avoid confusion.
-        //  -MAS
-        
-        uint32_t port;
-
-        uint8_t inputVC;
-        uint8_t outputVC;
-        
-        TocinoQueueDescriptor( uint32_t p, uint8_t inVC, uint8_t outVC )
-            : port( p )
-            , inputVC( inVC )
-            , outputVC( outVC )
-        {}
-        
-        bool operator==( const TocinoQueueDescriptor& other ) const
-        {
-            if( other.port != port )
-                return false;
-
-            if( other.inputVC != inputVC )
-                return false;
-            
-            if( other.outputVC != outputVC )
-                return false;
-
-            return true;
-        }
-        
-        bool operator!=( const TocinoQueueDescriptor& other ) const
-        {
-            return !( *this == other );
-        }
-    };
-    
-    static const TocinoQueueDescriptor
-        TOCINO_INVALID_QUEUE( TOCINO_INVALID_PORT, 
-                TOCINO_INVALID_VC, TOCINO_INVALID_VC );
-
     // We must ensure log2(MAX_VCS) == VC_BITS
     const uint32_t TOCINO_NUM_VC_BITS = 4;
     const uint32_t TOCINO_MAX_VCS = 16;
