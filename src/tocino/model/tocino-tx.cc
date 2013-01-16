@@ -46,13 +46,13 @@ TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
     , m_channel( NULL )
     , m_arbiter( arbiter )
 {
-    m_outputQueues.resize( m_tnd->GetNPorts() );
-    for( uint32_t inputPort = 0; inputPort < m_outputQueues.size(); ++inputPort )
+    m_outputQueues.vec.resize( m_tnd->GetNPorts() );
+    for( TocinoInputPort inputPort = 0; inputPort < m_tnd->GetNPorts(); ++inputPort )
     {
-        m_outputQueues[inputPort].resize( m_tnd->GetNVCs() );
-        for( uint32_t outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
+        m_outputQueues.vec[ inputPort.AsUInt32() ].resize( m_tnd->GetNVCs() );
+        for( TocinoOutputVC outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
         {
-            m_outputQueues[inputPort][outputVC] = CreateObject<CallbackQueue>();
+            SetOutputQueue( inputPort, outputVC, CreateObject<CallbackQueue>() );
         }
     }
 }
@@ -60,6 +60,29 @@ TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
 TocinoTx::~TocinoTx()
 {}
 
+Ptr<CallbackQueue>
+TocinoTx::GetOutputQueue( 
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
+{
+    NS_ASSERT( inputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+
+    return m_outputQueues.vec[ inputPort.AsUInt32() ][ outputVC.AsUInt32() ];
+}
+
+void 
+TocinoTx::SetOutputQueue( 
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC,
+        const Ptr<CallbackQueue> queue )
+{
+    NS_ASSERT( inputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+
+    m_outputQueues.vec[ inputPort.AsUInt32() ][ outputVC.AsUInt32() ] = queue;
+}
+    
 void
 TocinoTx::SetXState( const TocinoFlowControlState& newXState )
 {
@@ -83,10 +106,10 @@ TocinoTx::GetPortNumber() const
 }
 
 bool
-TocinoTx::IsVCPaused( const uint32_t outputVC ) const
+TocinoTx::IsVCPaused( const TocinoOutputVC outputVC ) const
 {
     TocinoVCBitSet xoffBits = ~m_xState;
-    return xoffBits[outputVC];
+    return xoffBits[ outputVC.AsUInt32() ];
 }
 
 void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
@@ -94,18 +117,18 @@ void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
     m_channel = channel;
 }
 
-void TocinoTx::RemotePause( const uint32_t inputVC )
+void TocinoTx::RemotePause( const TocinoInputVC inputVC )
 {
     NS_LOG_FUNCTION( inputVC );
 
     // Asserted bits in m_remoteXState indicate XON.
     // Pausing can ONLY clear bits in m_remoteXState
     
-    const TocinoVCBitSet vcMask = ( 1 << inputVC );
+    const TocinoVCBitSet vcMask = ( 1 << inputVC.AsUInt32() );
    
     const TocinoVCBitSet unsentResumes = ( m_remoteXState & m_doUpdateXState );
 
-    if( unsentResumes[inputVC] )
+    if( unsentResumes[ inputVC.AsUInt32() ] )
     {
         // We had an unsent resume on this VC
 
@@ -130,18 +153,18 @@ void TocinoTx::RemotePause( const uint32_t inputVC )
     Transmit();
 }
 
-void TocinoTx::RemoteResume( const uint32_t inputVC )
+void TocinoTx::RemoteResume( const TocinoInputVC inputVC )
 {
     NS_LOG_FUNCTION( inputVC );
 
     // Asserted bits in m_remoteXState indicate XON.
     // Resuming can ONLY assert bits in m_remoteXState
     
-    const TocinoVCBitSet vcMask = ( 1 << inputVC );
+    const TocinoVCBitSet vcMask = ( 1 << inputVC.AsUInt32() );
    
     const TocinoVCBitSet unsentPauses = ( ~m_remoteXState & m_doUpdateXState );
 
-    if( unsentPauses[inputVC] )
+    if( unsentPauses[ inputVC.AsUInt32() ] )
     {
         // We had an unsent pause on this VC
         
@@ -240,26 +263,24 @@ TocinoTx::DoTransmit()
 
     NS_ASSERT( m_arbiter != NULL );
 
-    TocinoQueueDescriptor qd = m_arbiter->Arbitrate();
+    TocinoArbiterAllocation winner = m_arbiter->Arbitrate();
 
-    if( qd == TocinoArbiter::DO_NOTHING )
+    if( winner == TocinoArbiter::DO_NOTHING )
     {
         NS_LOG_LOGIC( "nothing to do" );
         return;
     }
-   
-    const uint32_t inputPort = qd.GetPort();
-    const uint32_t outputVC = qd.GetVirtualChannel();
-
-    Ptr<Packet> flit = m_outputQueues[inputPort][outputVC]->Dequeue();
+  
+    Ptr<Packet> flit =
+        GetOutputQueue( winner.inputPort, winner.outputVC )->Dequeue();
 
     NS_ASSERT_MSG( flit != NULL, "Queue underrun? inputPort="
-            << inputPort << " outputVC=" << outputVC );
+            << winner.inputPort << " outputVC=" << winner.outputVC );
 
     SendToChannel( flit );
 
     // Give the inputPort an opportunity to push another flit
-    m_tnd->GetReceiver(inputPort)->TryRouteFlit();
+    m_tnd->GetReceiver( winner.inputPort )->TryRouteFlit();
 }
 
 void
@@ -283,23 +304,29 @@ TocinoTx::Transmit()
     }
 }
 
+bool
+TocinoTx::CanAcceptFlit(
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
+{
+    return !GetOutputQueue( inputPort, outputVC )->IsFull();
+}
+
 void
 TocinoTx::AcceptFlit(
-        const uint32_t inputPort,
-        const uint32_t outputVC,
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC,
         Ptr<Packet> flit )
 {
-    NS_LOG_LOGIC( "inputPort=" << inputPort
-            << " outputVC=" << outputVC << " "
-            << GetTocinoFlitIdString( flit ) );
+    NS_LOG_LOGIC( "inputPort=" << inputPort << " outputVC="
+            << outputVC << " " << GetTocinoFlitIdString( flit ) );
 
     NS_ASSERT( inputPort < m_tnd->GetNPorts() );
     NS_ASSERT( outputVC < m_tnd->GetNVCs() );
   
     NS_ASSERT( CanAcceptFlit( inputPort, outputVC ) );
 
-    bool success =
-        m_outputQueues[inputPort][outputVC]->Enqueue( flit );
+    bool success = GetOutputQueue( inputPort, outputVC )->Enqueue( flit );
 
     NS_ASSERT_MSG( success, "Queue overrun? inputPort="
             << inputPort << " outputVC=" << outputVC );
@@ -309,20 +336,9 @@ TocinoTx::AcceptFlit(
 }
 
 bool
-TocinoTx::CanAcceptFlit(
-        const uint32_t inputPort,
-        const uint32_t outputVC ) const
-{
-    NS_ASSERT( inputPort < m_tnd->GetNPorts() );
-    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
-   
-    return !m_outputQueues[inputPort][outputVC]->IsFull();
-}
-
-bool
 TocinoTx::CanTransmitFrom(
-        const uint32_t inputPort,
-        const uint32_t outputVC ) const
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
 {
     NS_ASSERT( inputPort < m_tnd->GetNPorts() );
     NS_ASSERT( outputVC < m_tnd->GetNVCs() );
@@ -331,9 +347,9 @@ TocinoTx::CanTransmitFrom(
     //  -It is not empty
     //  -The corresponding output VC is enabled
     
-    if( !m_outputQueues[inputPort][outputVC]->IsEmpty() ) 
+    if( !GetOutputQueue( inputPort, outputVC )->IsEmpty() ) 
     {
-        if( m_xState[outputVC] )
+        if( !IsVCPaused( outputVC ) )
         {
             return true;
         }
@@ -342,51 +358,33 @@ TocinoTx::CanTransmitFrom(
     return false;
 }
 
-bool
-TocinoTx::CanTransmitFrom( const TocinoQueueDescriptor qd ) const
-{
-    return CanTransmitFrom( qd.GetPort(), qd.GetVirtualChannel() );
-}
-
 Ptr<const Packet>
 TocinoTx::PeekNextFlit( 
-        const uint32_t inputPort,
-        const uint32_t outputVC ) const
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
 {
     NS_ASSERT( inputPort < m_tnd->GetNPorts() );
     NS_ASSERT( outputVC < m_tnd->GetNVCs() );
     
-    NS_ASSERT( !m_outputQueues[inputPort][outputVC]->IsEmpty() );
+    NS_ASSERT( !GetOutputQueue( inputPort, outputVC )->IsEmpty() );
 
-    return m_outputQueues[inputPort][outputVC]->Peek();
+    return GetOutputQueue( inputPort, outputVC )->Peek();
 }
 
 bool
 TocinoTx::IsNextFlitHead( 
-        const uint32_t inputPort,
-        const uint32_t outputVC ) const
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
 {
     return IsTocinoFlitHead( PeekNextFlit( inputPort, outputVC ) );
 }
 
 bool
-TocinoTx::IsNextFlitHead( const TocinoQueueDescriptor qd ) const
-{
-    return IsNextFlitHead( qd.GetPort(), qd.GetVirtualChannel() ); 
-}
-
-bool
 TocinoTx::IsNextFlitTail(
-        const uint32_t inputPort,
-        const uint32_t outputVC ) const
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
 {
     return IsTocinoFlitTail( PeekNextFlit( inputPort, outputVC ) );
-}
-
-bool
-TocinoTx::IsNextFlitTail( const TocinoQueueDescriptor qd ) const
-{
-    return IsNextFlitTail( qd.GetPort(), qd.GetVirtualChannel() ); 
 }
 
 bool
@@ -394,9 +392,9 @@ TocinoTx::AllQuiet() const
 {
     bool quiet = true;
    
-    for( uint32_t inputPort = 0; inputPort < m_outputQueues.size(); ++inputPort )
+    for( TocinoInputPort inputPort = 0; inputPort < m_tnd->GetNPorts(); ++inputPort )
     {
-        for( uint32_t outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
+        for( TocinoOutputVC outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
         { 
             if( IsVCPaused( outputVC ) )
             {
@@ -404,7 +402,7 @@ TocinoTx::AllQuiet() const
                 quiet = false;
             }
 
-            if( !m_outputQueues[inputPort][outputVC]->IsEmpty() )
+            if( !GetOutputQueue( inputPort, outputVC )->IsEmpty() )
             {
                 NS_LOG_LOGIC( "Not quiet: "
                         << "m_outputQueues" 
@@ -423,22 +421,23 @@ TocinoTx::AllQuiet() const
 void
 TocinoTx::DumpState() const
 {
+#ifdef NS3_LOG_ENABLE
     NS_LOG_LOGIC("transmitter=" << m_outputPortNumber);
     NS_LOG_LOGIC("  xState=" << m_xState);
-    for( uint32_t outputVC = 0; outputVC < m_tnd->GetNVCs(); outputVC++ )
+    for( TocinoOutputVC outputVC = 0; outputVC < m_tnd->GetNVCs(); outputVC++ )
     {
-        const char* xState_str = (m_xState[outputVC])? "XON":"XOFF";
+        const char* xState_str = IsVCPaused( outputVC ) ? "XOFF" : "XON";
         
-        TocinoQueueDescriptor owner = m_arbiter->GetVCOwner( outputVC );
+        TocinoArbiterAllocation owner = m_arbiter->GetVCOwner( outputVC );
 
         if( owner == TocinoSimpleArbiter::ANY_QUEUE )
         {
             NS_LOG_LOGIC("   outputVC=" << outputVC << " owner=NONE " << xState_str);
 
             // can only schedule head flit - which sources have head flit at front of queue
-            for( uint32_t inputPort = 0; inputPort < m_tnd->GetNPorts(); inputPort++ )
+            for( TocinoInputPort inputPort = 0; inputPort < m_tnd->GetNPorts(); inputPort++ )
             {
-                Ptr<CallbackQueue> queue = m_outputQueues[inputPort][outputVC];
+                Ptr<CallbackQueue> queue = GetOutputQueue( inputPort, outputVC );
 
                 if( !queue->IsEmpty() )
                 {
@@ -449,13 +448,11 @@ TocinoTx::DumpState() const
         }
         else
         {
-            const uint32_t inputPort = owner.GetPort();
-            const uint32_t outputVC = owner.GetVirtualChannel();
-
-            NS_LOG_LOGIC( "   outputVC=" << outputVC
-                    << " owning inputPort=" << inputPort << " " << xState_str );
+            NS_LOG_LOGIC( "   outputVC=" << owner.outputVC << " owning inputPort=" 
+                    << owner.inputPort << " " << xState_str );
             
-            Ptr<CallbackQueue> queue = m_outputQueues[inputPort][outputVC];
+            Ptr<CallbackQueue> queue = 
+                GetOutputQueue( owner.inputPort, owner.outputVC );
 
             if( queue->IsEmpty() )
             {
@@ -467,6 +464,7 @@ TocinoTx::DumpState() const
             }
         }
     }
+#endif
 }
 
 } // namespace ns3

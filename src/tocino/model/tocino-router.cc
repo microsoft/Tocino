@@ -17,8 +17,9 @@ TypeId TocinoRouter::GetTypeId(void)
     return tid;
 }
 
-// N.B. This is intentionally distinct from TOCINO_INVALID_QUEUE
-const TocinoQueueDescriptor TocinoRouter::CANNOT_ROUTE = 
-    TocinoQueueDescriptor( TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1 );
+const TocinoRoute 
+    TocinoRouter::INVALID_ROUTE( TOCINO_INVALID_PORT, TOCINO_INVALID_VC );
 
+const TocinoRoute
+    TocinoRouter::CANNOT_ROUTE( TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1 );
 }

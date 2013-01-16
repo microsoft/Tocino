@@ -20,18 +20,19 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoRx* );
 
-    TocinoQueueDescriptor Route( const uint32_t );
+    TocinoRoute Route( const TocinoInputVC );
 
-    TocinoQueueDescriptor GetCurrentRoute( uint8_t ) const;
+    TocinoRoute GetCurrentRoute( const TocinoInputVC ) const;
 
     private:
 
-    TocinoQueueDescriptor ComputeNewRoute( Ptr<const Packet> ) const;
-    bool NewRouteIsLegal( const TocinoQueueDescriptor ) const;
+    TocinoRoute ComputeNewRoute( Ptr<const Packet> ) const;
+
+    bool NewRouteIsLegal( const TocinoRoute ) const;
 
     bool TopologyHasWrapAround() const;
 
-    enum Direction { POS, NEG };
+    enum Direction { DIR_POS, DIR_NEG, DIR_INVALID };
 
     Direction DetermineRoutingDirection(
             const TocinoAddress::Coordinate, 
@@ -41,9 +42,13 @@ class TocinoDimensionOrderRouter : public TocinoRouter
             const TocinoAddress::Coordinate,
             const Direction ) const;
     
-    bool RouteChangesDimension( const uint32_t ) const;
+    bool RouteChangesDimension( const TocinoOutputPort ) const;
 
-    bool TransmitterCanAcceptFlit( const uint32_t, const uint32_t ) const;
+    bool TransmitterCanAcceptFlit(
+            const TocinoOutputPort,
+            const TocinoOutputVC ) const;
+
+    void SetRoute( const TocinoInputVC, const TocinoRoute );
 
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoRx *m_trx;
@@ -51,7 +56,32 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     static const TocinoAddress::Coordinate NO_WRAP = 0;
     TocinoAddress::Coordinate m_wrapPoint;
 
-    std::vector< TocinoQueueDescriptor > m_currentRoutes;
+    // This nested class controls access to our
+    // primary state variable
+    class
+    {
+        private:
+        
+        std::vector< TocinoRoute > vec;
+
+        public:
+        
+        // If you're thinking about adding another 
+        // friend function here, you're wrong. -MAS
+        
+        friend void
+            TocinoDimensionOrderRouter::Initialize(
+                Ptr<TocinoNetDevice>, const TocinoRx* );
+        
+        friend TocinoRoute
+            TocinoDimensionOrderRouter::GetCurrentRoute(
+                const TocinoInputVC ) const;
+
+        friend void 
+            TocinoDimensionOrderRouter::SetRoute(
+                const TocinoInputVC, const TocinoRoute );
+    } 
+    m_currentRoutes;
 };
 
 }

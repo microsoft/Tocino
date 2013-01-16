@@ -29,10 +29,10 @@ public:
 
     void SetXState( const TocinoFlowControlState& );
 
-    bool IsVCPaused( const uint32_t ) const;
+    bool IsVCPaused( const TocinoOutputVC ) const;
 
-    void RemotePause( const uint32_t );
-    void RemoteResume( const uint32_t );
+    void RemotePause( const TocinoInputVC );
+    void RemoteResume( const TocinoInputVC );
     
     void SetChannel( Ptr<TocinoChannel> channel );
 
@@ -40,22 +40,50 @@ public:
     
     void Transmit();
    
-    bool CanAcceptFlit( const uint32_t, const uint32_t ) const;
-    void AcceptFlit( const uint32_t, const uint32_t, Ptr<Packet> );
+    bool CanAcceptFlit(
+            const TocinoInputPort,
+            const TocinoOutputVC ) const;
 
-    bool CanTransmitFrom( const uint32_t, const uint32_t ) const;
-    bool CanTransmitFrom( const TocinoQueueDescriptor ) const;
-
-    bool IsNextFlitHead( const uint32_t, const uint32_t ) const;
-    bool IsNextFlitHead( const TocinoQueueDescriptor ) const;
-
-    bool IsNextFlitTail( const uint32_t, const uint32_t ) const;
-    bool IsNextFlitTail( const TocinoQueueDescriptor ) const;
+    void AcceptFlit( 
+            const TocinoInputPort,
+            const TocinoOutputVC,
+            Ptr<Packet> );
     
+    bool CanTransmitFrom( 
+            const TocinoInputPort, 
+            const TocinoOutputVC ) const;
+    
+    Ptr<const Packet> PeekNextFlit(
+            const TocinoInputPort, 
+            const TocinoOutputVC ) const;
+    
+    bool IsNextFlitHead(
+            const TocinoInputPort, 
+            const TocinoOutputVC ) const;
+
+    bool IsNextFlitTail(
+            const TocinoInputPort, 
+            const TocinoOutputVC ) const;
+
     bool AllQuiet() const;
     void DumpState() const;
 
 private:
+    
+    Ptr<CallbackQueue> GetOutputQueue( 
+            const TocinoInputPort,
+            const TocinoOutputVC ) const;
+
+    void SetOutputQueue( 
+            const TocinoInputPort,
+            const TocinoOutputVC,
+            const Ptr<CallbackQueue> );
+  
+    void SendToChannel( Ptr<Packet> f );
+    void DoTransmitFlowControl();
+    void DoTransmit();
+    void TransmitEnd();
+
     const uint32_t m_outputPortNumber;
   
     TocinoFlowControlState m_xState;
@@ -66,28 +94,39 @@ private:
     enum TocinoTransmitterState {IDLE, BUSY} m_state;
  
     const Ptr<TocinoNetDevice> m_tnd;
-
-    // The outputQueues are virtualized per input, to
-    // avoid head-of-line blocking.
-    //
-    // These queues are mostly for performance.
-    typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
-    std::vector< OutputVCVec > m_outputQueues;
-
-    Ptr<TocinoChannel> m_channel; // link to channel
-
-    void SendToChannel( Ptr<Packet> f );
-
-    void DoTransmitFlowControl();
-
-    void DoTransmit();
-
-    void TransmitEnd();
-
-    Ptr<const Packet>
-        PeekNextFlit( const uint32_t, const uint32_t ) const;
-
+    Ptr<TocinoChannel> m_channel;
     Ptr<TocinoArbiter> m_arbiter;
+
+    // This nested class controls access to our
+    // primary state variable
+    class
+    {
+        private:
+
+        // The output queues are virtualized per input, to
+        // avoid head-of-line blocking.  These queues are
+        // mostly for performance.
+        typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
+        std::vector< OutputVCVec > vec;
+
+        public:
+        
+        // If you're thinking about adding another 
+        // friend function here, you're wrong. -MAS
+        
+        friend
+            TocinoTx::TocinoTx( 
+                const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
+
+        friend Ptr<CallbackQueue>
+            TocinoTx::GetOutputQueue( TocinoInputPort, TocinoOutputVC ) const;
+
+        friend void
+            TocinoTx::SetOutputQueue( 
+                TocinoInputPort, TocinoOutputVC, Ptr<CallbackQueue> );
+
+    }
+    m_outputQueues;
 };
 
 } // namespace ns3

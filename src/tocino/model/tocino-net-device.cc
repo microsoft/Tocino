@@ -407,19 +407,23 @@ void TocinoNetDevice::TrySendFlits()
 
     NS_ASSERT( !m_outgoingFlits.empty() );
 
-    // ISSUE-REVIEW:
-    // We should probably be checking IsVCBlocked() here
-    // and passing the injection VC.
-
-    while( !m_outgoingFlits.empty() &&
-        !m_receivers[ GetHostPort() ]->IsAnyQueueBlocked() )
+    while( !m_outgoingFlits.empty() )
     {
+        Ptr<Packet> flit = m_outgoingFlits.front();
+        
+        TocinoInputVC injectionVC = GetTocinoFlitVirtualChannel( flit );
+
+        if( m_receivers[ GetHostPort() ]->IsVCBlocked( injectionVC ) )
+        {
+            break;
+        }
+
         // must pop prior to calling InjectFlit; InjectFlit can indirectly generate
         // a call to TrySendFlits which can cause a flit to be sent twice if pop
         // occurs after InjectFlits
-        Ptr<Packet> f = m_outgoingFlits.front();
         m_outgoingFlits.pop_front();
-        InjectFlit(f);
+
+        InjectFlit(flit);
     }
 }
 
@@ -482,17 +486,19 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
 }
 
 TocinoRx*
-TocinoNetDevice::GetReceiver(uint32_t p) const
+TocinoNetDevice::GetReceiver(
+        const TocinoInputPort inputPort ) const
 {
-    NS_ASSERT( p < m_receivers.size() );
-    return m_receivers[p];
+    NS_ASSERT( inputPort < m_receivers.size() );
+    return m_receivers[ inputPort.AsUInt32() ];
 }
 
 TocinoTx*
-TocinoNetDevice::GetTransmitter(uint32_t p) const
+TocinoNetDevice::GetTransmitter(
+        const TocinoOutputPort outputPort ) const
 {
-    NS_ASSERT( p < m_receivers.size() );
-    return m_transmitters[p];
+    NS_ASSERT( outputPort < m_receivers.size() );
+    return m_transmitters[ outputPort.AsUInt32() ];
 }
 
 uint32_t

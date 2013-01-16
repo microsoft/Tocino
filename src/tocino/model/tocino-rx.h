@@ -21,7 +21,8 @@ class TocinoTx;
 
 class TocinoRx
 {
-public:
+    public:
+
     TocinoRx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
     ~TocinoRx();
 
@@ -29,15 +30,11 @@ public:
 
     Ptr<NetDevice> GetNetDevice();
     
-    bool IsQueueBlocked( const uint32_t, const uint32_t, const uint32_t ) const;
-    bool IsAnyQueueBlocked() const ;
-    bool IsVCBlocked( uint32_t ) const;
+    bool IsVCBlocked( const TocinoInputVC ) const;
 
-    Ptr<const Packet> PeekNextFlit( const uint32_t ) const;
-    bool CanRouteFrom( uint32_t ) const;
+    Ptr<const Packet>
+        PeekNextFlit( const TocinoInputVC ) const;
 
-    void RewriteFlitHeaderVC( Ptr<Packet>, const uint32_t ) const;
-    
     void Receive(Ptr<Packet> p);
     
     void TryRouteFlit();
@@ -47,14 +44,21 @@ public:
     bool AllQuiet() const;
     void DumpState() const;
 
-private:
-   
-    bool EnqueueHelper( Ptr<Packet>, const uint32_t );
+    private:
+    
+    Ptr<CallbackQueue> GetInputQueue( const TocinoInputVC ) const;
+    void SetInputQueue( const TocinoInputVC, const Ptr<CallbackQueue> );
+  
+    bool CanRouteFrom( const TocinoInputVC ) const;
+    
+    void RewriteFlitHeaderVC( Ptr<Packet>, const TocinoOutputVC ) const;
+    
+    bool EnqueueHelper( Ptr<Packet>, const TocinoInputVC );
     
     // FIXME: Out parameters are ugly. Replace this with
     // std::tuple and std::tie ASAP so we can return
     // both the packet and the boolean at once.
-    Ptr<Packet> DequeueHelper( const uint32_t, bool& );
+    Ptr<Packet> DequeueHelper( const TocinoInputVC, bool& );
 
     const uint32_t m_inputPortNumber;
 
@@ -63,13 +67,39 @@ private:
 
     // corresponding transmitter
     TocinoTx * const m_tx;
-
-    // The inputQueues are per input virtual channel.
-    // These are used mainly for correctness: to
-    // tolerate XOFF delay.
-    std::vector< Ptr<CallbackQueue> > m_inputQueues;
     
     Ptr<TocinoRouter> m_router;
+
+    // This nested class controls access to our
+    // primary state variable
+    class
+    {
+        private:
+        
+        // The input queues are per input virtual channel.
+        // These are used mainly for correctness: to
+        // tolerate XOFF delay.
+        std::vector< Ptr<CallbackQueue> > vec;
+
+        public:
+     
+        // If you're thinking about adding another 
+        // friend function here, you're wrong. -MAS
+        
+        friend 
+            TocinoRx::TocinoRx( const uint32_t,
+                Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
+        
+        friend Ptr<CallbackQueue>
+            TocinoRx::GetInputQueue(
+                const TocinoInputVC ) const;
+
+        friend void 
+            TocinoRx::SetInputQueue( const TocinoInputVC,
+                const Ptr<CallbackQueue> );
+    } 
+    m_inputQueues;
+
 };
 
 } // namespace ns3

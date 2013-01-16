@@ -51,7 +51,7 @@ void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd, const Toc
 {
     m_tnd = tnd;
     m_trx = trx;
-    m_currentRoutes.assign( m_tnd->GetNVCs(), TOCINO_INVALID_QUEUE );
+    m_currentRoutes.vec.assign( m_tnd->GetNVCs(), INVALID_ROUTE );
 }
 
 bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
@@ -79,9 +79,9 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     }
 
     if( routePositive )
-        return POS;
+        return DIR_POS;
 
-    return NEG;
+    return DIR_NEG;
 }
 
 bool
@@ -91,19 +91,20 @@ TocinoDimensionOrderRouter::RouteCrossesDateline(
 {
     NS_ASSERT( TopologyHasWrapAround() );
 
-    if( (srcCoord == 0) && (dir == NEG) )
+    if( (srcCoord == 0) && (dir == DIR_NEG) )
         return true;
 
-    if( (srcCoord == m_wrapPoint) && (dir == POS) )
+    if( (srcCoord == m_wrapPoint) && (dir == DIR_POS) )
         return true;
 
     return false;
 }
 
 bool 
-TocinoDimensionOrderRouter::RouteChangesDimension( const uint32_t outputPort ) const
+TocinoDimensionOrderRouter::RouteChangesDimension(
+        const TocinoOutputPort outputPort ) const
 {
-    const uint32_t inputPort = m_trx->GetPortNumber();
+    const TocinoInputPort inputPort = m_trx->GetPortNumber();
 
     // ISSUE-REVIEW: what if outputPort == host port?
     if( inputPort == m_tnd->GetHostPort() )
@@ -111,7 +112,10 @@ TocinoDimensionOrderRouter::RouteChangesDimension( const uint32_t outputPort ) c
         return false;
     }
 
-    if( (inputPort/2) != (outputPort/2) )
+    const uint32_t ip = inputPort.AsUInt32();
+    const uint32_t op = outputPort.AsUInt32();
+
+    if( (ip/2) != (op/2) )
     {
         return true;
     }
@@ -121,11 +125,11 @@ TocinoDimensionOrderRouter::RouteChangesDimension( const uint32_t outputPort ) c
 
 bool
 TocinoDimensionOrderRouter::TransmitterCanAcceptFlit(
-        const uint32_t outputPort,
-        const uint32_t outputVC ) const
+        const TocinoOutputPort outputPort,
+        const TocinoOutputVC outputVC ) const
 {
     TocinoTx* outputTransmitter = m_tnd->GetTransmitter( outputPort );
-    const uint32_t inputPort = m_trx->GetPortNumber();
+    const TocinoInputPort inputPort = m_trx->GetPortNumber();
 
     if( outputTransmitter->CanAcceptFlit( inputPort, outputVC ) )
     {
@@ -136,15 +140,15 @@ TocinoDimensionOrderRouter::TransmitterCanAcceptFlit(
 }
 
 bool
-TocinoDimensionOrderRouter::NewRouteIsLegal( const TocinoQueueDescriptor qd ) const
+TocinoDimensionOrderRouter::NewRouteIsLegal( const TocinoRoute route ) const
 {
     // We must not have an existing route to this output queue, 
     // as this would result in our interleaving flits from different
     // packets into a single output queue.
 
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        if( m_currentRoutes[inputVC] == qd )
+        if( GetCurrentRoute( inputVC ) == route )
         {
             return false;
         }
@@ -153,13 +157,18 @@ TocinoDimensionOrderRouter::NewRouteIsLegal( const TocinoQueueDescriptor qd ) co
     return true;
 }
 
-TocinoQueueDescriptor
+TocinoRoute
 TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
 {
     NS_LOG_FUNCTION( GetTocinoFlitIdString( flit ) );
     NS_ASSERT( IsTocinoFlitHead( flit ) );
     
-    const uint32_t inputVC = GetTocinoFlitVirtualChannel( flit );
+    const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
+    
+    // Default assumption is that we do not switch VCs
+    TocinoOutputVC outputVC = inputVC.AsUInt32();
+    
+    TocinoOutputPort outputPort = TOCINO_INVALID_PORT;
 
     TocinoAddress localAddr = m_tnd->GetTocinoAddress();
     TocinoAddress destAddr = GetTocinoFlitDestination( flit );
@@ -167,16 +176,12 @@ TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
     if( destAddr == localAddr )
     {
         // Deliver successfully-routed flit to host
-        const uint32_t hostPort = m_tnd->GetHostPort();
-        return TocinoQueueDescriptor( hostPort, inputVC );
+        outputPort = m_tnd->GetHostPort();
+        return TocinoRoute( outputPort, outputVC );
     }
-
-    // Default assumption is that we do not switch VCs
-    uint32_t outputVC = inputVC;
-    uint32_t outputPort = TOCINO_INVALID_PORT;
-
+    
     // Dimension-order routing
-    Direction dir;
+    Direction dir = DIR_INVALID;
 
     TocinoAddress::Coordinate localCoord;
     TocinoAddress::Coordinate destCoord;
@@ -194,13 +199,13 @@ TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
 
             dir = DetermineRoutingDirection( localCoord, destCoord );
 
-            if( dir == POS )
+            if( dir == DIR_POS )
             {
                 outputPort = PORT_POS;
             }
             else
             {
-                NS_ASSERT( dir == NEG );
+                NS_ASSERT( dir == DIR_NEG );
                 outputPort = PORT_NEG;
             }
 
@@ -209,6 +214,7 @@ TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
     }
 
     NS_ASSERT( outputPort != TOCINO_INVALID_PORT );
+    NS_ASSERT( dir != DIR_INVALID );
 
     // Dateline algorithm for deadlock avoidance in rings/tori
     if( TopologyHasWrapAround() )
@@ -224,37 +230,40 @@ TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
                     "Flit on last VC cannot cross dateline!" );
 
             // Switch to the next virtual channel
-            outputVC = inputVC + 1;
+            outputVC = inputVC.AsUInt32() + 1;
         }
     }
 
-    return TocinoQueueDescriptor( outputPort, outputVC );
+    return TocinoRoute( outputPort, outputVC );
 }
 
-TocinoQueueDescriptor
-TocinoDimensionOrderRouter::Route( const uint32_t inputVC ) 
+TocinoRoute
+TocinoDimensionOrderRouter::Route( const TocinoInputVC inputVC ) 
 {
-    NS_LOG_FUNCTION_NOARGS();
+    NS_LOG_FUNCTION( inputVC );
 
     NS_ASSERT( m_tnd != NULL );
+    NS_ASSERT( m_trx != NULL );
 
     Ptr<const Packet> flit = m_trx->PeekNextFlit( inputVC ); 
 
     NS_ASSERT( flit != NULL );
+
+    NS_LOG_LOGIC( "attempting to route " << GetTocinoFlitIdString( flit ) );
 
     const bool isHead = IsTocinoFlitHead( flit );
     const bool isTail = IsTocinoFlitTail( flit );
 
     std::ostringstream logPrefix;
 
-    TocinoQueueDescriptor route( TOCINO_INVALID_QUEUE );
+    TocinoRoute route( INVALID_ROUTE );
 
     if( isHead )
     {
-        NS_ASSERT( m_currentRoutes[inputVC] == TOCINO_INVALID_QUEUE );
+        NS_ASSERT( GetCurrentRoute( inputVC ) == INVALID_ROUTE );
 
         // Make a new routing decision
-        TocinoQueueDescriptor newRoute = ComputeNewRoute( flit );
+        const TocinoRoute newRoute = ComputeNewRoute( flit );
 
         if( NewRouteIsLegal( newRoute ) )
         {
@@ -263,60 +272,58 @@ TocinoDimensionOrderRouter::Route( const uint32_t inputVC )
         }
         else
         {
-            const uint32_t outputPort = newRoute.GetPort();
-            const uint32_t outputVC = newRoute.GetVirtualChannel();
-
             NS_LOG_LOGIC( "route in progress to outputPort="
-                    << outputPort << ", outputVC=" << outputVC );
+                    << newRoute.outputPort << ", outputVC="
+                    << newRoute.outputVC );
 
             return CANNOT_ROUTE;
         }
     }
     else
     {
-        NS_ASSERT( m_currentRoutes[inputVC] != TOCINO_INVALID_QUEUE );
+        NS_ASSERT( GetCurrentRoute( inputVC ) != INVALID_ROUTE );
 
         // Recall previous routing decision
-        route = m_currentRoutes[inputVC];
+        route = GetCurrentRoute( inputVC );
 
         logPrefix << "using existing route ";
     }
 
-    NS_ASSERT( route != TOCINO_INVALID_QUEUE );
+    NS_ASSERT( route != INVALID_ROUTE );
 
-    const uint32_t outputPort = route.GetPort();
-    const uint32_t outputVC = route.GetVirtualChannel();
+    logPrefix << "via "
+        << Tocino3dTorusPortNumberToString( route.outputPort.AsUInt32() );
 
-    logPrefix << "via " << Tocino3dTorusPortNumberToString( outputPort );
-
-    if( !TransmitterCanAcceptFlit( outputPort, outputVC ) )
+    if( !TransmitterCanAcceptFlit( route.outputPort, route.outputVC ) )
     {
+        NS_LOG_LOGIC( "transmitter for outputPort="
+                << route.outputPort << ", outputVC="
+                << route.outputVC << " cannot accept flit" );
+
         return CANNOT_ROUTE;
     }
 
-    if( inputVC == outputVC )
+    if( inputVC == route.outputVC )
     {
-        NS_LOG_LOGIC( logPrefix.str() << " over VC " << outputVC );
+        NS_LOG_LOGIC( logPrefix.str() << " over VC " << route.outputVC );
     }
     else
     {
         NS_LOG_LOGIC( logPrefix.str() << " from input VC " << inputVC 
-                << " to output VC " << outputVC );
+                << " to output VC " << route.outputVC );
     }
 
     if( isHead && !isTail )
     {
         // Record new route 
-        m_currentRoutes[inputVC] = route;
+        SetRoute( inputVC, route );
     }
     else if( !isHead && isTail )
     {
         // Tear down routing decision by resetting state on a tail flit.
-        // (So called "head-tail" flits must also execute this code.)
-        NS_LOG_LOGIC( "tail flit, clearing state for input VC "
-                << (uint32_t) inputVC );
+        NS_LOG_LOGIC( "tail flit, clearing state for input VC " << inputVC );
 
-        m_currentRoutes[inputVC] = TOCINO_INVALID_QUEUE;
+        SetRoute( inputVC, INVALID_ROUTE );
     }
 
     // Return routing decision
@@ -324,11 +331,20 @@ TocinoDimensionOrderRouter::Route( const uint32_t inputVC )
 }
 
     
-TocinoQueueDescriptor
-TocinoDimensionOrderRouter::GetCurrentRoute( uint8_t inputVC ) const
+TocinoRoute
+TocinoDimensionOrderRouter::GetCurrentRoute( const TocinoInputVC inputVC ) const
 {
-    NS_ASSERT( inputVC < m_currentRoutes.size() );
-    return m_currentRoutes[inputVC];
+    NS_ASSERT( inputVC < m_currentRoutes.vec.size() );
+    return m_currentRoutes.vec[ inputVC.AsUInt32() ];
+}
+
+void
+TocinoDimensionOrderRouter::SetRoute( 
+        const TocinoInputVC inputVC,
+        const TocinoRoute route )
+{
+    NS_ASSERT( inputVC < m_currentRoutes.vec.size() );
+    m_currentRoutes.vec[ inputVC.AsUInt32() ] = route;
 }
 
 }

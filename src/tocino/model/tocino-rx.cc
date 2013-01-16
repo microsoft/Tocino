@@ -32,16 +32,20 @@ NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
 namespace ns3 {
 
-TocinoRx::TocinoRx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoRouter> router )
+TocinoRx::TocinoRx( 
+        const uint32_t portNumber,
+        Ptr<TocinoNetDevice> tnd, 
+        Ptr<TocinoRouter> router
+)
     : m_inputPortNumber( portNumber )
     , m_tnd( tnd )
     , m_tx( tnd->GetTransmitter( portNumber ) )
     , m_router( router )
 {
-    m_inputQueues.resize( m_tnd->GetNVCs() );
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    m_inputQueues.vec.resize( m_tnd->GetNVCs() );
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        m_inputQueues[inputVC] = CreateObject<CallbackQueue>();
+        SetInputQueue( inputVC, CreateObject<CallbackQueue>() );
     }
 }
 
@@ -60,45 +64,40 @@ TocinoRx::GetNetDevice()
     return m_tnd;
 }
 
-// ISSUE-REVIEW: the argument here MUST be an inputVC.
-// It's not a meaningful question otherwise.  Perhaps
-// we should create an InputVC type, so the compiler
-// can help us avoid a mistake?
 bool
-TocinoRx::IsVCBlocked( const uint32_t inputVC ) const
+TocinoRx::IsVCBlocked( const TocinoInputVC inputVC ) const
 {
-    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
-    return m_inputQueues[inputVC]->IsAlmostFull();
-}
-
-// ISSUE-REVIEW: Should this function exist at all?
-bool
-TocinoRx::IsAnyQueueBlocked() const
-{
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
-    {
-        if( IsVCBlocked( inputVC ) )
-        {
-            return true;
-        }
-    }
-    return false;
+    return GetInputQueue( inputVC )->IsAlmostFull();
 }
 
 Ptr<const Packet>
-TocinoRx::PeekNextFlit( const uint32_t inputVC ) const
+TocinoRx::PeekNextFlit( const TocinoInputVC inputVC ) const
 {
-    NS_ASSERT( inputVC < m_inputQueues.size() );
+    return GetInputQueue( inputVC )->Peek();
+}
+    
+Ptr<CallbackQueue>
+TocinoRx::GetInputQueue( const TocinoInputVC inputVC ) const
+{
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
 
-    return m_inputQueues[inputVC]->Peek();
+    return m_inputQueues.vec[ inputVC.AsUInt32() ];
+}
+
+void
+TocinoRx::SetInputQueue(
+        const TocinoInputVC inputVC,
+        const Ptr<CallbackQueue> queue )
+{
+    NS_ASSERT( inputVC < m_tnd->GetNVCs() );
+
+    m_inputQueues.vec[ inputVC.AsUInt32() ] = queue;
 }
 
 bool
-TocinoRx::CanRouteFrom( const uint32_t inputVC ) const
+TocinoRx::CanRouteFrom( const TocinoInputVC inputVC ) const
 {
-    NS_ASSERT( inputVC < m_inputQueues.size() );
-
-    if( m_inputQueues[inputVC]->IsEmpty() )
+    if( GetInputQueue( inputVC )->IsEmpty() )
     {
         return false;
     }
@@ -107,29 +106,31 @@ TocinoRx::CanRouteFrom( const uint32_t inputVC ) const
 }
 
 void
-TocinoRx::RewriteFlitHeaderVC( Ptr<Packet> f, const uint32_t newVC ) const
+TocinoRx::RewriteFlitHeaderVC(
+        Ptr<Packet> f,
+        const TocinoOutputVC newVC ) const
 {
     TocinoFlitHeader h;
     f->RemoveHeader( h );
-    
-    uint32_t currentVC = h.GetVirtualChannel();
+   
+    const TocinoInputVC currentVC = h.GetVirtualChannel();
 
     NS_ASSERT_MSG( newVC != currentVC, "Pointless rewrite?" );
 
-    h.SetVirtualChannel( newVC );
+    h.SetVirtualChannel( newVC.AsUInt32() );
 
     f->AddHeader( h );
 }
 
 bool
-TocinoRx::EnqueueHelper( Ptr<Packet> flit, const uint32_t inputVC )
+TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoInputVC inputVC )
 {
     NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == inputVC,
         "attempt to enqueue flit with mismatched VC" );
      
     bool wasNotBlocked = !IsVCBlocked( inputVC );
 
-    bool success = m_inputQueues[inputVC]->Enqueue( flit );
+    bool success = GetInputQueue( inputVC )->Enqueue( flit );
 
     bool isNowBlocked = IsVCBlocked( inputVC );
     
@@ -142,12 +143,12 @@ TocinoRx::EnqueueHelper( Ptr<Packet> flit, const uint32_t inputVC )
 
 Ptr<Packet>
 TocinoRx::DequeueHelper(
-        const uint32_t inputVC,
+        const TocinoInputVC inputVC,
         bool &dequeueTriggeredUnblock )
 {
     bool wasBlocked = IsVCBlocked( inputVC );
 
-    Ptr<Packet> flit = m_inputQueues[inputVC]->Dequeue();
+    Ptr<Packet> flit = GetInputQueue( inputVC )->Dequeue();
 
     bool isNoLongerBlocked = !IsVCBlocked( inputVC );
     
@@ -176,7 +177,7 @@ TocinoRx::Receive( Ptr<Packet> flit )
         return;
     }
 
-    uint32_t inputVC = GetTocinoFlitVirtualChannel( flit );
+    const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
 
     bool enqueueTriggeredBlock = EnqueueHelper( flit, inputVC );
 
@@ -209,7 +210,7 @@ TocinoRx::TryRouteFlit()
     
     // ISSUE-REVIEW: doing this in inputVC order is unfair
     // and will result in starvation of high VCs 
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
         if( !CanRouteFrom( inputVC ) )
         {
@@ -217,7 +218,7 @@ TocinoRx::TryRouteFlit()
         }
 
         // Try to route a flit
-        TocinoQueueDescriptor route = m_router->Route( inputVC ); 
+        TocinoRoute route = m_router->Route( inputVC ); 
 
         if( route == TocinoRouter::CANNOT_ROUTE )
         {
@@ -234,17 +235,14 @@ TocinoRx::TryRouteFlit()
             continue;
         }
        
-        const uint32_t outputPort = route.GetPort();
-        const uint32_t outputVC = route.GetVirtualChannel();
-
         bool dequeueTriggeredUnblock = false;
 
         Ptr<Packet> flit = DequeueHelper( inputVC, dequeueTriggeredUnblock );
 
-        if( inputVC != outputVC )
+        if( inputVC != route.outputVC )
         {
             // Router has elected to change virtual channels
-            RewriteFlitHeaderVC( flit, outputVC );
+            RewriteFlitHeaderVC( flit, route.outputVC );
         }
        
         // If we just became unblocked ask our corresponding
@@ -274,17 +272,17 @@ TocinoRx::TryRouteFlit()
         }
 
         // Move the flit to the proper transmitter and output queue
-        TocinoTx* outputTransmitter = m_tnd->GetTransmitter( outputPort );
-        outputTransmitter->AcceptFlit( m_inputPortNumber, outputVC, flit );
+        TocinoTx* outputTransmitter = m_tnd->GetTransmitter( route.outputPort );
+        outputTransmitter->AcceptFlit( m_inputPortNumber, route.outputVC, flit );
     }
 }
 
 void
 TocinoRx::SetReserveFlits( uint32_t numFlits )
 {
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        m_inputQueues[inputVC]->SetFreeWM( numFlits );
+        GetInputQueue( inputVC )->SetFreeWM( numFlits );
     }
 }
 
@@ -293,9 +291,9 @@ TocinoRx::AllQuiet() const
 {
     bool quiet = true;
     
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        if( !m_inputQueues[inputVC]->IsEmpty() )
+        if( !GetInputQueue( inputVC )->IsEmpty() )
         {
             NS_LOG_LOGIC( "Not quiet: "
                     << "m_inputQueues" 
@@ -312,14 +310,15 @@ TocinoRx::AllQuiet() const
 void
 TocinoRx::DumpState() const
 {
+#ifdef NS3_LOG_ENABLE
     NS_LOG_LOGIC("receiver=" << m_inputPortNumber);
-    for( uint32_t inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
         if( IsVCBlocked( inputVC ) )
         {
             NS_LOG_LOGIC(" inputVC=" << inputVC << " BLOCKED");
             
-            Ptr<CallbackQueue> queue = m_inputQueues[inputVC];
+            Ptr<CallbackQueue> queue = GetInputQueue( inputVC );
 
             for( uint32_t i = 0; i < queue->Size(); i++ )
             {
@@ -331,17 +330,15 @@ TocinoRx::DumpState() const
             NS_LOG_LOGIC(" inputVC=" << inputVC << " not blocked");
         }
 
-        TocinoQueueDescriptor qd = m_router->GetCurrentRoute( inputVC );
+        TocinoRoute route = m_router->GetCurrentRoute( inputVC );
 
-        const uint32_t outputPort = qd.GetPort();
-        const uint32_t outputVC = qd.GetVirtualChannel();
-
-        if( qd != TOCINO_INVALID_QUEUE )
+        if( route != TocinoRouter::INVALID_ROUTE )
         {
             NS_LOG_LOGIC( "  route in-progress to outputPort="
-                    << outputPort << " outputVC=" << outputVC );
+                    << route.outputPort << " outputVC=" << route.outputVC );
         }
     }
+#endif
 }
 
 } // namespace ns3

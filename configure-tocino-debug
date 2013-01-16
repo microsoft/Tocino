@@ -1,0 +1,2 @@
+#!/bin/bash
+./waf configure -d debug --enable-tests --enable-modules=tocino

@@ -318,6 +318,9 @@ def configure(conf):
     if Options.options.build_profile == 'debug':
         env.append_value('DEFINES', 'NS3_ASSERT_ENABLE')
         env.append_value('DEFINES', 'NS3_LOG_ENABLE')
+        env.append_value('DEFINES', 'DEBUG')
+    else:
+        env.append_value('DEFINES', 'NDEBUG')
 
     env['PLATFORM'] = sys.platform
     env['BUILD_PROFILE'] = Options.options.build_profile

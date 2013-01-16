@@ -19,31 +19,55 @@ public:
     
     TocinoSimpleArbiter();
 
-    TocinoQueueDescriptor Arbitrate();
+    TocinoArbiterAllocation Arbitrate();
 
     void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* );
     
-    TocinoQueueDescriptor GetVCOwner( const uint32_t ) const;
+    TocinoArbiterAllocation GetVCOwner( const TocinoOutputVC ) const;
 
-    static const TocinoQueueDescriptor ANY_QUEUE;
+    static const TocinoArbiterAllocation ANY_QUEUE;
 
 private:
+    typedef std::vector< TocinoArbiterAllocation > AllocVector;
+
+    AllocVector BuildCandidateSet() const;
+
+    TocinoArbiterAllocation FairSelectWinner( const AllocVector& ) const;
+
+    void UpdateState( const TocinoArbiterAllocation );
+    
     Ptr<TocinoNetDevice> m_tnd;
     const TocinoTx *m_ttx;
 
-    typedef std::vector< TocinoQueueDescriptor > QueueVector;
+    // This nested class controls access to our
+    // primary state variable
+    class 
+    {
+        private:
 
-    QueueVector BuildCandidateSet() const;
+        AllocVector vec;
 
-    TocinoQueueDescriptor FairSelectWinner( const QueueVector& ) const;
+        public:
+        
+        // If you're thinking about adding another 
+        // friend function here, you're wrong. -MAS
+        
+        friend void
+            TocinoSimpleArbiter::Initialize(
+                Ptr<TocinoNetDevice>, const TocinoTx* );
+        
+        friend void
+            TocinoSimpleArbiter::UpdateState(
+                const TocinoArbiterAllocation );
 
-    void UpdateState( const TocinoQueueDescriptor );
+        friend TocinoArbiterAllocation
+            TocinoSimpleArbiter::GetVCOwner( const TocinoOutputVC ) const;
 
-    typedef std::vector< TocinoQueueDescriptor > QueueDescriptorVector;
-    QueueDescriptorVector m_legalQueue;
-    
+    }
+    m_legalQueue;
+
 #ifdef TOCINO_VC_STRESS_MODE
-    mutable uint8_t m_lastVC;
+    mutable TocinoOutputVC m_lastVC;
 #endif
 };
 

@@ -6,6 +6,8 @@
 #include <limits>
 #include <string>
 
+#include "tocino-type-safe-uint32.h"
+
 #define STATIC_ASSERT( condition, name )\
     typedef char assert_failed_ ## name [ (condition) ? 1 : -1 ];
 
@@ -21,6 +23,12 @@ namespace ns3
     void TocinoCustomizeLogging();
 
     std::string Tocino3dTorusPortNumberToString( const int port );
+
+    DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoInputVC );
+    DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoOutputVC );
+
+    DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoInputPort );
+    DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoOutputPort );
 }
 
 #endif //__TOCINO_MISC_H__

@@ -10,36 +10,36 @@
 def build(bld):
     module = bld.create_ns3_module('tocino', ['core', 'network'])
     module.source = [
+        'helper/tocino-helper.cc',
         'model/all2all.cc',
         'model/callback-queue.cc',
+        'model/tocino-arbiter.cc',
         'model/tocino-channel.cc',
-        'model/tocino-tx.cc',
-        'model/tocino-rx.cc',
-        'model/tocino-net-device.cc',
+        'model/tocino-dimension-order-router.cc',
         'model/tocino-flit-header.cc',
+        'model/tocino-flit-id-tag.cc',
         'model/tocino-flow-control.cc',
         'model/tocino-misc.cc',
+        'model/tocino-net-device.cc',
         'model/tocino-router.cc',
-        'model/tocino-dimension-order-router.cc',
-        'model/tocino-arbiter.cc',
+        'model/tocino-rx.cc',
         'model/tocino-simple-arbiter.cc',
-        'model/tocino-flit-id-tag.cc',
-        'helper/tocino-helper.cc',
+        'model/tocino-tx.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('tocino')
     module_test.source = [
 #        'test/test-tocino-all2all.cc',
+        'test/test-tocino-3d-torus.cc',
         'test/test-tocino-callbackqueue.cc',
+        'test/test-tocino-deadlock.cc',
         'test/test-tocino-flit-header.cc',
         'test/test-tocino-flitter.cc',
         'test/test-tocino-flow-control.cc',
         'test/test-tocino-loopback.cc',
-        'test/test-tocino-point-to-point.cc',
         'test/test-tocino-multihop.cc',
+        'test/test-tocino-point-to-point.cc',
         'test/test-tocino-ring.cc',
-        'test/test-tocino-3d-torus.cc',
-        'test/test-tocino-deadlock.cc',
         'test/tocino-test-suite.cc',
         ]
     
@@ -49,23 +49,23 @@ def build(bld):
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'tocino'
     headers.source = [
+        'helper/tocino-helper.h',
         'model/all2all.h',
-        'model/tocino-channel.h',
-        'model/tocino-net-device.h',
-        'model/tocino-rx.h',
-        'model/tocino-tx.h',
         'model/callback-queue.h',
         'model/tocino-address.h',
+        'model/tocino-arbiter.h',
+        'model/tocino-channel.h',
+        'model/tocino-dimension-order-router.h',
         'model/tocino-flit-header.h',
+        'model/tocino-flit-id-tag.h',
         'model/tocino-flow-control.h',
         'model/tocino-misc.h',
-        'model/tocino-queue-descriptor.h',
+        'model/tocino-net-device.h',
         'model/tocino-router.h',
-        'model/tocino-dimension-order-router.h',
-        'model/tocino-arbiter.h',
+        'model/tocino-rx.h',
         'model/tocino-simple-arbiter.h',
-        'model/tocino-flit-id-tag.h',
-        'helper/tocino-helper.h',
+        'model/tocino-tx.h',
+        'model/tocino-type-safe-uint32.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:

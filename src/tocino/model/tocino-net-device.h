@@ -61,8 +61,8 @@ public:
 
     TocinoAddress GetTocinoAddress( void ) const;
 
-    TocinoRx* GetReceiver( uint32_t ) const;
-    TocinoTx* GetTransmitter( uint32_t ) const;
+    TocinoRx* GetReceiver( const TocinoInputPort ) const;
+    TocinoTx* GetTransmitter( const TocinoOutputPort ) const;
    
     uint32_t GetNPorts() const;
     uint32_t GetNVCs() const;
