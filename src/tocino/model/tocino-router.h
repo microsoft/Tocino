@@ -80,7 +80,7 @@ struct TocinoRouter : public Object
     // derived classes can choose?
     virtual void Initialize(
             Ptr<TocinoNetDevice>, 
-            const TocinoRx* ) = 0;
+            const TocinoInputPort ) = 0;
     
     virtual TocinoRoute Route( Ptr<const Packet> ) const = 0;
 };

@@ -16,6 +16,7 @@ namespace ns3
 class CallbackQueue;
 class TocinoTx;
 class NetDevice;
+class TocinoRouter;
 
 class TocinoRx
 {
@@ -29,9 +30,6 @@ class TocinoRx
     
     bool IsVCBlocked( const TocinoInputVC ) const;
 
-    Ptr<const Packet>
-        PeekNextFlit( const TocinoInputVC ) const;
-
     void Receive(Ptr<Packet> p);
     
     void TryForwardFlit();
@@ -43,6 +41,8 @@ class TocinoRx
 
     private:
     
+    Ptr<const Packet> PeekNextFlit( const TocinoInputVC ) const;
+
     Ptr<CallbackQueue> GetInputQueue( const TocinoInputVC ) const;
     
     void SetInputQueue(
@@ -63,14 +63,19 @@ class TocinoRx
     void RewriteFlitHeaderVC(
             Ptr<Packet>,
             const TocinoOutputVC ) const;
-    
-    const uint32_t m_inputPortNumber;
+   
+    TocinoRoute FindForwardableRoute() const;
+       
+    static const TocinoRoute NO_FORWARDABLE_ROUTE;
+
+    const TocinoInputPort m_inputPort;
 
     const Ptr<TocinoNetDevice> m_tnd;
 
     // corresponding transmitter
     TocinoTx * const m_tx;
    
+    Ptr<TocinoRouter> m_router;
     TocinoCrossbar m_crossbar;
 
     // This nested class controls access to our

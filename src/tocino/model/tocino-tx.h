@@ -84,7 +84,7 @@ class TocinoTx
     void DoTransmit();
     void TransmitEnd();
 
-    const uint32_t m_outputPortNumber;
+    const TocinoOutputPort m_outputPort;
   
     TocinoFlowControlState m_xState;
     TocinoFlowControlState m_remoteXState;

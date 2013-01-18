@@ -13,8 +13,6 @@ namespace ns3
 class Packet;
 class TocinoNetDevice;
 class TocinoRx;
-class TocinoRoute;
-class TocinoRouter;
 
 // This class is responsible for forwarding flits
 // from the input stage to the output stage
@@ -23,13 +21,13 @@ class TocinoCrossbar
 {
     public:
 
-    TocinoCrossbar( Ptr<TocinoNetDevice>, TocinoRx* );
+    TocinoCrossbar(
+            Ptr<TocinoNetDevice>,
+            const TocinoInputPort );
 
-    TocinoRoute FindForwardableRoute() const;
+    bool IsForwardable( const TocinoRoute ) const;
     
-    static const TocinoRoute NO_FORWARDABLE_ROUTE;
-    
-    void ForwardFlit( Ptr<Packet>, TocinoRoute );
+    void ForwardFlit( Ptr<Packet>, const TocinoRoute );
 
     const TocinoForwardingTable& GetForwardingTable() const;
 
@@ -45,10 +43,9 @@ class TocinoCrossbar
             const TocinoOutputVC ) const;
   
     const Ptr<TocinoNetDevice> m_tnd;
-    TocinoRx* m_trx;
-
+    const TocinoInputPort m_inputPort;
+    
     TocinoForwardingTable m_forwardingTable;
-    Ptr<TocinoRouter> m_router;
 };
 
 }

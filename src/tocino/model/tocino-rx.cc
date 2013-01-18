@@ -23,31 +23,36 @@ NS_LOG_COMPONENT_DEFINE ("TocinoRx");
                 << (int) m_tnd->GetTocinoAddress().GetX() << "," \
                 << (int) m_tnd->GetTocinoAddress().GetY() << "," \
                 << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
-                << m_inputPortNumber << " "; }
+                << m_inputPort << " "; }
 #endif
 
 namespace ns3 {
 
 TocinoRx::TocinoRx( 
-        const uint32_t portNumber,
+        const uint32_t inputPortNumber,
         Ptr<TocinoNetDevice> tnd
 )
-    : m_inputPortNumber( portNumber )
+    : m_inputPort( inputPortNumber )
     , m_tnd( tnd )
-    , m_tx( tnd->GetTransmitter( portNumber ) )
-    , m_crossbar( tnd, this )
+    , m_tx( tnd->GetTransmitter( inputPortNumber ) )
+    , m_crossbar( tnd, inputPortNumber )
 {
     m_inputQueues.vec.resize( m_tnd->GetNVCs() );
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
         SetInputQueue( inputVC, CreateObject<CallbackQueue>() );
     }
+    
+    ObjectFactory routerFactory;
+    routerFactory.SetTypeId( m_tnd->GetRouterTypeId() );
+    m_router = routerFactory.Create<TocinoRouter>();
+    m_router->Initialize( m_tnd, inputPortNumber );
 }
 
 uint32_t
 TocinoRx::GetPortNumber() const
 {
-    return m_inputPortNumber;
+    return m_inputPort.AsUInt32();
 }
 
 Ptr<NetDevice>
@@ -131,7 +136,7 @@ TocinoRx::Receive( Ptr<Packet> flit )
         // we call RemotePause even when tx_port == m_tnd->GetHostPort(),
         // in order to avoid overrunning the ejection port queues.
 
-        if( m_inputPortNumber != m_tnd->GetHostPort() )
+        if( m_inputPort != m_tnd->GetHostPort() )
         {
             m_tx->RemotePause( inputVC );
         }
@@ -178,30 +183,103 @@ TocinoRx::RewriteFlitHeaderVC(
     flit->AddHeader( h );
 }
 
+// Intentionally distinct from TOCINO_INVALID_ROUTE
+const TocinoRoute TocinoRx::NO_FORWARDABLE_ROUTE(
+        TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1, TOCINO_INVALID_VC-1 );
+
+TocinoRoute
+TocinoRx::FindForwardableRoute() const
+{
+    NS_LOG_FUNCTION_NOARGS();
+    
+    NS_ASSERT( m_router != NULL );
+
+    // ISSUE-REVIEW: Potential starvation of higher VCs 
+    // ISSUE-REVIEW: We may route the same flit many times
+    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    {
+        Ptr<const Packet> flit = PeekNextFlit( inputVC ); 
+
+        if( flit == NULL )
+        {
+            // Input queue is empty
+            continue;
+        }
+
+        TocinoRoute route( TOCINO_INVALID_ROUTE );
+
+        if( IsTocinoFlitHead( flit ) )
+        {
+            // Make a new routing decision
+            route = m_router->Route( flit );
+        }
+        else
+        {
+            const TocinoForwardingTable& forwardingTable =
+                m_crossbar.GetForwardingTable();
+            
+            // Recall previous routing decision
+            route = forwardingTable.GetRoute( inputVC );
+        }
+
+        NS_ASSERT( route != TOCINO_INVALID_ROUTE );
+        
+        if( !m_crossbar.IsForwardable( route ) )
+        {
+            // This flit is not currently forwardable
+            continue;
+        }
+
+        return route;
+    }
+
+    return NO_FORWARDABLE_ROUTE;
+}
+
 void
 TocinoRx::TryForwardFlit()
 {
     NS_LOG_FUNCTION_NOARGS();
     
-    TocinoRoute route = m_crossbar.FindForwardableRoute();
+    NS_ASSERT( m_router != NULL );
 
-    if( route == TocinoCrossbar::NO_FORWARDABLE_ROUTE )
+    TocinoRoute route = FindForwardableRoute();
+
+    if( route == NO_FORWARDABLE_ROUTE )
     {
-        NS_LOG_LOGIC( "no forwardable flits" );
-
+        NS_LOG_LOGIC( "no forwardable routes" );
         return;
     }
 
+    const TocinoOutputPort outputPort = route.outputPort;
     const TocinoInputVC inputVC = route.inputVC;
     const TocinoOutputVC outputVC = route.outputVC;
-    
+
     bool unblocked = false;
 
     Ptr<Packet> flit = DequeueHelper( inputVC, unblocked );
+        
+    std::ostringstream logPrefix;
+
+    if( IsTocinoFlitHead( flit ) )
+    {
+        logPrefix << "new route via";
+    }
+    else
+    {
+        logPrefix << "existing route via";
+    }
+    
+    NS_LOG_LOGIC( logPrefix.str()
+            << " outputPort=" << outputPort
+            << " ("
+            << Tocino3dTorusPortNumberToString( outputPort.AsUInt32() )
+            << "), inputVC=" << inputVC
+            << ", outputVC=" << inputVC );
 
     if( inputVC != outputVC )
     {
-        // Router has elected to change virtual channels
+        NS_LOG_LOGIC( "note: route changes VC" );
         RewriteFlitHeaderVC( flit, outputVC );
     }
      
@@ -212,7 +290,7 @@ TocinoRx::TryForwardFlit()
     // transmitter to resume the remote node
     if( unblocked )
     {
-        if( m_inputPortNumber == m_tnd->GetHostPort() )
+        if( m_inputPort == m_tnd->GetHostPort() )
         {
             // Special handling for injection port
 
@@ -269,7 +347,7 @@ void
 TocinoRx::DumpState() const
 {
 #ifdef NS3_LOG_ENABLE
-    NS_LOG_LOGIC("receiver=" << m_inputPortNumber);
+    NS_LOG_LOGIC("receiver=" << m_inputPort);
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
         if( IsVCBlocked( inputVC ) )

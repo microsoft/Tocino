@@ -20,7 +20,7 @@ NS_LOG_COMPONENT_DEFINE ("TocinoDimensionOrderRouter");
                 << (int) m_tnd->GetTocinoAddress().GetX() << "," \
                 << (int) m_tnd->GetTocinoAddress().GetY() << "," \
                 << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
-                << m_trx->GetPortNumber() << " "; }
+                << m_inputPort << " "; }
 #endif
 
 namespace ns3
@@ -43,14 +43,17 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
 
 TocinoDimensionOrderRouter::TocinoDimensionOrderRouter()
     : m_tnd( NULL )
-    , m_trx( NULL )
+    , m_inputPort( TOCINO_INVALID_PORT )
     , m_wrapPoint( NO_WRAP )
 {}
 
-void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoRx* trx )
+void 
+TocinoDimensionOrderRouter::Initialize( 
+        Ptr<TocinoNetDevice> tnd, 
+        const TocinoInputPort inputPort )
 {
     m_tnd = tnd;
-    m_trx = trx;
+    m_inputPort = inputPort;
 }
 
 bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
@@ -103,15 +106,13 @@ bool
 TocinoDimensionOrderRouter::RouteChangesDimension(
         const TocinoOutputPort outputPort ) const
 {
-    const TocinoInputPort inputPort = m_trx->GetPortNumber();
-
     // ISSUE-REVIEW: what if outputPort == host port?
-    if( inputPort == m_tnd->GetHostPort() )
+    if( m_inputPort == m_tnd->GetHostPort() )
     {
         return false;
     }
 
-    const uint32_t ip = inputPort.AsUInt32();
+    const uint32_t ip = m_inputPort.AsUInt32();
     const uint32_t op = outputPort.AsUInt32();
 
     if( (ip/2) != (op/2) )

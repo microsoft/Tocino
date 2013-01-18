@@ -31,13 +31,13 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
                 << (int) m_tnd->GetTocinoAddress().GetX() << "," \
                 << (int) m_tnd->GetTocinoAddress().GetY() << "," \
                 << (int) m_tnd->GetTocinoAddress().GetZ() << ") " \
-                << m_outputPortNumber << " "; }
+                << m_outputPort << " "; }
 #endif
 
 namespace ns3 {
 
-TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd )
-    : m_outputPortNumber( portNumber )
+TocinoTx::TocinoTx( const uint32_t outputPortNumber, Ptr<TocinoNetDevice> tnd )
+    : m_outputPort( outputPortNumber )
     , m_xState( TocinoAllXON )
     , m_remoteXState( TocinoAllXON )
     , m_doUpdateXState( 0 )
@@ -103,7 +103,7 @@ TocinoTx::SetXState( const TocinoFlowControlState& newXState )
 uint32_t
 TocinoTx::GetPortNumber() const
 {
-    return m_outputPortNumber;
+    return m_outputPort.AsUInt32();
 }
 
 bool
@@ -208,7 +208,7 @@ TocinoTx::SendToChannel( Ptr<Packet> f )
     // this acts as a mutex on Transmit
     m_state = BUSY;
 
-    if( m_outputPortNumber == m_tnd->GetHostPort() ) 
+    if( m_outputPort == m_tnd->GetHostPort() ) 
     {
         // ejection port
         NS_LOG_LOGIC( "ejecting " << GetTocinoFlitIdString( f ) );
@@ -245,7 +245,7 @@ TocinoTx::DoTransmitFlowControl()
 {
     NS_LOG_FUNCTION_NOARGS();
 
-    if( m_outputPortNumber != m_tnd->GetHostPort() )
+    if( m_outputPort != m_tnd->GetHostPort() )
     {
         Ptr<Packet> f = GetTocinoFlowControlFlit( m_remoteXState );
         
@@ -423,7 +423,7 @@ void
 TocinoTx::DumpState() const
 {
 #ifdef NS3_LOG_ENABLE
-    NS_LOG_LOGIC("transmitter=" << m_outputPortNumber);
+    NS_LOG_LOGIC("transmitter=" << m_outputPort);
     NS_LOG_LOGIC("  xState=" << m_xState);
     for( TocinoOutputVC outputVC = 0; outputVC < m_tnd->GetNVCs(); outputVC++ )
     {
