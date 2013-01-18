@@ -352,9 +352,12 @@ bool TocinoNetDevice::SupportsSendFrom( void ) const
 }
 
 void
-TocinoNetDevice::SetTxChannel(Ptr<TocinoChannel> c, uint32_t port)
+TocinoNetDevice::SetChannel(
+        uint32_t port,
+        Ptr<TocinoChannel> chan )
 {
-  m_transmitters[port]->SetChannel(c);
+    m_receivers[port]->SetChannel( chan );
+    m_transmitters[port]->SetChannel( chan );
 }
 
 void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const

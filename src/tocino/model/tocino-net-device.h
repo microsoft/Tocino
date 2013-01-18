@@ -57,7 +57,7 @@ public:
     
     void Initialize();
 
-    void SetTxChannel(Ptr<TocinoChannel> c, uint32_t port);
+    void SetChannel( uint32_t, Ptr<TocinoChannel> );
 
     TocinoAddress GetTocinoAddress( void ) const;
 

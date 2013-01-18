@@ -17,14 +17,11 @@ TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
     Ptr<TocinoChannel> c = CreateObject<TocinoChannel>();
     
 
-    tx_nd->SetTxChannel( c, tx_port );
+    tx_nd->SetChannel( tx_port, c );
+    
     c->SetTransmitter( tx_nd->GetTransmitter( tx_port ) );
     c->SetReceiver( rx_nd->GetReceiver( rx_port ) );
  
-    // ISSUE-REVIEW: does this really belong here?
-    uint32_t reserve = c->FlitBuffersRequired();
-    rx_nd->GetReceiver( rx_port )->SetReserveFlits( reserve );
-
     return c;
 }
 

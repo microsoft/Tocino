@@ -14,9 +14,10 @@ namespace ns3
 {
 
 class CallbackQueue;
-class TocinoTx;
 class NetDevice;
+class TocinoChannel;
 class TocinoRouter;
+class TocinoTx;
 
 class TocinoRx
 {
@@ -28,14 +29,14 @@ class TocinoRx
 
     Ptr<NetDevice> GetNetDevice();
     
+    void SetChannel( Ptr<TocinoChannel> channel );
+
     bool IsVCBlocked( const TocinoInputVC ) const;
 
     void Receive(Ptr<Packet> p);
     
     void TryForwardFlit();
 
-    void SetReserveFlits( uint32_t );
-    
     bool AllQuiet() const;
     void DumpState() const;
 
@@ -49,6 +50,8 @@ class TocinoRx
             const TocinoInputVC,
             const Ptr<CallbackQueue> );
   
+    void SetReserveFlits( uint32_t );
+    
     bool EnqueueHelper(
             Ptr<Packet>,
             const TocinoInputVC );
@@ -71,6 +74,7 @@ class TocinoRx
     const TocinoInputPort m_inputPort;
 
     const Ptr<TocinoNetDevice> m_tnd;
+    Ptr<TocinoChannel> m_channel;
 
     // corresponding transmitter
     TocinoTx * const m_tx;

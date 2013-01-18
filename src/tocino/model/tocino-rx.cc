@@ -6,12 +6,13 @@
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 
-#include "tocino-rx.h"
-#include "tocino-net-device.h"
-#include "tocino-tx.h"
 #include "callback-queue.h"
-#include "tocino-router.h"
+#include "tocino-channel.h"
 #include "tocino-flit-id-tag.h"
+#include "tocino-net-device.h"
+#include "tocino-router.h"
+#include "tocino-rx.h"
+#include "tocino-tx.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
@@ -59,6 +60,15 @@ Ptr<NetDevice>
 TocinoRx::GetNetDevice()
 { 
     return m_tnd;
+}
+
+void
+TocinoRx::SetChannel( Ptr<TocinoChannel> chan )
+{
+    m_channel = chan;
+    
+    const uint32_t reserve = chan->FlitBuffersRequired();
+    SetReserveFlits( reserve );
 }
 
 bool
@@ -229,7 +239,7 @@ TocinoRx::FindForwardableRoute() const
             // This flit is not currently forwardable
             continue;
         }
-
+            
         return route;
     }
 
