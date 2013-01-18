@@ -21,9 +21,9 @@ class TocinoArbiter;
 
 class TocinoTx
 {
-public:
-    TocinoTx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
-    ~TocinoTx();
+    public:
+
+    TocinoTx( const uint32_t, Ptr<TocinoNetDevice> );
   
     uint32_t GetPortNumber() const;
 
@@ -68,7 +68,7 @@ public:
     bool AllQuiet() const;
     void DumpState() const;
 
-private:
+    private:
     
     Ptr<CallbackQueue> GetOutputQueue( 
             const TocinoInputPort,
@@ -99,7 +99,7 @@ private:
 
     // This nested class controls access to our
     // primary state variable
-    class
+    class TocinoOutputQueues
     {
         private:
 
@@ -116,14 +116,18 @@ private:
         
         friend
             TocinoTx::TocinoTx( 
-                const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoArbiter> );
+                const uint32_t, Ptr<TocinoNetDevice> );
 
         friend Ptr<CallbackQueue>
-            TocinoTx::GetOutputQueue( TocinoInputPort, TocinoOutputVC ) const;
+            TocinoTx::GetOutputQueue(
+                    const TocinoInputPort,
+                    const TocinoOutputVC ) const;
 
         friend void
             TocinoTx::SetOutputQueue( 
-                TocinoInputPort, TocinoOutputVC, Ptr<CallbackQueue> );
+                const TocinoInputPort,
+                const TocinoOutputVC, 
+                Ptr<CallbackQueue> );
 
     }
     m_outputQueues;

@@ -17,9 +17,4 @@ TypeId TocinoRouter::GetTypeId(void)
     return tid;
 }
 
-const TocinoRoute 
-    TocinoRouter::INVALID_ROUTE( TOCINO_INVALID_PORT, TOCINO_INVALID_VC );
-
-const TocinoRoute
-    TocinoRouter::CANNOT_ROUTE( TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1 );
 }

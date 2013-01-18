@@ -36,7 +36,7 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<TocinoArbiter> arbiter )
+TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd )
     : m_outputPortNumber( portNumber )
     , m_xState( TocinoAllXON )
     , m_remoteXState( TocinoAllXON )
@@ -44,7 +44,6 @@ TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
     , m_state( IDLE )
     , m_tnd( tnd )
     , m_channel( NULL )
-    , m_arbiter( arbiter )
 {
     m_outputQueues.vec.resize( m_tnd->GetNPorts() );
     for( TocinoInputPort inputPort = 0; inputPort < m_tnd->GetNPorts(); ++inputPort )
@@ -55,10 +54,12 @@ TocinoTx::TocinoTx( const uint32_t portNumber, Ptr<TocinoNetDevice> tnd, Ptr<Toc
             SetOutputQueue( inputPort, outputVC, CreateObject<CallbackQueue>() );
         }
     }
+    
+    ObjectFactory arbiterFactory;
+    arbiterFactory.SetTypeId( m_tnd->GetArbiterTypeId() );
+    m_arbiter = arbiterFactory.Create<TocinoArbiter>();
+    m_arbiter->Initialize( m_tnd, this );
 }
-
-TocinoTx::~TocinoTx()
-{}
 
 Ptr<CallbackQueue>
 TocinoTx::GetOutputQueue( 
@@ -280,7 +281,7 @@ TocinoTx::DoTransmit()
     SendToChannel( flit );
 
     // Give the inputPort an opportunity to push another flit
-    m_tnd->GetReceiver( winner.inputPort )->TryRouteFlit();
+    m_tnd->GetReceiver( winner.inputPort )->TryForwardFlit();
 }
 
 void

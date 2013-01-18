@@ -51,7 +51,6 @@ void TocinoDimensionOrderRouter::Initialize( Ptr<TocinoNetDevice> tnd, const Toc
 {
     m_tnd = tnd;
     m_trx = trx;
-    m_currentRoutes.vec.assign( m_tnd->GetNVCs(), INVALID_ROUTE );
 }
 
 bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
@@ -123,43 +122,11 @@ TocinoDimensionOrderRouter::RouteChangesDimension(
     return false;
 }
 
-bool
-TocinoDimensionOrderRouter::TransmitterCanAcceptFlit(
-        const TocinoOutputPort outputPort,
-        const TocinoOutputVC outputVC ) const
-{
-    TocinoTx* outputTransmitter = m_tnd->GetTransmitter( outputPort );
-    const TocinoInputPort inputPort = m_trx->GetPortNumber();
-
-    if( outputTransmitter->CanAcceptFlit( inputPort, outputVC ) )
-    {
-        return true;
-    }
-
-    return false;
-}
-
-bool
-TocinoDimensionOrderRouter::NewRouteIsLegal( const TocinoRoute route ) const
-{
-    // We must not have an existing route to this output queue, 
-    // as this would result in our interleaving flits from different
-    // packets into a single output queue.
-
-    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
-    {
-        if( GetCurrentRoute( inputVC ) == route )
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 TocinoRoute
-TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
+TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const 
 {
+    NS_ASSERT( flit != NULL );
+    
     NS_LOG_FUNCTION( GetTocinoFlitIdString( flit ) );
     NS_ASSERT( IsTocinoFlitHead( flit ) );
     
@@ -177,7 +144,7 @@ TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
     {
         // Deliver successfully-routed flit to host
         outputPort = m_tnd->GetHostPort();
-        return TocinoRoute( outputPort, outputVC );
+        return TocinoRoute( outputPort, inputVC, outputVC );
     }
     
     // Dimension-order routing
@@ -234,117 +201,7 @@ TocinoDimensionOrderRouter::ComputeNewRoute( Ptr<const Packet> flit ) const
         }
     }
 
-    return TocinoRoute( outputPort, outputVC );
-}
-
-TocinoRoute
-TocinoDimensionOrderRouter::Route( const TocinoInputVC inputVC ) 
-{
-    NS_LOG_FUNCTION( inputVC );
-
-    NS_ASSERT( m_tnd != NULL );
-    NS_ASSERT( m_trx != NULL );
-
-    Ptr<const Packet> flit = m_trx->PeekNextFlit( inputVC ); 
-
-    NS_ASSERT( flit != NULL );
-
-    NS_LOG_LOGIC( "attempting to route " << GetTocinoFlitIdString( flit ) );
-
-    const bool isHead = IsTocinoFlitHead( flit );
-    const bool isTail = IsTocinoFlitTail( flit );
-
-    std::ostringstream logPrefix;
-
-    TocinoRoute route( INVALID_ROUTE );
-
-    if( isHead )
-    {
-        NS_ASSERT( GetCurrentRoute( inputVC ) == INVALID_ROUTE );
-
-        // Make a new routing decision
-        const TocinoRoute newRoute = ComputeNewRoute( flit );
-
-        if( NewRouteIsLegal( newRoute ) )
-        {
-            logPrefix << "establishing new route ";
-            route = newRoute;
-        }
-        else
-        {
-            NS_LOG_LOGIC( "route in progress to outputPort="
-                    << newRoute.outputPort << ", outputVC="
-                    << newRoute.outputVC );
-
-            return CANNOT_ROUTE;
-        }
-    }
-    else
-    {
-        NS_ASSERT( GetCurrentRoute( inputVC ) != INVALID_ROUTE );
-
-        // Recall previous routing decision
-        route = GetCurrentRoute( inputVC );
-
-        logPrefix << "using existing route ";
-    }
-
-    NS_ASSERT( route != INVALID_ROUTE );
-
-    logPrefix << "via "
-        << Tocino3dTorusPortNumberToString( route.outputPort.AsUInt32() );
-
-    if( !TransmitterCanAcceptFlit( route.outputPort, route.outputVC ) )
-    {
-        NS_LOG_LOGIC( "transmitter for outputPort="
-                << route.outputPort << ", outputVC="
-                << route.outputVC << " cannot accept flit" );
-
-        return CANNOT_ROUTE;
-    }
-
-    if( inputVC == route.outputVC )
-    {
-        NS_LOG_LOGIC( logPrefix.str() << " over VC " << route.outputVC );
-    }
-    else
-    {
-        NS_LOG_LOGIC( logPrefix.str() << " from input VC " << inputVC 
-                << " to output VC " << route.outputVC );
-    }
-
-    if( isHead && !isTail )
-    {
-        // Record new route 
-        SetRoute( inputVC, route );
-    }
-    else if( !isHead && isTail )
-    {
-        // Tear down routing decision by resetting state on a tail flit.
-        NS_LOG_LOGIC( "tail flit, clearing state for input VC " << inputVC );
-
-        SetRoute( inputVC, INVALID_ROUTE );
-    }
-
-    // Return routing decision
-    return route;
-}
-
-    
-TocinoRoute
-TocinoDimensionOrderRouter::GetCurrentRoute( const TocinoInputVC inputVC ) const
-{
-    NS_ASSERT( inputVC < m_currentRoutes.vec.size() );
-    return m_currentRoutes.vec[ inputVC.AsUInt32() ];
-}
-
-void
-TocinoDimensionOrderRouter::SetRoute( 
-        const TocinoInputVC inputVC,
-        const TocinoRoute route )
-{
-    NS_ASSERT( inputVC < m_currentRoutes.vec.size() );
-    m_currentRoutes.vec[ inputVC.AsUInt32() ] = route;
+    return TocinoRoute( outputPort, inputVC, outputVC );
 }
 
 }

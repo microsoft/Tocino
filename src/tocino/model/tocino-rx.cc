@@ -3,18 +3,14 @@
 #include <cstdio>
 #include <sstream>
 
-#include "ns3/assert.h"
 #include "ns3/log.h"
-#include "ns3/node.h"
 #include "ns3/simulator.h"
 
 #include "tocino-rx.h"
 #include "tocino-net-device.h"
 #include "tocino-tx.h"
 #include "callback-queue.h"
-#include "tocino-misc.h"
 #include "tocino-router.h"
-#include "tocino-dimension-order-router.h"
 #include "tocino-flit-id-tag.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
@@ -34,13 +30,12 @@ namespace ns3 {
 
 TocinoRx::TocinoRx( 
         const uint32_t portNumber,
-        Ptr<TocinoNetDevice> tnd, 
-        Ptr<TocinoRouter> router
+        Ptr<TocinoNetDevice> tnd
 )
     : m_inputPortNumber( portNumber )
     , m_tnd( tnd )
     , m_tx( tnd->GetTransmitter( portNumber ) )
-    , m_router( router )
+    , m_crossbar( tnd, this )
 {
     m_inputQueues.vec.resize( m_tnd->GetNVCs() );
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
@@ -48,9 +43,6 @@ TocinoRx::TocinoRx(
         SetInputQueue( inputVC, CreateObject<CallbackQueue>() );
     }
 }
-
-TocinoRx::~TocinoRx()
-{}
 
 uint32_t
 TocinoRx::GetPortNumber() const
@@ -95,34 +87,6 @@ TocinoRx::SetInputQueue(
 }
 
 bool
-TocinoRx::CanRouteFrom( const TocinoInputVC inputVC ) const
-{
-    if( GetInputQueue( inputVC )->IsEmpty() )
-    {
-        return false;
-    }
-
-    return true;
-}
-
-void
-TocinoRx::RewriteFlitHeaderVC(
-        Ptr<Packet> f,
-        const TocinoOutputVC newVC ) const
-{
-    TocinoFlitHeader h;
-    f->RemoveHeader( h );
-   
-    const TocinoInputVC currentVC = h.GetVirtualChannel();
-
-    NS_ASSERT_MSG( newVC != currentVC, "Pointless rewrite?" );
-
-    h.SetVirtualChannel( newVC.AsUInt32() );
-
-    f->AddHeader( h );
-}
-
-bool
 TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoInputVC inputVC )
 {
     NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == inputVC,
@@ -139,6 +103,41 @@ TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoInputVC inputVC )
     bool enqueueTriggeredBlock = wasNotBlocked && isNowBlocked;
 
     return enqueueTriggeredBlock;
+}
+
+void
+TocinoRx::Receive( Ptr<Packet> flit )
+{
+    NS_LOG_FUNCTION( GetTocinoFlitIdString( flit ) );
+    
+    if( IsTocinoFlowControlFlit( flit ) )
+    {
+        NS_LOG_LOGIC( "got flow control flit" );
+       
+        TocinoFlowControlState newXState = GetTocinoFlowControlState( flit );
+        m_tx->SetXState( newXState );
+
+        return;
+    }
+
+    const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
+
+    bool blocked = EnqueueHelper( flit, inputVC );
+
+    if( blocked )
+    {
+        // FIXME:
+        // We intend to model an ejection port that can never be full. Yet,
+        // we call RemotePause even when tx_port == m_tnd->GetHostPort(),
+        // in order to avoid overrunning the ejection port queues.
+
+        if( m_inputPortNumber != m_tnd->GetHostPort() )
+        {
+            m_tx->RemotePause( inputVC );
+        }
+    }
+
+    TryForwardFlit();
 }
 
 Ptr<Packet>
@@ -163,117 +162,76 @@ TocinoRx::DequeueHelper(
 }
 
 void
-TocinoRx::Receive( Ptr<Packet> flit )
+TocinoRx::RewriteFlitHeaderVC(
+        Ptr<Packet> flit,
+        const TocinoOutputVC newVC ) const
 {
-    NS_LOG_FUNCTION( GetTocinoFlitIdString( flit ) );
+    TocinoFlitHeader h;
+    flit->RemoveHeader( h );
+   
+    const TocinoInputVC currentVC = h.GetVirtualChannel();
+
+    NS_ASSERT_MSG( newVC != currentVC, "Pointless rewrite?" );
+
+    h.SetVirtualChannel( newVC.AsUInt32() );
+
+    flit->AddHeader( h );
+}
+
+void
+TocinoRx::TryForwardFlit()
+{
+    NS_LOG_FUNCTION_NOARGS();
     
-    if( IsTocinoFlowControlFlit( flit ) )
+    TocinoRoute route = m_crossbar.FindForwardableRoute();
+
+    if( route == TocinoCrossbar::NO_FORWARDABLE_ROUTE )
     {
-        NS_LOG_LOGIC( "got flow control flit" );
-       
-        TocinoFlowControlState newXState = GetTocinoFlowControlState( flit );
-        m_tx->SetXState( newXState );
+        NS_LOG_LOGIC( "no forwardable flits" );
 
         return;
     }
 
-    const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
-
-    bool enqueueTriggeredBlock = EnqueueHelper( flit, inputVC );
-
-    if( enqueueTriggeredBlock )
-    {
-        // FIXME:
-        // We intend to model an ejection port that can never be full. Yet,
-        // we call RemotePause even when tx_port == m_tnd->GetHostPort(),
-        // in order to avoid overrunning the ejection port queues.
-
-        if( m_inputPortNumber != m_tnd->GetHostPort() )
-        {
-            m_tx->RemotePause( inputVC );
-        }
-    }
-
-    TryRouteFlit();
-}
-
-// ISSUE-REVIEW:
-// This function essentially moves flits from the input
-// stage to the output stage if possible.  Consider
-// moving it to it's own module.  Crossbar?
-void
-TocinoRx::TryRouteFlit()
-{
-    NS_LOG_FUNCTION_NOARGS();
-
-    NS_ASSERT( m_router != NULL );
+    const TocinoInputVC inputVC = route.inputVC;
+    const TocinoOutputVC outputVC = route.outputVC;
     
-    // ISSUE-REVIEW: doing this in inputVC order is unfair
-    // and will result in starvation of high VCs 
-    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
+    bool unblocked = false;
+
+    Ptr<Packet> flit = DequeueHelper( inputVC, unblocked );
+
+    if( inputVC != outputVC )
     {
-        if( !CanRouteFrom( inputVC ) )
+        // Router has elected to change virtual channels
+        RewriteFlitHeaderVC( flit, outputVC );
+    }
+     
+    // Forward the flit along its route
+    m_crossbar.ForwardFlit( flit, route );
+
+    // If we just became unblocked ask our corresponding
+    // transmitter to resume the remote node
+    if( unblocked )
+    {
+        if( m_inputPortNumber == m_tnd->GetHostPort() )
         {
-            continue;
+            // Special handling for injection port
+
+            // ScheduleNow here, rather than direct call to
+            // TrySendFlits, avoids mind-bending reentrancy due to:
+            //    Recieve -> 
+            //      TryRouteFlit -> 
+            //        TrySendFlits -> 
+            //          InjectFlits -> 
+            //            Receive
+            // Otherwise we can end up with multiple Receives in
+            // flight at once, which is very confusing.
+
+            Simulator::ScheduleNow( &TocinoNetDevice::TrySendFlits, m_tnd );
         }
-
-        // Try to route a flit
-        TocinoRoute route = m_router->Route( inputVC ); 
-
-        if( route == TocinoRouter::CANNOT_ROUTE )
+        else
         {
-            // We may not be able to route a flit at this time.
-            // 
-            // The target output queue may be full.
-            //
-            // The router may need to switch virtual channels, for
-            // example, to implement the dateline algorithm.  If
-            // there is already a route in-progress to the same
-            // output port and output vc, we cannot proceed.
-
-            NS_LOG_LOGIC( "cannot route flit from inputVC=" << inputVC );
-            continue;
+            m_tx->RemoteResume( inputVC );
         }
-       
-        bool dequeueTriggeredUnblock = false;
-
-        Ptr<Packet> flit = DequeueHelper( inputVC, dequeueTriggeredUnblock );
-
-        if( inputVC != route.outputVC )
-        {
-            // Router has elected to change virtual channels
-            RewriteFlitHeaderVC( flit, route.outputVC );
-        }
-       
-        // If we just became unblocked ask our corresponding
-        // transmitter to resume the remote node
-        if( dequeueTriggeredUnblock )
-        {
-            if( m_inputPortNumber == m_tnd->GetHostPort() )
-            {
-                // Special handling for injection port
-                
-                // ScheduleNow here, rather than direct call to
-                // TrySendFlits, avoids mind-bending reentrancy due to:
-                //    Recieve -> 
-                //      TryRouteFlit -> 
-                //        TrySendFlits -> 
-                //          InjectFlits -> 
-                //            Receive
-                // Otherwise we can end up with multiple Receives in
-                // flight at once, which is very confusing.
-
-                Simulator::ScheduleNow( &TocinoNetDevice::TrySendFlits, m_tnd );
-            }
-            else
-            {
-                m_tx->RemoteResume( inputVC );
-            }
-        }
-
-        // Move the flit to the proper transmitter and output queue
-        TocinoTx* outputTransmitter = m_tnd->GetTransmitter( route.outputPort );
-        outputTransmitter->AcceptFlit( m_inputPortNumber, route.outputVC, flit );
     }
 }
 
@@ -330,9 +288,10 @@ TocinoRx::DumpState() const
             NS_LOG_LOGIC(" inputVC=" << inputVC << " not blocked");
         }
 
-        TocinoRoute route = m_router->GetCurrentRoute( inputVC );
+        TocinoRoute route = 
+            m_crossbar.GetForwardingTable().GetRoute( inputVC );
 
-        if( route != TocinoRouter::INVALID_ROUTE )
+        if( route != TOCINO_INVALID_ROUTE )
         {
             NS_LOG_LOGIC( "  route in-progress to outputPort="
                     << route.outputPort << " outputVC=" << route.outputVC );

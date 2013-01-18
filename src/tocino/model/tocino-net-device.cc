@@ -97,12 +97,6 @@ TocinoNetDevice::~TocinoNetDevice()
 void
 TocinoNetDevice::Initialize()
 {
-    ObjectFactory routerFactory;
-    routerFactory.SetTypeId( m_routerTypeId );
-
-    ObjectFactory arbiterFactory;
-    arbiterFactory.SetTypeId( m_arbiterTypeId );
-
     // size data structures
     m_incomingPackets.resize(m_nVCs, NULL);
     m_incomingSources.resize(m_nVCs);
@@ -113,15 +107,9 @@ TocinoNetDevice::Initialize()
     // create transmitters and arbiters
     for ( uint32_t i = 0; i < m_nPorts; i++)
     {
-        Ptr<TocinoArbiter> arbiter = arbiterFactory.Create<TocinoArbiter>();
-        Ptr<TocinoRouter> router = routerFactory.Create<TocinoRouter>();
-
         // MAS - must create transmitter first
-        m_transmitters[i] = new TocinoTx( i, this, arbiter );
-        m_receivers[i] = new TocinoRx( i, this, router );
-
-        arbiter->Initialize( this, m_transmitters[i] );
-        router->Initialize( this, m_receivers[i] );
+        m_transmitters[i] = new TocinoTx( i, this );
+        m_receivers[i] = new TocinoRx( i, this );
     }
 }
 
@@ -483,6 +471,18 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
         m_rxCallback( this, pkt, eh.GetLengthType(), src );
         pkt = NULL;
     }
+}
+
+const TypeId&
+TocinoNetDevice::GetRouterTypeId() const
+{
+    return m_routerTypeId;
+}
+
+const TypeId&
+TocinoNetDevice::GetArbiterTypeId() const
+{
+    return m_arbiterTypeId;
 }
 
 TocinoRx*

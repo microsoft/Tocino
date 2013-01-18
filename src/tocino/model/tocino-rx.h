@@ -8,23 +8,20 @@
 #include "ns3/ptr.h"
 
 #include "tocino-flow-control.h"
+#include "tocino-crossbar.h"
 
 namespace ns3
 {
 
-class NetDevice;
-class TocinoNetDevice;
-class Packet;
 class CallbackQueue;
-class TocinoRouter;
 class TocinoTx;
+class NetDevice;
 
 class TocinoRx
 {
     public:
 
-    TocinoRx( const uint32_t, Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
-    ~TocinoRx();
+    TocinoRx( const uint32_t, Ptr<TocinoNetDevice> );
 
     uint32_t GetPortNumber() const;
 
@@ -37,7 +34,7 @@ class TocinoRx
 
     void Receive(Ptr<Packet> p);
     
-    void TryRouteFlit();
+    void TryForwardFlit();
 
     void SetReserveFlits( uint32_t );
     
@@ -47,32 +44,38 @@ class TocinoRx
     private:
     
     Ptr<CallbackQueue> GetInputQueue( const TocinoInputVC ) const;
-    void SetInputQueue( const TocinoInputVC, const Ptr<CallbackQueue> );
+    
+    void SetInputQueue(
+            const TocinoInputVC,
+            const Ptr<CallbackQueue> );
   
-    bool CanRouteFrom( const TocinoInputVC ) const;
-    
-    void RewriteFlitHeaderVC( Ptr<Packet>, const TocinoOutputVC ) const;
-    
-    bool EnqueueHelper( Ptr<Packet>, const TocinoInputVC );
+    bool EnqueueHelper(
+            Ptr<Packet>,
+            const TocinoInputVC );
     
     // FIXME: Out parameters are ugly. Replace this with
     // std::tuple and std::tie ASAP so we can return
     // both the packet and the boolean at once.
-    Ptr<Packet> DequeueHelper( const TocinoInputVC, bool& );
-
+    Ptr<Packet> DequeueHelper( 
+            const TocinoInputVC,
+            bool& );
+    
+    void RewriteFlitHeaderVC(
+            Ptr<Packet>,
+            const TocinoOutputVC ) const;
+    
     const uint32_t m_inputPortNumber;
 
-    // link to owning TocinoNetDevice
     const Ptr<TocinoNetDevice> m_tnd;
 
     // corresponding transmitter
     TocinoTx * const m_tx;
-    
-    Ptr<TocinoRouter> m_router;
+   
+    TocinoCrossbar m_crossbar;
 
     // This nested class controls access to our
     // primary state variable
-    class
+    class TocinoInputQueues
     {
         private:
         
@@ -88,7 +91,7 @@ class TocinoRx
         
         friend 
             TocinoRx::TocinoRx( const uint32_t,
-                Ptr<TocinoNetDevice>, Ptr<TocinoRouter> );
+                Ptr<TocinoNetDevice> );
         
         friend Ptr<CallbackQueue>
             TocinoRx::GetInputQueue(

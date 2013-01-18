@@ -86,6 +86,9 @@ public:
     // called by TocinoTx to eject a flit
     void EjectFlit(Ptr<Packet>);
 
+    const TypeId& GetRouterTypeId() const;
+    const TypeId& GetArbiterTypeId() const;
+
 private:
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );
