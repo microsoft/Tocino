@@ -7,13 +7,13 @@
 
 #include "ns3/ptr.h"
 
-#include "tocino-flow-control.h"
 #include "tocino-crossbar.h"
+#include "tocino-flow-control.h"
+#include "tocino-queue.h"
 
 namespace ns3
 {
 
-class CallbackQueue;
 class NetDevice;
 class TocinoChannel;
 class TocinoRouter;
@@ -42,14 +42,11 @@ class TocinoRx
 
     private:
     
-    Ptr<const Packet> PeekNextFlit( const TocinoInputVC ) const;
+    typedef TocinoQueue< Ptr<Packet> > InputQueue;
 
-    Ptr<CallbackQueue> GetInputQueue( const TocinoInputVC ) const;
+    InputQueue& GetInputQueue( const TocinoInputVC );
+    const InputQueue& GetInputQueue( const TocinoInputVC ) const;
     
-    void SetInputQueue(
-            const TocinoInputVC,
-            const Ptr<CallbackQueue> );
-  
     void SetReserveFlits( uint32_t );
     
     bool EnqueueHelper(
@@ -91,7 +88,7 @@ class TocinoRx
         // The input queues are per input virtual channel.
         // These are used mainly for correctness: to
         // tolerate XOFF delay.
-        std::vector< Ptr<CallbackQueue> > vec;
+        std::vector< InputQueue > vec;
 
         public:
      
@@ -102,13 +99,13 @@ class TocinoRx
             TocinoRx::TocinoRx( const uint32_t,
                 Ptr<TocinoNetDevice> );
         
-        friend Ptr<CallbackQueue>
+        friend InputQueue&
+            TocinoRx::GetInputQueue(
+                const TocinoInputVC ); 
+        
+        friend const InputQueue&
             TocinoRx::GetInputQueue(
                 const TocinoInputVC ) const;
-
-        friend void 
-            TocinoRx::SetInputQueue( const TocinoInputVC,
-                const Ptr<CallbackQueue> );
     } 
     m_inputQueues;
 

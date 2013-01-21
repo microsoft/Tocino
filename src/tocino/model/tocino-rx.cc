@@ -6,7 +6,6 @@
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 
-#include "callback-queue.h"
 #include "tocino-channel.h"
 #include "tocino-flit-id-tag.h"
 #include "tocino-net-device.h"
@@ -39,10 +38,6 @@ TocinoRx::TocinoRx(
     , m_crossbar( tnd, inputPortNumber )
 {
     m_inputQueues.vec.resize( m_tnd->GetNVCs() );
-    for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
-    {
-        SetInputQueue( inputVC, CreateObject<CallbackQueue>() );
-    }
     
     ObjectFactory routerFactory;
     routerFactory.SetTypeId( m_tnd->GetRouterTypeId() );
@@ -74,31 +69,23 @@ TocinoRx::SetChannel( Ptr<TocinoChannel> chan )
 bool
 TocinoRx::IsVCBlocked( const TocinoInputVC inputVC ) const
 {
-    return GetInputQueue( inputVC )->IsAlmostFull();
+    return GetInputQueue( inputVC ).IsAlmostFull();
 }
 
-Ptr<const Packet>
-TocinoRx::PeekNextFlit( const TocinoInputVC inputVC ) const
-{
-    return GetInputQueue( inputVC )->Peek();
-}
-    
-Ptr<CallbackQueue>
-TocinoRx::GetInputQueue( const TocinoInputVC inputVC ) const
+TocinoRx::InputQueue&
+TocinoRx::GetInputQueue( const TocinoInputVC inputVC )
 {
     NS_ASSERT( inputVC < m_tnd->GetNVCs() );
 
     return m_inputQueues.vec[ inputVC.AsUInt32() ];
 }
 
-void
-TocinoRx::SetInputQueue(
-        const TocinoInputVC inputVC,
-        const Ptr<CallbackQueue> queue )
+const TocinoRx::InputQueue&
+TocinoRx::GetInputQueue( const TocinoInputVC inputVC ) const
 {
     NS_ASSERT( inputVC < m_tnd->GetNVCs() );
 
-    m_inputQueues.vec[ inputVC.AsUInt32() ] = queue;
+    return m_inputQueues.vec[ inputVC.AsUInt32() ];
 }
 
 bool
@@ -109,7 +96,7 @@ TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoInputVC inputVC )
      
     bool wasNotBlocked = !IsVCBlocked( inputVC );
 
-    bool success = GetInputQueue( inputVC )->Enqueue( flit );
+    bool success = GetInputQueue( inputVC ).Enqueue( flit );
 
     bool isNowBlocked = IsVCBlocked( inputVC );
     
@@ -162,7 +149,7 @@ TocinoRx::DequeueHelper(
 {
     bool wasBlocked = IsVCBlocked( inputVC );
 
-    Ptr<Packet> flit = GetInputQueue( inputVC )->Dequeue();
+    Ptr<Packet> flit = GetInputQueue( inputVC ).Dequeue();
 
     bool isNoLongerBlocked = !IsVCBlocked( inputVC );
     
@@ -208,13 +195,14 @@ TocinoRx::FindForwardableRoute() const
     // ISSUE-REVIEW: We may route the same flit many times
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        Ptr<const Packet> flit = PeekNextFlit( inputVC ); 
+        const InputQueue& queue = GetInputQueue( inputVC );
 
-        if( flit == NULL )
+        if( queue.IsEmpty() )
         {
-            // Input queue is empty
             continue;
         }
+        
+        Ptr<const Packet> flit = queue.PeekFront();
 
         TocinoRoute route( TOCINO_INVALID_ROUTE );
 
@@ -328,7 +316,7 @@ TocinoRx::SetReserveFlits( uint32_t numFlits )
 {
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        GetInputQueue( inputVC )->SetFreeWM( numFlits );
+        GetInputQueue( inputVC ).SetReserve( numFlits );
     }
 }
 
@@ -339,7 +327,7 @@ TocinoRx::AllQuiet() const
     
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
-        if( !GetInputQueue( inputVC )->IsEmpty() )
+        if( !GetInputQueue( inputVC ).IsEmpty() )
         {
             NS_LOG_LOGIC( "Not quiet: "
                     << "m_inputQueues" 
@@ -364,11 +352,11 @@ TocinoRx::DumpState() const
         {
             NS_LOG_LOGIC(" inputVC=" << inputVC << " BLOCKED");
             
-            Ptr<CallbackQueue> queue = GetInputQueue( inputVC );
+            const InputQueue& queue = GetInputQueue( inputVC );
 
-            for( uint32_t i = 0; i < queue->Size(); i++ )
+            for( uint32_t i = 0; i < queue.Size(); i++ )
             {
-                NS_LOG_LOGIC("   " << GetTocinoFlitIdString( queue->At(i) ) );
+                NS_LOG_LOGIC("   " << GetTocinoFlitIdString( queue.At(i) ) );
             }
         }
         else

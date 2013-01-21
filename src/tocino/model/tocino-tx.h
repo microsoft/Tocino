@@ -9,15 +9,15 @@
 
 #include "tocino-arbiter.h"
 #include "tocino-flow-control.h"
+#include "tocino-queue.h"
 
 namespace ns3
 {
    
 class NetDevice;
+class TocinoArbiter;
 class TocinoChannel;
 class TocinoNetDevice;
-class CallbackQueue;
-class TocinoArbiter;
 
 class TocinoTx
 {
@@ -53,10 +53,6 @@ class TocinoTx
             const TocinoInputPort, 
             const TocinoOutputVC ) const;
     
-    Ptr<const Packet> PeekNextFlit(
-            const TocinoInputPort, 
-            const TocinoOutputVC ) const;
-    
     bool IsNextFlitHead(
             const TocinoInputPort, 
             const TocinoOutputVC ) const;
@@ -70,15 +66,20 @@ class TocinoTx
 
     private:
     
-    Ptr<CallbackQueue> GetOutputQueue( 
+    Ptr<const Packet> PeekNextFlit(
+            const TocinoInputPort, 
+            const TocinoOutputVC ) const;
+    
+    typedef TocinoQueue< Ptr<Packet> > OutputQueue;
+
+    OutputQueue& GetOutputQueue( 
+            const TocinoInputPort,
+            const TocinoOutputVC );
+    
+    const OutputQueue& GetOutputQueue( 
             const TocinoInputPort,
             const TocinoOutputVC ) const;
 
-    void SetOutputQueue( 
-            const TocinoInputPort,
-            const TocinoOutputVC,
-            const Ptr<CallbackQueue> );
-  
     void SendToChannel( Ptr<Packet> f );
     void DoTransmitFlowControl();
     void DoTransmit();
@@ -106,7 +107,7 @@ class TocinoTx
         // The output queues are virtualized per input, to
         // avoid head-of-line blocking.  These queues are
         // mostly for performance.
-        typedef std::vector< Ptr<CallbackQueue> > OutputVCVec;
+        typedef std::vector< OutputQueue > OutputVCVec;
         std::vector< OutputVCVec > vec;
 
         public:
@@ -118,17 +119,15 @@ class TocinoTx
             TocinoTx::TocinoTx( 
                 const uint32_t, Ptr<TocinoNetDevice> );
 
-        friend Ptr<CallbackQueue>
+        friend OutputQueue&
+            TocinoTx::GetOutputQueue(
+                    const TocinoInputPort,
+                    const TocinoOutputVC );
+        
+        friend const OutputQueue& 
             TocinoTx::GetOutputQueue(
                     const TocinoInputPort,
                     const TocinoOutputVC ) const;
-
-        friend void
-            TocinoTx::SetOutputQueue( 
-                const TocinoInputPort,
-                const TocinoOutputVC, 
-                Ptr<CallbackQueue> );
-
     }
     m_outputQueues;
 };

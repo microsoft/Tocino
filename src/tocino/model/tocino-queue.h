@@ -66,6 +66,11 @@ class TocinoQueue
         return m_queue.size() == 0;
     }
 
+    uint32_t Size() const
+    {
+        return m_queue.size();
+    }
+
     private:
 
     uint32_t RemainingEntries() const
@@ -77,7 +82,7 @@ class TocinoQueue
 
     bool IsAlmostFull() const
     {
-        if( RemainingEntries() <= m_reserve )
+        if( RemainingEntries() > m_reserve )
         {
             return false;
         }
@@ -106,11 +111,18 @@ class TocinoQueue
         return v;
     }
 
-    const_reference Peek() const
+    const_reference PeekFront() const
     {
         NS_ASSERT( !IsEmpty() );
 
         return m_queue.front();
+    }
+    
+    const_reference At( uint32_t idx ) const
+    {
+        NS_ASSERT( idx < m_queue.size() );
+
+        return m_queue[idx];
     }
 };
 

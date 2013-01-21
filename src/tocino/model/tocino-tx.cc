@@ -4,14 +4,13 @@
 #include <string>
 
 #include "ns3/assert.h"
+#include "ns3/data-rate.h"
 #include "ns3/log.h"
 #include "ns3/node.h"
 #include "ns3/nstime.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
-#include "ns3/data-rate.h"
 
-#include "callback-queue.h"
 #include "tocino-arbiter.h"
 #include "tocino-channel.h"
 #include "tocino-flit-id-tag.h"
@@ -49,10 +48,6 @@ TocinoTx::TocinoTx( const uint32_t outputPortNumber, Ptr<TocinoNetDevice> tnd )
     for( TocinoInputPort inputPort = 0; inputPort < m_tnd->GetNPorts(); ++inputPort )
     {
         m_outputQueues.vec[ inputPort.AsUInt32() ].resize( m_tnd->GetNVCs() );
-        for( TocinoOutputVC outputVC = 0; outputVC < m_tnd->GetNVCs(); ++outputVC )
-        {
-            SetOutputQueue( inputPort, outputVC, CreateObject<CallbackQueue>() );
-        }
     }
     
     ObjectFactory arbiterFactory;
@@ -61,7 +56,18 @@ TocinoTx::TocinoTx( const uint32_t outputPortNumber, Ptr<TocinoNetDevice> tnd )
     m_arbiter->Initialize( m_tnd, this );
 }
 
-Ptr<CallbackQueue>
+TocinoTx::OutputQueue&
+TocinoTx::GetOutputQueue( 
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) 
+{
+    NS_ASSERT( inputPort < m_tnd->GetNPorts() );
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+
+    return m_outputQueues.vec[ inputPort.AsUInt32() ][ outputVC.AsUInt32() ];
+}
+
+const TocinoTx::OutputQueue&
 TocinoTx::GetOutputQueue( 
         const TocinoInputPort inputPort,
         const TocinoOutputVC outputVC ) const
@@ -72,18 +78,6 @@ TocinoTx::GetOutputQueue(
     return m_outputQueues.vec[ inputPort.AsUInt32() ][ outputVC.AsUInt32() ];
 }
 
-void 
-TocinoTx::SetOutputQueue( 
-        const TocinoInputPort inputPort,
-        const TocinoOutputVC outputVC,
-        const Ptr<CallbackQueue> queue )
-{
-    NS_ASSERT( inputPort < m_tnd->GetNPorts() );
-    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
-
-    m_outputQueues.vec[ inputPort.AsUInt32() ][ outputVC.AsUInt32() ] = queue;
-}
-    
 void
 TocinoTx::SetXState( const TocinoFlowControlState& newXState )
 {
@@ -273,7 +267,7 @@ TocinoTx::DoTransmit()
     }
   
     Ptr<Packet> flit =
-        GetOutputQueue( winner.inputPort, winner.outputVC )->Dequeue();
+        GetOutputQueue( winner.inputPort, winner.outputVC ).Dequeue();
 
     NS_ASSERT_MSG( flit != NULL, "Queue underrun? inputPort="
             << winner.inputPort << " outputVC=" << winner.outputVC );
@@ -310,7 +304,7 @@ TocinoTx::CanAcceptFlit(
         const TocinoInputPort inputPort,
         const TocinoOutputVC outputVC ) const
 {
-    return !GetOutputQueue( inputPort, outputVC )->IsFull();
+    return !GetOutputQueue( inputPort, outputVC ).IsFull();
 }
 
 void
@@ -327,7 +321,7 @@ TocinoTx::AcceptFlit(
   
     NS_ASSERT( CanAcceptFlit( inputPort, outputVC ) );
 
-    bool success = GetOutputQueue( inputPort, outputVC )->Enqueue( flit );
+    bool success = GetOutputQueue( inputPort, outputVC ).Enqueue( flit );
 
     NS_ASSERT_MSG( success, "Queue overrun? inputPort="
             << inputPort << " outputVC=" << outputVC );
@@ -348,7 +342,7 @@ TocinoTx::CanTransmitFrom(
     //  -It is not empty
     //  -The corresponding output VC is enabled
     
-    if( !GetOutputQueue( inputPort, outputVC )->IsEmpty() ) 
+    if( !GetOutputQueue( inputPort, outputVC ).IsEmpty() ) 
     {
         if( !IsVCPaused( outputVC ) )
         {
@@ -367,9 +361,9 @@ TocinoTx::PeekNextFlit(
     NS_ASSERT( inputPort < m_tnd->GetNPorts() );
     NS_ASSERT( outputVC < m_tnd->GetNVCs() );
     
-    NS_ASSERT( !GetOutputQueue( inputPort, outputVC )->IsEmpty() );
+    NS_ASSERT( !GetOutputQueue( inputPort, outputVC ).IsEmpty() );
 
-    return GetOutputQueue( inputPort, outputVC )->Peek();
+    return GetOutputQueue( inputPort, outputVC ).PeekFront();
 }
 
 bool
@@ -403,7 +397,7 @@ TocinoTx::AllQuiet() const
                 quiet = false;
             }
 
-            if( !GetOutputQueue( inputPort, outputVC )->IsEmpty() )
+            if( !GetOutputQueue( inputPort, outputVC ).IsEmpty() )
             {
                 NS_LOG_LOGIC( "Not quiet: "
                         << "m_outputQueues" 
@@ -438,12 +432,13 @@ TocinoTx::DumpState() const
             // can only schedule head flit - which sources have head flit at front of queue
             for( TocinoInputPort inputPort = 0; inputPort < m_tnd->GetNPorts(); inputPort++ )
             {
-                Ptr<CallbackQueue> queue = GetOutputQueue( inputPort, outputVC );
+                const OutputQueue& queue = GetOutputQueue( inputPort, outputVC );
 
-                if( !queue->IsEmpty() )
+                if( !queue.IsEmpty() )
                 {
-                    NS_LOG_LOGIC("   next=" << GetTocinoFlitIdString( queue->Peek() ) << 
-                            " inputPort=" << inputPort );
+                    NS_LOG_LOGIC("   next="
+                            << GetTocinoFlitIdString( queue.PeekFront() )
+                            << " inputPort=" << inputPort );
                 }
             }
         }
@@ -452,16 +447,16 @@ TocinoTx::DumpState() const
             NS_LOG_LOGIC( "   outputVC=" << owner.outputVC << " owning inputPort=" 
                     << owner.inputPort << " " << xState_str );
             
-            Ptr<CallbackQueue> queue = 
+            const OutputQueue& queue = 
                 GetOutputQueue( owner.inputPort, owner.outputVC );
 
-            if( queue->IsEmpty() )
+            if( queue.IsEmpty() )
             {
                 NS_LOG_LOGIC("    empty queue");
             }
             else
             {
-                NS_LOG_LOGIC( "   next=" << GetTocinoFlitIdString( queue->Peek() ) );
+                NS_LOG_LOGIC( "   next=" << GetTocinoFlitIdString( queue.PeekFront() ) );
             }
         }
     }

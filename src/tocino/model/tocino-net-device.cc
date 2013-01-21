@@ -15,7 +15,6 @@
 #include "tocino-net-device.h"
 #include "tocino-rx.h"
 #include "tocino-tx.h"
-#include "callback-queue.h"
 #include "tocino-channel.h"
 #include "tocino-flit-header.h"
 #include "tocino-dimension-order-router.h"
