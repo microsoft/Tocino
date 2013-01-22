@@ -10,13 +10,14 @@
 #include "tocino-crossbar.h"
 #include "tocino-flow-control.h"
 #include "tocino-queue.h"
+#include "tocino-router.h"
+#include "tocino-routing-table.h"
 
 namespace ns3
 {
 
 class NetDevice;
 class TocinoChannel;
-class TocinoRouter;
 class TocinoTx;
 
 class TocinoRx
@@ -41,8 +42,18 @@ class TocinoRx
     void DumpState() const;
 
     private:
-    
-    typedef TocinoQueue< Ptr<Packet> > InputQueue;
+  
+    void AnnounceRoutingDecision(
+            Ptr<const Packet>,
+            const TocinoRoute& ) const;
+
+    struct InputQueueEntry
+    {
+        Ptr<Packet> flit;
+        TocinoRoute route;
+    };
+
+    typedef TocinoQueue< InputQueueEntry  > InputQueue;
 
     InputQueue& GetInputQueue( const TocinoInputVC );
     const InputQueue& GetInputQueue( const TocinoInputVC ) const;
@@ -50,13 +61,13 @@ class TocinoRx
     void SetReserveFlits( uint32_t );
     
     bool EnqueueHelper(
-            Ptr<Packet>,
+            const InputQueueEntry&,  
             const TocinoInputVC );
     
     // FIXME: Out parameters are ugly. Replace this with
     // std::tuple and std::tie ASAP so we can return
     // both the packet and the boolean at once.
-    Ptr<Packet> DequeueHelper( 
+    const InputQueueEntry DequeueHelper( 
             const TocinoInputVC,
             bool& );
     
@@ -64,9 +75,9 @@ class TocinoRx
             Ptr<Packet>,
             const TocinoOutputVC ) const;
    
-    TocinoRoute FindForwardableRoute() const;
+    TocinoInputVC FindForwardableVC() const;
        
-    static const TocinoRoute NO_FORWARDABLE_ROUTE;
+    static const TocinoInputVC NO_FORWARDABLE_VC;
 
     const TocinoInputPort m_inputPort;
 
@@ -77,6 +88,7 @@ class TocinoRx
     TocinoTx * const m_tx;
    
     Ptr<TocinoRouter> m_router;
+    TocinoRoutingTable m_routingTable;
     TocinoCrossbar m_crossbar;
 
     // This nested class controls access to our

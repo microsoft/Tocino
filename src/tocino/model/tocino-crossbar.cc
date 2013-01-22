@@ -31,41 +31,44 @@ TocinoCrossbar::TocinoCrossbar(
         const TocinoInputPort inputPort )
     : m_tnd( tnd )
     , m_inputPort( inputPort )
-    , m_forwardingTable( tnd->GetNVCs() )
-{}
-
-const TocinoForwardingTable&
-TocinoCrossbar::GetForwardingTable() const
 {
-    return m_forwardingTable;
+    m_forwardingTable.resize( m_tnd->GetNPorts() );
+    
+    for( TocinoOutputPort outputPort = 0;
+         outputPort < m_tnd->GetNPorts(); 
+         ++outputPort )
+    {
+        ForwardingTableVec& vec 
+            = m_forwardingTable[ outputPort.AsUInt32() ];
+
+        vec.assign( m_tnd->GetNVCs(), TOCINO_INVALID_VC );
+    }
 }
 
-bool
-TocinoCrossbar::ForwardingInProgress( 
-        const TocinoInputVC thisInputVC,
+const TocinoInputVC&
+TocinoCrossbar::GetForwardingTableEntry(
         const TocinoOutputPort outputPort,
         const TocinoOutputVC outputVC ) const
 {
-    for( TocinoInputVC otherInputVC = 0; 
-         otherInputVC < m_tnd->GetNVCs();
-         ++otherInputVC )
-    {
-        if( otherInputVC == thisInputVC )
-        {
-            continue;
-        }
+    return m_forwardingTable[ outputPort.AsUInt32() ][ outputVC.AsUInt32() ];
+}
 
-        TocinoRoute existingRoute =
-            m_forwardingTable.GetRoute( otherInputVC );
+void
+TocinoCrossbar::SetForwardingTableEntry(
+        const TocinoOutputPort outputPort,
+        const TocinoOutputVC outputVC,
+        const TocinoInputVC inputVC )
+{
+    m_forwardingTable[ outputPort.AsUInt32() ][ outputVC.AsUInt32() ] = inputVC;
+}
 
-        if( ( existingRoute.outputPort == outputPort ) && 
-            ( existingRoute.outputVC == outputVC ) )
-        {
-            return true;
-        }
-    }
-
-    return false;
+void
+TocinoCrossbar::ResetForwardingTableEntry(
+        const TocinoOutputPort outputPort,
+        const TocinoOutputVC outputVC )
+{
+    m_forwardingTable[ outputPort.AsUInt32() ][ outputVC.AsUInt32() ] 
+        = TOCINO_INVALID_VC;
 }
 
 bool
@@ -92,21 +95,28 @@ TocinoCrossbar::IsForwardable(
     const TocinoOutputPort outputPort = route.outputPort;
     const TocinoInputVC inputVC = route.inputVC;
     const TocinoOutputVC outputVC = route.outputVC;
-
-    if( ForwardingInProgress( inputVC, outputPort, outputVC ) )
-    {
-        NS_LOG_LOGIC( "can't forward: forwarding already in progress" );
-        return false;
-    }
-
+    
     if( !TransmitterCanAcceptFlit( outputPort, outputVC ) )
     {
         NS_LOG_LOGIC( "can't forward: output queue full" );
         return false;
     }
 
-    NS_LOG_LOGIC( "can forward along this route" );
-    return true;
+    const TocinoInputVC currentTableEntry = 
+        GetForwardingTableEntry( outputPort, outputVC );
+
+    if( currentTableEntry == TOCINO_INVALID_VC )
+    {
+        return true;
+    }
+    
+    if( currentTableEntry == inputVC )
+    {
+        return true;
+    }
+
+    NS_LOG_LOGIC( "can't forward: forwarding already in progress" );
+    return false;
 }
 
 void
@@ -127,40 +137,34 @@ TocinoCrossbar::ForwardFlit(
             << " from inputVC=" << inputVC
             << " to outputPort=" << outputPort
             << ", outputVC=" << outputVC );
-
+   
     const bool isHead = IsTocinoFlitHead( flit );
     const bool isTail = IsTocinoFlitTail( flit );
   
-    const TocinoRoute& currentTableEntry 
-        = m_forwardingTable.GetRoute(inputVC);
+    const TocinoInputVC currentTableEntry = 
+        GetForwardingTableEntry( outputPort, outputVC );
 
-    // Paranoia: ensure consistency of forwarding table
     if( isHead )
     {
-        NS_ASSERT( currentTableEntry == TOCINO_INVALID_ROUTE );
+        NS_ASSERT( currentTableEntry == TOCINO_INVALID_VC );
+
+        if( !isTail )
+        {
+            NS_LOG_LOGIC( "head flit, updating forwarding table" );
+            SetForwardingTableEntry( outputPort, outputVC, inputVC );
+        }
     }
     else
     {
-        NS_ASSERT( currentTableEntry != TOCINO_INVALID_ROUTE );
+        NS_ASSERT( currentTableEntry != TOCINO_INVALID_VC );
+
+        if( isTail )
+        {
+            NS_LOG_LOGIC( "tail flit, clearing forwarding state" );
+            ResetForwardingTableEntry( outputPort, outputVC );
+        }
     }
 
-    if( isHead && !isTail )
-    {
-        NS_LOG_LOGIC( 
-            "head flit, installing new route for inputVC=" << inputVC );
-
-        // Update the forwarding table 
-        m_forwardingTable.SetRoute( inputVC, route );
-    }
-    else if( !isHead && isTail )
-    {
-        NS_LOG_LOGIC(
-            "tail flit, clearing state for inputVC=" << inputVC );
-
-        // Tear down routing decision by resetting state on a tail flit.
-        m_forwardingTable.ClearRoute( inputVC );
-    }
-    
     TocinoTx* outputTransmitter = m_tnd->GetTransmitter( outputPort );
 
     // Forward the flit to the proper transmitter and output queue

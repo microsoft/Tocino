@@ -321,10 +321,7 @@ TocinoTx::AcceptFlit(
   
     NS_ASSERT( CanAcceptFlit( inputPort, outputVC ) );
 
-    bool success = GetOutputQueue( inputPort, outputVC ).Enqueue( flit );
-
-    NS_ASSERT_MSG( success, "Queue overrun? inputPort="
-            << inputPort << " outputVC=" << outputVC );
+    GetOutputQueue( inputPort, outputVC ).Enqueue( flit );
 
     // Kick off transmission
     Transmit();

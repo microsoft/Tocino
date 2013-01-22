@@ -90,15 +90,11 @@ class TocinoQueue
         return true;
     }
 
-    bool Enqueue( const T& v )
+    void Enqueue( const T& v )
     {
-        if( IsFull() )
-        {
-            return false;
-        }
+        NS_ASSERT( !IsFull() );
 
         m_queue.push_back(v); 
-        return true;
     }
 
     value_type Dequeue()

@@ -29,7 +29,7 @@ void TocinoCustomizeLogging()
 }
 
 std::string
-Tocino3dTorusPortNumberToString( const int port )
+Tocino3dTorusPortNumberToString( const uint32_t port )
 {
     if( port == 6 )
     {
@@ -68,6 +68,18 @@ Tocino3dTorusPortNumberToString( const int port )
     }
 
     return oss.str();
+}
+
+std::string
+Tocino3dTorusPortNumberToString( const TocinoInputPort inputPort )
+{
+    return Tocino3dTorusPortNumberToString( inputPort.AsUInt32() ); 
+}
+
+std::string
+Tocino3dTorusPortNumberToString( const TocinoOutputPort outputPort )
+{
+    return Tocino3dTorusPortNumberToString( outputPort.AsUInt32() ); 
 }
 
 }

@@ -9,7 +9,6 @@
 #include "tocino-channel.h"
 #include "tocino-flit-id-tag.h"
 #include "tocino-net-device.h"
-#include "tocino-router.h"
 #include "tocino-rx.h"
 #include "tocino-tx.h"
 
@@ -35,6 +34,7 @@ TocinoRx::TocinoRx(
     : m_inputPort( inputPortNumber )
     , m_tnd( tnd )
     , m_tx( tnd->GetTransmitter( inputPortNumber ) )
+    , m_routingTable( tnd->GetNVCs() )
     , m_crossbar( tnd, inputPortNumber )
 {
     m_inputQueues.vec.resize( m_tnd->GetNVCs() );
@@ -89,18 +89,18 @@ TocinoRx::GetInputQueue( const TocinoInputVC inputVC ) const
 }
 
 bool
-TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoInputVC inputVC )
+TocinoRx::EnqueueHelper(
+        const InputQueueEntry& qe,
+        const TocinoInputVC inputVC )
 {
-    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == inputVC,
+    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( qe.flit ) == inputVC,
         "attempt to enqueue flit with mismatched VC" );
      
     bool wasNotBlocked = !IsVCBlocked( inputVC );
 
-    bool success = GetInputQueue( inputVC ).Enqueue( flit );
+    GetInputQueue( inputVC ).Enqueue( qe );
 
     bool isNowBlocked = IsVCBlocked( inputVC );
-    
-    NS_ASSERT_MSG( success, "Queue overrun? inputVC=" << inputVC );
     
     bool enqueueTriggeredBlock = wasNotBlocked && isNowBlocked;
 
@@ -108,14 +108,42 @@ TocinoRx::EnqueueHelper( Ptr<Packet> flit, const TocinoInputVC inputVC )
 }
 
 void
+TocinoRx::AnnounceRoutingDecision(
+        Ptr<const Packet> flit,
+        const TocinoRoute& route ) const
+{
+    std::ostringstream logPrefix;
+
+    if( IsTocinoFlitHead( flit ) )
+    {
+        logPrefix << "new route via ";
+    }
+    else
+    {
+        logPrefix << "existing route via ";
+    }
+    
+    const TocinoInputVC inputVC = route.inputVC;
+    const TocinoOutputPort outputPort = route.outputPort;
+    const TocinoOutputVC outputVC = route.outputVC;
+
+    NS_LOG_LOGIC( logPrefix.str()
+            << Tocino3dTorusPortNumberToString( outputPort )
+            << " (outputPort=" << outputPort
+            << ", inputVC=" << inputVC
+            << ", outputVC=" << outputVC << ")" );
+}
+
+void
 TocinoRx::Receive( Ptr<Packet> flit )
 {
     NS_LOG_FUNCTION( GetTocinoFlitIdString( flit ) );
     
+    NS_ASSERT( m_router != NULL );
+    
     if( IsTocinoFlowControlFlit( flit ) )
     {
         NS_LOG_LOGIC( "got flow control flit" );
-       
         TocinoFlowControlState newXState = GetTocinoFlowControlState( flit );
         m_tx->SetXState( newXState );
 
@@ -124,8 +152,32 @@ TocinoRx::Receive( Ptr<Packet> flit )
 
     const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
 
-    bool blocked = EnqueueHelper( flit, inputVC );
+    TocinoRoute route( TOCINO_INVALID_ROUTE );
 
+    if( IsTocinoFlitHead( flit ) )
+    {
+        route = m_router->Route( flit );
+        m_routingTable.InstallRoute( inputVC, route );
+    }
+    else
+    {
+        route = m_routingTable.GetRoute( inputVC );
+    }
+    
+    NS_ASSERT( route != TOCINO_INVALID_ROUTE );
+   
+    AnnounceRoutingDecision( flit, route );
+
+    if( IsTocinoFlitTail( flit ) )
+    {
+        NS_LOG_LOGIC( "removing route for inputVC=" << inputVC );
+        m_routingTable.RemoveRoute( inputVC );
+    }
+    
+    InputQueueEntry qe = { flit, route };
+    
+    bool blocked = EnqueueHelper( qe, inputVC );
+    
     if( blocked )
     {
         // FIXME:
@@ -142,25 +194,23 @@ TocinoRx::Receive( Ptr<Packet> flit )
     TryForwardFlit();
 }
 
-Ptr<Packet>
+const TocinoRx::InputQueueEntry
 TocinoRx::DequeueHelper(
         const TocinoInputVC inputVC,
         bool &dequeueTriggeredUnblock )
 {
     bool wasBlocked = IsVCBlocked( inputVC );
 
-    Ptr<Packet> flit = GetInputQueue( inputVC ).Dequeue();
+    const InputQueueEntry qe = GetInputQueue( inputVC ).Dequeue();
 
     bool isNoLongerBlocked = !IsVCBlocked( inputVC );
     
-    NS_ASSERT_MSG( flit != NULL, "Queue underrun? inputVC=" << inputVC );
-
-    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( flit ) == inputVC,
+    NS_ASSERT_MSG( GetTocinoFlitVirtualChannel( qe.flit ) == inputVC,
             "Dequeued flit has wrong VC?" );
             
     dequeueTriggeredUnblock = wasBlocked && isNoLongerBlocked;
     
-    return flit;
+    return qe;
 }
 
 void
@@ -180,19 +230,17 @@ TocinoRx::RewriteFlitHeaderVC(
     flit->AddHeader( h );
 }
 
-// Intentionally distinct from TOCINO_INVALID_ROUTE
-const TocinoRoute TocinoRx::NO_FORWARDABLE_ROUTE(
-        TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1, TOCINO_INVALID_VC-1 );
+// Intentionally distinct from TOCINO_INVALID_VC
+const TocinoInputVC TocinoRx::NO_FORWARDABLE_VC( TOCINO_INVALID_VC-1 );
 
-TocinoRoute
-TocinoRx::FindForwardableRoute() const
+TocinoInputVC
+TocinoRx::FindForwardableVC() const
 {
     NS_LOG_FUNCTION_NOARGS();
     
     NS_ASSERT( m_router != NULL );
 
     // ISSUE-REVIEW: Potential starvation of higher VCs 
-    // ISSUE-REVIEW: We may route the same flit many times
     for( TocinoInputVC inputVC = 0; inputVC < m_tnd->GetNVCs(); ++inputVC )
     {
         const InputQueue& queue = GetInputQueue( inputVC );
@@ -202,36 +250,18 @@ TocinoRx::FindForwardableRoute() const
             continue;
         }
         
-        Ptr<const Packet> flit = queue.PeekFront();
+        const InputQueueEntry& qe = queue.PeekFront();
 
-        TocinoRoute route( TOCINO_INVALID_ROUTE );
-
-        if( IsTocinoFlitHead( flit ) )
+        if( !m_crossbar.IsForwardable( qe.route ) )
         {
-            // Make a new routing decision
-            route = m_router->Route( flit );
-        }
-        else
-        {
-            const TocinoForwardingTable& forwardingTable =
-                m_crossbar.GetForwardingTable();
-            
-            // Recall previous routing decision
-            route = forwardingTable.GetRoute( inputVC );
-        }
-
-        NS_ASSERT( route != TOCINO_INVALID_ROUTE );
-        
-        if( !m_crossbar.IsForwardable( route ) )
-        {
-            // This flit is not currently forwardable
+            // This VC is not currently forwardable
             continue;
         }
             
-        return route;
+        return inputVC;
     }
 
-    return NO_FORWARDABLE_ROUTE;
+    return NO_FORWARDABLE_VC;
 }
 
 void
@@ -241,49 +271,31 @@ TocinoRx::TryForwardFlit()
     
     NS_ASSERT( m_router != NULL );
 
-    TocinoRoute route = FindForwardableRoute();
+    const TocinoInputVC inputVC = FindForwardableVC();
 
-    if( route == NO_FORWARDABLE_ROUTE )
+    if( inputVC == NO_FORWARDABLE_VC )
     {
-        NS_LOG_LOGIC( "no forwardable routes" );
+        NS_LOG_LOGIC( "no forwardable inputVC" );
         return;
     }
-
-    const TocinoOutputPort outputPort = route.outputPort;
-    const TocinoInputVC inputVC = route.inputVC;
-    const TocinoOutputVC outputVC = route.outputVC;
-
+    
     bool unblocked = false;
 
-    Ptr<Packet> flit = DequeueHelper( inputVC, unblocked );
-        
-    std::ostringstream logPrefix;
-
-    if( IsTocinoFlitHead( flit ) )
-    {
-        logPrefix << "new route via";
-    }
-    else
-    {
-        logPrefix << "existing route via";
-    }
+    const InputQueueEntry qe = DequeueHelper( inputVC, unblocked );
     
-    NS_LOG_LOGIC( logPrefix.str()
-            << " outputPort=" << outputPort
-            << " ("
-            << Tocino3dTorusPortNumberToString( outputPort.AsUInt32() )
-            << "), inputVC=" << inputVC
-            << ", outputVC=" << inputVC );
+    NS_ASSERT( qe.route.inputVC == inputVC );
+
+    const TocinoOutputVC outputVC = qe.route.outputVC;
 
     if( inputVC != outputVC )
     {
         NS_LOG_LOGIC( "note: route changes VC" );
-        RewriteFlitHeaderVC( flit, outputVC );
+        RewriteFlitHeaderVC( qe.flit, outputVC );
     }
-     
+    
     // Forward the flit along its route
-    m_crossbar.ForwardFlit( flit, route );
-
+    m_crossbar.ForwardFlit( qe.flit, qe.route );
+    
     // If we just became unblocked ask our corresponding
     // transmitter to resume the remote node
     if( unblocked )
@@ -356,7 +368,9 @@ TocinoRx::DumpState() const
 
             for( uint32_t i = 0; i < queue.Size(); i++ )
             {
-                NS_LOG_LOGIC("   " << GetTocinoFlitIdString( queue.At(i) ) );
+                Ptr<const Packet> flit = queue.At(i).flit;
+
+                NS_LOG_LOGIC("   " << GetTocinoFlitIdString( flit ) );
             }
         }
         else
@@ -364,8 +378,7 @@ TocinoRx::DumpState() const
             NS_LOG_LOGIC(" inputVC=" << inputVC << " not blocked");
         }
 
-        TocinoRoute route = 
-            m_crossbar.GetForwardingTable().GetRoute( inputVC );
+        TocinoRoute route = m_routingTable.GetRoute( inputVC );
 
         if( route != TOCINO_INVALID_ROUTE )
         {
