@@ -134,6 +134,41 @@ TocinoRx::AnnounceRoutingDecision(
             << ", outputVC=" << outputVC << ")" );
 }
 
+const TocinoRoute
+TocinoRx::MakeRoutingDecision( Ptr<const Packet> flit )
+{
+    const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
+    
+    const bool isHead = IsTocinoFlitHead( flit );
+    const bool isTail = IsTocinoFlitTail( flit );
+
+    TocinoRoute route( TOCINO_INVALID_ROUTE );
+
+    if( isHead )
+    {
+        route = m_router->Route( flit );
+
+        if( !isTail )
+        {
+            m_routingTable.InstallRoute( inputVC, route );
+        }
+    }
+    else
+    {
+        route = m_routingTable.GetRoute( inputVC );
+    }
+        
+    NS_ASSERT( route != TOCINO_INVALID_ROUTE );
+
+    if( isTail && !isHead )
+    {
+        NS_LOG_LOGIC( "removing route for inputVC=" << inputVC );
+        m_routingTable.RemoveRoute( inputVC );
+    }
+
+    return route;
+}
+
 void
 TocinoRx::Receive( Ptr<Packet> flit )
 {
@@ -152,31 +187,11 @@ TocinoRx::Receive( Ptr<Packet> flit )
 
     const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
 
-    TocinoRoute route( TOCINO_INVALID_ROUTE );
+    const TocinoRoute route = MakeRoutingDecision( flit );
 
-    if( IsTocinoFlitHead( flit ) )
-    {
-        route = m_router->Route( flit );
-        m_routingTable.InstallRoute( inputVC, route );
-    }
-    else
-    {
-        route = m_routingTable.GetRoute( inputVC );
-    }
-    
-    NS_ASSERT( route != TOCINO_INVALID_ROUTE );
-   
     AnnounceRoutingDecision( flit, route );
 
-    if( IsTocinoFlitTail( flit ) )
-    {
-        NS_LOG_LOGIC( "removing route for inputVC=" << inputVC );
-        m_routingTable.RemoveRoute( inputVC );
-    }
-    
-    InputQueueEntry qe = { flit, route };
-    
-    bool blocked = EnqueueHelper( qe, inputVC );
+    bool blocked = EnqueueHelper( InputQueueEntry( flit, route ), inputVC );
     
     if( blocked )
     {

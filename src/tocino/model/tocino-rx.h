@@ -47,10 +47,17 @@ class TocinoRx
             Ptr<const Packet>,
             const TocinoRoute& ) const;
 
+    const TocinoRoute MakeRoutingDecision( Ptr<const Packet> );
+
     struct InputQueueEntry
     {
         Ptr<Packet> flit;
         TocinoRoute route;
+
+        InputQueueEntry( Ptr<Packet> f, const TocinoRoute& r )
+            : flit( f )
+            , route( r )
+        {}
     };
 
     typedef TocinoQueue< InputQueueEntry  > InputQueue;
