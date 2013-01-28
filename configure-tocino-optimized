@@ -1,2 +1,2 @@
 #!/bin/bash
-./waf configure -d optimized --enable-tests --enable-modules=tocino
+./waf configure -d optimized --enable-tests --enable-examples --enable-modules=tocino

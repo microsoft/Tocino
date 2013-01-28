@@ -112,6 +112,7 @@ TocinoRx::AnnounceRoutingDecision(
         Ptr<const Packet> flit,
         const TocinoRoute& route ) const
 {
+#ifdef NS3_LOG_ENABLE
     std::ostringstream logPrefix;
 
     if( IsTocinoFlitHead( flit ) )
@@ -132,6 +133,7 @@ TocinoRx::AnnounceRoutingDecision(
             << " (outputPort=" << outputPort
             << ", inputVC=" << inputVC
             << ", outputVC=" << outputVC << ")" );
+#endif
 }
 
 const TocinoRoute
