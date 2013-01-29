@@ -14,22 +14,15 @@
 
 using namespace ns3;
 
-TestTocino3DTorus::TestTocino3DTorus()
-  : TestCase( "Test a 3D Torus" )
+TestTocino3DTorus::TestTocino3DTorus( uint32_t radix, bool doWrap )
+    : TestCase( "Test a 3D Torus" )
+    , RADIX( radix )
+    , NODES( radix * radix * radix )
+    , m_doWrap( doWrap )
 {}
 
 TestTocino3DTorus::~TestTocino3DTorus()
 {}
-
-int TestTocino3DTorus::Inc( const int i ) const
-{
-    return ( (i + m_radix) + 1 ) % m_radix;
-}
-
-int TestTocino3DTorus::Dec( const int i ) const
-{
-    return ( (i + m_radix) - 1 ) % m_radix;
-}
 
 bool TestTocino3DTorus::AcceptPacket( Ptr<NetDevice> nd, Ptr<const Packet> p, uint16_t, const Address& src )
 {
@@ -42,67 +35,15 @@ bool TestTocino3DTorus::AcceptPacket( Ptr<NetDevice> nd, Ptr<const Packet> p, ui
     return true;
 }
 
-void TestTocino3DTorus::Initialize()
-{
-    NS_ASSERT( m_radix >= 0 );
-
-    // create net devices
-    m_netDevices.clear();
-    m_netDevices.resize(m_radix);
-    for( int x = 0; x < m_radix; x++ )
-    { 
-        m_netDevices[x].resize(m_radix);
-        for( int y = 0; y < m_radix; y++ )
-        { 
-            m_netDevices[x][y].resize(m_radix);
-            for( int z = 0; z < m_radix; z++ )
-            {
-                Ptr<TocinoNetDevice> tnd = CreateObject<TocinoNetDevice>();
-                
-                tnd->Initialize();
-                tnd->SetAddress( TocinoAddress( x, y, z ) );
-                tnd->SetReceiveCallback( MakeCallback( &TestTocino3DTorus::AcceptPacket, this ) );
-
-                // HACK: The Nodes are required to avoid
-                // SIGSEGV in TocinoChannel::TransmitEnd()
-                tnd->SetNode( CreateObject<Node>() );
-
-                m_netDevices[x][y][z] = tnd;
-            }
-        }
-    }
- 
-    // create channels and interconnect net devices
-    for( int x = 0; x < m_radix; x++ )
-    { 
-        for( int y = 0; y < m_radix; y++ )
-        { 
-            for( int z = 0; z < m_radix; z++ )
-            {
-                Ptr<TocinoNetDevice> cur = m_netDevices[x][y][z];
-
-                TocinoChannelHelper( cur, 0, m_netDevices[ Inc(x) ][y][z], 1 ); // x+
-                TocinoChannelHelper( cur, 1, m_netDevices[ Dec(x) ][y][z], 0 ); // x-
-
-                TocinoChannelHelper( cur, 2, m_netDevices[x][ Inc(y) ][z], 3 ); // y+
-                TocinoChannelHelper( cur, 3, m_netDevices[x][ Dec(y) ][z], 2 ); // y-
-
-                TocinoChannelHelper( cur, 4, m_netDevices[x][y][ Inc(z) ], 5 ); // z+
-                TocinoChannelHelper( cur, 5, m_netDevices[x][y][ Dec(z) ], 4 ); // z-
-            }
-        }
-    }
-}
-
 void TestTocino3DTorus::CheckAllQuiet()
 {
     bool aq = true;
 
-    for( int x = 0; x < m_radix; x++ )
+    for( uint32_t x = 0; x < RADIX; x++ )
     { 
-        for( int y = 0; y < m_radix; y++ )
+        for( uint32_t y = 0; y < RADIX; y++ )
         { 
-            for( int z = 0; z < m_radix; z++ )
+            for( uint32_t z = 0; z < RADIX; z++ )
             {
                 aq &= m_netDevices[x][y][z]->AllQuiet();
             }
@@ -111,11 +52,11 @@ void TestTocino3DTorus::CheckAllQuiet()
   
     if( aq ) return;
 
-    for( int x = 0; x < m_radix; x++ )
+    for( uint32_t x = 0; x < RADIX; x++ )
     { 
-        for( int y = 0; y < m_radix; y++ )
+        for( uint32_t y = 0; y < RADIX; y++ )
         { 
-            for( int z = 0; z < m_radix; z++ )
+            for( uint32_t z = 0; z < RADIX; z++ )
             {
                 m_netDevices[x][y][z]->DumpState();
             }
@@ -173,7 +114,7 @@ unsigned TestTocino3DTorus::GetTotalBytes() const
 
 TocinoAddress TestTocino3DTorus::OppositeCorner( const uint8_t x, const uint8_t y, const uint8_t z )
 {
-    const int MAX_COORD = m_radix-1;
+    const int MAX_COORD = RADIX-1;
 
     NS_ASSERT( x == 0 || x == MAX_COORD );
     NS_ASSERT( y == 0 || y == MAX_COORD );
@@ -191,11 +132,11 @@ void TestTocino3DTorus::TestCornerToCorner( const unsigned COUNT, const unsigned
     Ptr<Packet> p = Create<Packet>( BYTES );
 
     // iterate over the "corners"
-    for( int x = 0; x < m_radix; x += (m_radix-1) )
+    for( uint32_t x = 0; x < RADIX; x += (RADIX-1) )
     { 
-        for( int y = 0; y < m_radix; y += (m_radix-1) )
+        for( uint32_t y = 0; y < RADIX; y += (RADIX-1) )
         { 
-            for( int z = 0; z < m_radix; z += (m_radix-1) )
+            for( uint32_t z = 0; z < RADIX; z += (RADIX-1) )
             {
                 Reset();
                 TocinoCustomizeLogging();
@@ -235,7 +176,7 @@ void TestTocino3DTorus::TestCornerToCorner( const unsigned COUNT, const unsigned
 
 int TestTocino3DTorus::Middle() const
 {
-    return ( m_radix-1 ) / 2;
+    return ( RADIX-1 ) / 2;
 }
 
 bool TestTocino3DTorus::IsCenterNeighbor( const int x, const int y, const int z ) const
@@ -277,11 +218,11 @@ void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
     
     for( unsigned i = 0; i < COUNT; ++i )
     {
-        for( int x = 0; x < m_radix; x++ )
+        for( uint32_t x = 0; x < RADIX; x++ )
         { 
-            for( int y = 0; y < m_radix; y++ )
+            for( uint32_t y = 0; y < RADIX; y++ )
             { 
-                for( int z = 0; z < m_radix; z++ )
+                for( uint32_t z = 0; z < RADIX; z++ )
                 {
                     if( IsCenterNeighbor( x, y, z ) )
                     {
@@ -303,11 +244,11 @@ void TestTocino3DTorus::TestIncast( const unsigned COUNT, const unsigned BYTES )
    
     CheckAllQuiet();
     
-    for( int x = 0; x < m_radix; x++ )
+    for( uint32_t x = 0; x < RADIX; x++ )
     { 
-        for( int y = 0; y < m_radix; y++ )
+        for( uint32_t y = 0; y < RADIX; y++ )
         { 
-            for( int z = 0; z < m_radix; z++ )
+            for( uint32_t z = 0; z < RADIX; z++ )
             {
                 if( IsCenterNeighbor( x, y, z ) )
                 {
@@ -333,19 +274,19 @@ void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES
     Reset();
     TocinoCustomizeLogging();
 
-    for( int sx = 0; sx < m_radix; sx++ )
+    for( uint32_t sx = 0; sx < RADIX; sx++ )
     { 
-        for( int sy = 0; sy < m_radix; sy++ )
+        for( uint32_t sy = 0; sy < RADIX; sy++ )
         { 
-            for( int sz = 0; sz < m_radix; sz++ )
+            for( uint32_t sz = 0; sz < RADIX; sz++ )
             {
                 TocinoAddress src( sx, sy, sz );
 
-                for( int dx = 0; dx < m_radix; dx++ )
+                for( uint32_t dx = 0; dx < RADIX; dx++ )
                 { 
-                    for( int dy = 0; dy < m_radix; dy++ )
+                    for( uint32_t dy = 0; dy < RADIX; dy++ )
                     { 
-                        for( int dz = 0; dz < m_radix; dz++ )
+                        for( uint32_t dz = 0; dz < RADIX; dz++ )
                         {
                             TocinoAddress dst( dx, dy, dz );
 
@@ -379,8 +320,6 @@ void TestTocino3DTorus::TestAllToAll( const unsigned COUNT, const unsigned BYTES
 
     CheckAllQuiet();
 
-    const int NODES = m_radix * m_radix * m_radix;
-    
     NS_TEST_ASSERT_MSG_EQ( GetTotalCount(), NODES*(NODES-1)*COUNT,
             "Unexpected total packet count" );
 
@@ -408,15 +347,25 @@ void TestTocino3DTorus::TestHelper()
 void
 TestTocino3DTorus::DoRun()
 {
-    m_radix = 3;
+    if( m_doWrap )
+    {
+        Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint",
+                UintegerValue( RADIX-1 ) );
+    }
+    
+    Tocino3DTorusTopologyHelper helper( RADIX );
+    
+    m_machines = NodeContainer();
+    m_machines.Create( NODES );
+    
+    m_netDevices = helper.Install( m_machines );
+    
+    for( uint32_t n = 0; n < NODES; ++n )
+    {
+        Ptr<NetDevice> nd = m_machines.Get( n )->GetDevice( 0 );
+        nd->SetReceiveCallback( MakeCallback( &TestTocino3DTorus::AcceptPacket, this ) );
+    }
 
-    Initialize();
-    TestHelper();
-   
-    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint",
-            UintegerValue( m_radix-1 ) );
-
-    Initialize();
     TestHelper();
 
     Config::Reset();

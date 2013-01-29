@@ -10,7 +10,7 @@
 
 namespace ns3 {
 
-Ptr<TocinoChannel>
+void
 TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
                      Ptr<TocinoNetDevice> rx_nd, uint32_t rx_port )
 {
@@ -21,8 +21,6 @@ TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
     
     c->SetTransmitter( tx_nd->GetTransmitter( tx_port ) );
     c->SetReceiver( rx_nd->GetReceiver( rx_port ) );
- 
-    return c;
 }
 
 }

@@ -8,6 +8,9 @@
 
 #include "ns3/ptr.h"
 #include "ns3/test.h"
+#include "ns3/node-container.h"
+
+#include "ns3/tocino-3d-torus-topology-helper.h"
 
 namespace ns3
 {
@@ -16,18 +19,20 @@ class TocinoAddress;
 
 class TestTocino3DTorus : public TestCase
 {
-public:
-    TestTocino3DTorus();
-    virtual ~TestTocino3DTorus();
-private:
-    int m_radix;
+    public:
 
-    int Inc( const int i ) const;
-    int Dec( const int i ) const;
+    TestTocino3DTorus( uint32_t radix, bool doWrap );
+    virtual ~TestTocino3DTorus();
+
+    private:
+    
+    const uint32_t RADIX;
+    const uint32_t NODES;
+   
+    const bool m_doWrap;
 
     bool AcceptPacket( Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address& );
 
-    void Initialize();
     void CheckAllQuiet();
     void Reset();
 
@@ -44,11 +49,12 @@ private:
     void TestHelper();
 
     virtual void DoRun();
- 
+
+    NodeContainer m_machines;
+
     // 3D vector of NetDevices
-    std::vector< std::vector< std::vector< 
-        Ptr< TocinoNetDevice > > > > m_netDevices;
-  
+    Tocino3DTorusNetDeviceContainer m_netDevices;
+ 
     // 2d map src*dst => unsigned
     typedef std::map< TocinoAddress, unsigned > TestMatrixRow;
     typedef std::map< TocinoAddress, TestMatrixRow  > TestMatrix;

@@ -11,6 +11,7 @@ def build(bld):
     module = bld.create_ns3_module('tocino', ['core', 'network'])
     module.source = [
         'helper/tocino-helper.cc',
+        'helper/tocino-3d-torus-topology-helper.cc',
         'model/all2all.cc',
         'model/callback-queue.cc',
         'model/tocino-arbiter.cc',
@@ -52,6 +53,7 @@ def build(bld):
     headers.module = 'tocino'
     headers.source = [
         'helper/tocino-helper.h',
+        'helper/tocino-3d-torus-topology-helper.h',
         'model/all2all.h',
         'model/callback-queue.h',
         'model/tocino-address.h',

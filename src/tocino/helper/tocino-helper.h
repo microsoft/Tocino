@@ -9,7 +9,7 @@ namespace ns3 {
 class TocinoChannel;
 class TocinoNetDevice;
 
-Ptr<TocinoChannel>
+void
 TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
                      Ptr<TocinoNetDevice> rx_nd, uint32_t rx_port );
 
