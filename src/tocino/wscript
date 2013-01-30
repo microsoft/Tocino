@@ -33,7 +33,9 @@ def build(bld):
     module_test = bld.create_ns3_module_test_library('tocino')
     module_test.source = [
 #        'test/test-tocino-all2all.cc',
-        'test/test-tocino-3d-torus.cc',
+        'test/test-tocino-3d-torus-all-to-all.cc',
+        'test/test-tocino-3d-torus-corner-to-corner.cc',
+        'test/test-tocino-3d-torus-incast.cc',
         'test/test-tocino-callbackqueue.cc',
         'test/test-tocino-deadlock.cc',
         'test/test-tocino-flit-header.cc',
@@ -43,6 +45,7 @@ def build(bld):
         'test/test-tocino-multihop.cc',
         'test/test-tocino-point-to-point.cc',
         'test/test-tocino-ring.cc',
+        'test/tocino-test-results.cc',
         'test/tocino-test-suite.cc',
         ]
     

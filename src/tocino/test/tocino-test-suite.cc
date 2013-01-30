@@ -9,7 +9,9 @@
 #include "test-tocino-multihop.h"
 #include "test-tocino-ring.h"
 #include "test-tocino-deadlock.h"
-#include "test-tocino-3d-torus.h"
+#include "test-tocino-3d-torus-corner-to-corner.h"
+#include "test-tocino-3d-torus-incast.h"
+#include "test-tocino-3d-torus-all-to-all.h"
 
 #include "ns3/log.h"
 #include "ns3/test.h"
@@ -25,21 +27,21 @@ public:
 TocinoTestSuite::TocinoTestSuite ()
     : TestSuite ("tocino", UNIT)
 {
-    //AddTestCase( new TestTocinoCallbackQueue );
-    //AddTestCase( new TestTocinoFlitHeader );
-    //AddTestCase( new TestTocinoFlitter );
-    //AddTestCase( new TestTocinoFlowControl );
-    //AddTestCase( new TestTocinoLoopback );
-    //AddTestCase( new TestTocinoPointToPoint );
-    //AddTestCase( new TestTocinoMultihop );
-    //AddTestCase( new TestTocinoRing );
-    //AddTestCase( new TestTocinoDeadlock );
-   
-    // Topologically a torus, however use default mesh routing
-    AddTestCase( new TestTocino3DTorus( 3, false ) );
-   
-    // Route around the torus edges this time
-    AddTestCase( new TestTocino3DTorus( 3, true ) );
+    AddTestCase( new TestTocinoCallbackQueue );
+    AddTestCase( new TestTocinoFlitHeader );
+    AddTestCase( new TestTocinoFlitter );
+    AddTestCase( new TestTocinoFlowControl );
+    AddTestCase( new TestTocinoLoopback );
+    AddTestCase( new TestTocinoPointToPoint );
+    AddTestCase( new TestTocinoMultihop );
+    AddTestCase( new TestTocinoRing );
+    AddTestCase( new TestTocinoDeadlock );
+    AddTestCase( new TestTocino3DTorusCornerToCorner( 3, false ) );
+    AddTestCase( new TestTocino3DTorusCornerToCorner( 3, true ) );
+    AddTestCase( new TestTocino3DTorusIncast( 3, false ) );
+    AddTestCase( new TestTocino3DTorusIncast( 3, true ) );
+    AddTestCase( new TestTocino3DTorusAllToAll( 3, false ) );
+    AddTestCase( new TestTocino3DTorusAllToAll( 3, true ) );
 }
 
 static TocinoTestSuite tocinoTestSuite;
