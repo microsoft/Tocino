@@ -17,7 +17,7 @@ class TocinoAddress
         m_address.raw = 0;
     }
 
-    TocinoAddress( uint32_t a )
+    explicit TocinoAddress( uint32_t a )
     {
         m_address.raw = a;
     }

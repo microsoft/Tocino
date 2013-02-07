@@ -10,8 +10,8 @@
 def build(bld):
     module = bld.create_ns3_module('tocino', ['core', 'network'])
     module.source = [
-        'helper/tocino-helper.cc',
         'helper/tocino-3d-torus-topology-helper.cc',
+        'helper/tocino-helper.cc',
         'model/all2all.cc',
         'model/callback-queue.cc',
         'model/tocino-arbiter.cc',
@@ -27,12 +27,14 @@ def build(bld):
         'model/tocino-routing-table.cc',
         'model/tocino-rx.cc',
         'model/tocino-simple-arbiter.cc',
+        'model/tocino-traffic-matrix-application.cc',
         'model/tocino-tx.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('tocino')
     module_test.source = [
 #        'test/test-tocino-all2all.cc',
+        'test/test-tocino-3d-torus.cc',
         'test/test-tocino-3d-torus-all-to-all.cc',
         'test/test-tocino-3d-torus-corner-to-corner.cc',
         'test/test-tocino-3d-torus-incast.cc',
@@ -74,6 +76,7 @@ def build(bld):
         'model/tocino-routing-table.h',
         'model/tocino-rx.h',
         'model/tocino-simple-arbiter.h',
+        'model/tocino-traffic-matrix-application.h',
         'model/tocino-tx.h',
         'model/tocino-type-safe-uint32.h',
         ]

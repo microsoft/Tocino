@@ -3,118 +3,84 @@
 #include "ns3/config.h"
 #include "ns3/uinteger.h"
 #include "ns3/simulator.h"
+#include "ns3/log.h"
 
 #include "ns3/tocino-net-device.h"
 
 #include "test-tocino-3d-torus-all-to-all.h"
+#include "tocino-test-results.h"
 
 using namespace ns3;
 
 TestTocino3DTorusAllToAll::TestTocino3DTorusAllToAll( uint32_t radix, bool doWrap )
-    : TestCase( doWrap ?
-            "Test a 3D Torus with All-to-All Traffic" :
-            "Test a 3D Mesh with All-to-All Traffic" )
-    , RADIX( radix )
-    , NODES( radix * radix * radix )
-    , m_doWrap( doWrap )
-{}
-
-void
-TestTocino3DTorusAllToAll::CheckAllQuiet()
+    : TestTocino3DTorus( radix, doWrap, " with all-to-all traffic" )
 {
-    bool aq = true;
-
-    for( uint32_t x = 0; x < RADIX; x++ )
-    { 
-        for( uint32_t y = 0; y < RADIX; y++ )
-        { 
-            for( uint32_t z = 0; z < RADIX; z++ )
-            {
-                aq &= m_netDevices[x][y][z]->AllQuiet();
-            }
+    m_trafficMatrix.resize( NODES );
+    
+    for( uint32_t src = 0; src < NODES; ++src )
+    {
+        m_trafficMatrix[src].resize( NODES );
+        
+        for( uint32_t dst = 0; dst < NODES; ++dst )
+        {
+            m_trafficMatrix[src][dst] =
+                TOCINO_TOTAL_TRAFFIC/NODES;
         }
     }
-  
-    if( aq ) return;
-
-    for( uint32_t x = 0; x < RADIX; x++ )
-    { 
-        for( uint32_t y = 0; y < RADIX; y++ )
-        { 
-            for( uint32_t z = 0; z < RADIX; z++ )
-            {
-                m_netDevices[x][y][z]->DumpState();
-            }
-        }
-    }
-
-    NS_TEST_ASSERT_MSG_EQ( aq, true, "not all quiet?" );
 }
 
 void
 TestTocino3DTorusAllToAll::TestHelper(
-        const unsigned COUNT,
+        const Time testDuration,
         const unsigned BYTES )
 {
-    Ptr<Packet> p = Create<Packet>( BYTES );
-                
-    m_results.Reset();
-    TocinoCustomizeLogging();
-
-    for( uint32_t sx = 0; sx < RADIX; sx++ )
-    { 
-        for( uint32_t sy = 0; sy < RADIX; sy++ )
-        { 
-            for( uint32_t sz = 0; sz < RADIX; sz++ )
-            {
-                TocinoAddress src( sx, sy, sz );
-
-                for( uint32_t dx = 0; dx < RADIX; dx++ )
-                { 
-                    for( uint32_t dy = 0; dy < RADIX; dy++ )
-                    { 
-                        for( uint32_t dz = 0; dz < RADIX; dz++ )
-                        {
-                            TocinoAddress dst( dx, dy, dz );
-
-                            if( src == dst )
-                            {
-                                // don't send to self
-                                continue;
-                            }
-
-                            Ptr<TocinoNetDevice> srcNetDevice = m_netDevices[sx][sy][sz];
-
-                            for( unsigned i = 0; i < COUNT; ++i )
-                            {
-                                Simulator::ScheduleWithContext( 
-                                        srcNetDevice->GetNode()->GetId(),
-                                        Seconds(0),
-                                        &TocinoNetDevice::Send,
-                                        srcNetDevice,
-                                        p,
-                                        dst,
-                                        0 );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    NodeContainer machines;
+    TocinoTestResults results;
+    AppVector applications;
     
+    TocinoCustomizeLogging();
+    
+    machines.Create( NODES );
+    
+    Tocino3DTorusNetDeviceContainer netDevices =
+        m_helper.Install( machines );
+  
+    for( uint32_t node = 0; node < NODES; ++node )
+    {
+        Ptr<TocinoTrafficMatrixApplication> app =
+                CreateObject<TocinoTrafficMatrixApplication>();
+    
+        applications.push_back(app);
+
+        app->Initialize( node, &machines, m_trafficMatrix );
+        app->ResetStatistics();
+
+        app->SetReceiveCallback( 
+                MakeCallback( &TocinoTestResults::AcceptPacket, &results ) );
+        
+        app->SetStartTime( Seconds( 0.0 ) );
+        app->SetStopTime( testDuration );
+        app->SetPacketSize( BYTES );
+        
+        machines.Get( node )->AddApplication( app );
+    }
+
     Simulator::Run();
 
-    CheckAllQuiet();
+    //NS_LOG_UNCOND( results.ToString() );
+
+    CheckAllQuiet( netDevices );
+   
+    const uint32_t TOTAL_PACKETS = GetTotalPacketsSent( applications );
 
     NS_TEST_ASSERT_MSG_EQ(
-            m_results.GetTotalCount(),
-            NODES*(NODES-1)*COUNT,
+            results.GetTotalCount(),
+            TOTAL_PACKETS,
             "Unexpected total packet count" );
 
     NS_TEST_ASSERT_MSG_EQ(
-            m_results.GetTotalBytes(),
-            NODES*(NODES-1)*BYTES*COUNT,
+            results.GetTotalBytes(),
+            BYTES * TOTAL_PACKETS,
             "Unexpected total packet bytes" );
 
     Simulator::Destroy();
@@ -129,24 +95,9 @@ TestTocino3DTorusAllToAll::DoRun()
                 UintegerValue( RADIX-1 ) );
     }
     
-    Tocino3DTorusTopologyHelper helper( RADIX );
-    
-    m_machines = NodeContainer();
-    m_machines.Create( NODES );
-    
-    m_netDevices = helper.Install( m_machines );
-    
-    for( uint32_t n = 0; n < NODES; ++n )
-    {
-        Ptr<NetDevice> nd = m_machines.Get( n )->GetDevice( 0 );
-
-        nd->SetReceiveCallback( 
-                MakeCallback( &ns3::TocinoTestResults::AcceptPacket, &m_results ) );
-    }
-
-    TestHelper( 1, 20 );
-    TestHelper( 1, 123 );
-    TestHelper( 10, 32 );
+    TestHelper( Seconds( 0.5 ), 20 );
+    TestHelper( Seconds( 0.5 ), 123 );
+    TestHelper( Seconds( 0.5 ), 32 );
 
     Config::Reset();
 }

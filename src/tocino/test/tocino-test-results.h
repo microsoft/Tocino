@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <map>
+#include <sstream>
 
 #include "ns3/ptr.h"
 #include "ns3/address.h"
@@ -29,6 +30,8 @@ class TocinoTestResults
 
     unsigned GetTotalCount() const;
     unsigned GetTotalBytes() const;
+
+    std::string ToString() const;
 
     private:
 

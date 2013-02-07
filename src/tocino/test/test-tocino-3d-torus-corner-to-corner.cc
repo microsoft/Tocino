@@ -3,61 +3,49 @@
 #include "ns3/config.h"
 #include "ns3/uinteger.h"
 #include "ns3/simulator.h"
+#include "ns3/log.h"
 
 #include "ns3/tocino-net-device.h"
 
 #include "test-tocino-3d-torus-corner-to-corner.h"
+#include "tocino-test-results.h"
 
 using namespace ns3;
 
 TestTocino3DTorusCornerToCorner::TestTocino3DTorusCornerToCorner( uint32_t radix, bool doWrap )
-    : TestCase( doWrap ?
-            "Test a 3D Torus with Corner-to-Corner Traffic" : 
-            "Test a 3D Mesh with Corner-to-Corner Traffic" )
-    , RADIX( radix )
-    , NODES( radix * radix * radix )
-    , m_doWrap( doWrap )
+    : TestTocino3DTorus( radix, doWrap, " with corner-to-corner traffic" ) 
+    , MAX_COORD( radix - 1 )
 {}
 
-void
-TestTocino3DTorusCornerToCorner::CheckAllQuiet()
+bool
+TestTocino3DTorusCornerToCorner::IsCorner(
+        uint32_t idx ) const
 {
-    bool aq = true;
+    const TocinoAddress ta = m_helper.IndexToTocinoAddress( idx );
+    
+    const uint32_t x = ta.GetX();
+    const uint32_t y = ta.GetY();
+    const uint32_t z = ta.GetZ();
 
-    for( uint32_t x = 0; x < RADIX; x++ )
-    { 
-        for( uint32_t y = 0; y < RADIX; y++ )
-        { 
-            for( uint32_t z = 0; z < RADIX; z++ )
-            {
-                aq &= m_netDevices[x][y][z]->AllQuiet();
-            }
-        }
+    if( ( ( x == 0 ) || ( x == MAX_COORD ) ) &&
+        ( ( y == 0 ) || ( y == MAX_COORD ) ) &&
+        ( ( z == 0 ) || ( z == MAX_COORD ) ) )
+    {
+        return true;
     }
-  
-    if( aq ) return;
-
-    for( uint32_t x = 0; x < RADIX; x++ )
-    { 
-        for( uint32_t y = 0; y < RADIX; y++ )
-        { 
-            for( uint32_t z = 0; z < RADIX; z++ )
-            {
-                m_netDevices[x][y][z]->DumpState();
-            }
-        }
-    }
-
-    NS_TEST_ASSERT_MSG_EQ( aq, true, "not all quiet?" );
+    
+    return false;
 }
 
-TocinoAddress
-TestTocino3DTorusCornerToCorner::OppositeCorner(
-        const uint8_t x,
-        const uint8_t y,
-        const uint8_t z ) const
+uint32_t
+TestTocino3DTorusCornerToCorner::GetOppositeCorner(
+        const uint8_t idx ) const
 {
-    const int MAX_COORD = RADIX-1;
+    const TocinoAddress ta = m_helper.IndexToTocinoAddress( idx );
+    
+    const uint32_t x = ta.GetX();
+    const uint32_t y = ta.GetY();
+    const uint32_t z = ta.GetZ();
 
     NS_ASSERT( x == 0 || x == MAX_COORD );
     NS_ASSERT( y == 0 || y == MAX_COORD );
@@ -67,67 +55,99 @@ TestTocino3DTorusCornerToCorner::OppositeCorner(
     uint8_t oy = (y == 0) ? MAX_COORD : 0;
     uint8_t oz = (z == 0) ? MAX_COORD : 0;
 
-    return TocinoAddress( ox, oy, oz );
+    return m_helper.CoordinatesToIndex( ox, oy, oz );
 }
 
-void TestTocino3DTorusCornerToCorner::TestHelper( const unsigned COUNT, const unsigned BYTES )
+void
+TestTocino3DTorusCornerToCorner::TestHelper(
+        const Time testDuration,
+        const unsigned BYTES )
 {
-    Ptr<Packet> p = Create<Packet>( BYTES );
-
-    // iterate over the "corners"
-    for( uint32_t x = 0; x < RADIX; x += (RADIX-1) )
-    { 
-        for( uint32_t y = 0; y < RADIX; y += (RADIX-1) )
-        { 
-            for( uint32_t z = 0; z < RADIX; z += (RADIX-1) )
-            {
-                m_results.Reset();
-                TocinoCustomizeLogging();
-
-                TocinoAddress src( x, y, z );
-                TocinoAddress dst = OppositeCorner( x, y, z );
-
-                Ptr<TocinoNetDevice> srcNetDevice = m_netDevices[x][y][z];
-
-                for( unsigned i = 0; i < COUNT; ++i )
-                {
-                    Simulator::ScheduleWithContext( 
-                            srcNetDevice->GetNode()->GetId(),
-                            Seconds(0),
-                            &TocinoNetDevice::Send,
-                            srcNetDevice,
-                            p,
-                            dst,
-                            0 );
-                }
-
-                Simulator::Run();
-
-                CheckAllQuiet();
-
-                NS_TEST_ASSERT_MSG_EQ(
-                        m_results.GetCount( src, dst ),
-                        COUNT,
-                        "Unexpected packet count" );
-
-                NS_TEST_ASSERT_MSG_EQ(
-                        m_results.GetBytes( src, dst ),
-                        BYTES*COUNT,
-                        "Unexpected packet bytes" );
-
-                NS_TEST_ASSERT_MSG_EQ(
-                        m_results.GetTotalCount(),
-                        COUNT,
-                        "Unexpected total packet count" );
-
-                NS_TEST_ASSERT_MSG_EQ(
-                        m_results.GetTotalBytes(),
-                        BYTES*COUNT,
-                        "Unexpected total packet bytes" );
-
-                Simulator::Destroy();
-            }
+    for( uint32_t src = 0; src < NODES; ++src )
+    {
+        if( !IsCorner( src ) )
+        {
+            continue;
         }
+            
+        NodeContainer machines;
+        TocinoTestResults results;
+
+        TocinoCustomizeLogging();
+
+        machines.Create( NODES );
+
+        Tocino3DTorusNetDeviceContainer netDevices =
+            m_helper.Install( machines );
+  
+        m_trafficMatrix.assign( NODES, TocinoTrafficVector( NODES, 0 ) );
+
+        const uint32_t dst = GetOppositeCorner( src );
+
+        m_trafficMatrix[src][dst] = TOCINO_TOTAL_TRAFFIC;
+   
+        Ptr<TocinoTrafficMatrixApplication> srcApp =
+                CreateObject<TocinoTrafficMatrixApplication>();
+        
+        Ptr<TocinoTrafficMatrixApplication> dstApp =
+                CreateObject<TocinoTrafficMatrixApplication>();
+
+        srcApp->Initialize( src, &machines, m_trafficMatrix );
+        dstApp->Initialize( dst, &machines, m_trafficMatrix );
+        
+        srcApp->ResetStatistics();
+        dstApp->ResetStatistics();
+
+        srcApp->SetReceiveCallback( 
+                MakeCallback( &TocinoTestResults::AcceptPacket, &results ) );
+        
+        dstApp->SetReceiveCallback( 
+                MakeCallback( &TocinoTestResults::AcceptPacket, &results ) );
+        
+        srcApp->SetStartTime( Seconds( 0.0 ) );
+        dstApp->SetStartTime( Seconds( 0.0 ) );
+        
+        srcApp->SetStopTime( testDuration );
+        dstApp->SetStopTime( testDuration );
+
+        srcApp->SetPacketSize( BYTES );
+        dstApp->SetPacketSize( BYTES );
+        
+        machines.Get( src )->AddApplication( srcApp );
+        machines.Get( dst )->AddApplication( dstApp );
+        
+        Simulator::Run();
+    
+        //NS_LOG_UNCOND( results.ToString() );
+
+        CheckAllQuiet( netDevices );
+
+        const uint32_t COUNT = srcApp->GetPacketsSent();
+
+        const TocinoAddress srcAdd = m_helper.IndexToTocinoAddress( src );
+        const TocinoAddress dstAdd = m_helper.IndexToTocinoAddress( dst );
+
+        NS_TEST_ASSERT_MSG_EQ(
+                results.GetCount( srcAdd, dstAdd ),
+                COUNT,
+                "Unexpected packet count" );
+
+        NS_TEST_ASSERT_MSG_EQ(
+                results.GetBytes( srcAdd, dstAdd ),
+                BYTES*COUNT,
+                "Unexpected packet bytes" );
+
+        NS_TEST_ASSERT_MSG_EQ(
+                results.GetTotalCount(),
+                COUNT,
+                "Unexpected total packet count" );
+
+        NS_TEST_ASSERT_MSG_EQ(
+                results.GetTotalBytes(),
+                BYTES*COUNT,
+                "Unexpected total packet bytes" );
+
+        Simulator::Destroy();
     }
 }
 
@@ -140,24 +160,9 @@ TestTocino3DTorusCornerToCorner::DoRun()
                 UintegerValue( RADIX-1 ) );
     }
     
-    Tocino3DTorusTopologyHelper helper( RADIX );
-    
-    m_machines = NodeContainer();
-    m_machines.Create( NODES );
-    
-    m_netDevices = helper.Install( m_machines );
-    
-    for( uint32_t n = 0; n < NODES; ++n )
-    {
-        Ptr<NetDevice> nd = m_machines.Get( n )->GetDevice( 0 );
-        
-        nd->SetReceiveCallback( 
-                MakeCallback( &ns3::TocinoTestResults::AcceptPacket, &m_results ) );
-    }
-    
-    TestHelper( 1, 20 );
-    TestHelper( 1, 123 );
-    TestHelper( 10, 32 );
+    TestHelper( Seconds( 0.5 ), 20 );
+    TestHelper( Seconds( 0.5 ), 123 );
+    TestHelper( Seconds( 0.5 ), 32 );
 
     Config::Reset();
 }

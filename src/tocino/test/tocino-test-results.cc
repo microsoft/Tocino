@@ -121,6 +121,30 @@ TocinoTestResults::GetTotalBytes() const
     return total;
 }
 
+std::string
+TocinoTestResults::ToString() const
+{
+    TestResults::const_iterator i;
+    TestResultsRow::const_iterator j;
+    
+    std::ostringstream oss;
 
+    for( i = m_counts.begin(); i != m_counts.end(); i++ ) 
+    {
+        const TestResultsRow& row = m_counts.find(i->first)->second;
+
+        for( j = row.begin(); j != row.end(); j++ ) 
+        {
+            oss << i->first
+                << " --> "
+                << j->first
+                << " = "
+                << j->second
+                << std::endl;
+        }
+    }
+
+    return oss.str();
+}
 
 }

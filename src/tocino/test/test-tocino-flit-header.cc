@@ -222,7 +222,7 @@ void TestTocinoFlitHeader::TestSerializeSource()
     TocinoFlitHeader h;
 
     h.SetHead();
-    h.SetSource( ~0 );
+    h.SetSource( TocinoAddress(~0) );
 
     uint8_t expected[] = 
     {
@@ -270,7 +270,7 @@ void TestTocinoFlitHeader::TestSerializeDestination()
     TocinoFlitHeader h;
 
     h.SetHead();
-    h.SetDestination( ~0 );
+    h.SetDestination( TocinoAddress(~0) );
 
     uint8_t expected[] = 
     {

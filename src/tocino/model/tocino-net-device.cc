@@ -310,13 +310,8 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     // add the new flits to the end of the outgoing flit Q
     m_outgoingFlits.insert( m_outgoingFlits.end(), fp.begin(), fp.end() );
 
-    // FIXME: this can grow unbounded?
-    
-    // FIXME: temporarily disable assert so we can run bigger sims.  Ultimately,
-    // we will have "applications" that will hook into the event system and
-    // call SendFrom() incrementally over the course of the sim.
-
-    //NS_ASSERT_MSG( m_outgoingFlits.size() < 10000, "Crazy large packet queue?" );
+    // ISSUE-REVIEW: this can grow unbounded?
+    NS_ASSERT_MSG( m_outgoingFlits.size() < 100, "Crazy large packet queue?" );
 
     TrySendFlits();
 

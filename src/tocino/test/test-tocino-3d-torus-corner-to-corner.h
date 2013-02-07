@@ -3,21 +3,15 @@
 #define __TEST_TOCINO_3D_TORUS_CORNER_TO_CORNER_H__
 
 #include <stdint.h>
-#include <vector>
 
-#include "ns3/test.h"
-#include "ns3/node-container.h"
-
-#include "ns3/tocino-3d-torus-topology-helper.h"
-
-#include "tocino-test-results.h"
+#include "test-tocino-3d-torus.h"
 
 namespace ns3
 {
 
 class TocinoAddress;
 
-class TestTocino3DTorusCornerToCorner : public TestCase
+class TestTocino3DTorusCornerToCorner : public TestTocino3DTorus
 {
     public:
 
@@ -25,28 +19,14 @@ class TestTocino3DTorusCornerToCorner : public TestCase
 
     private:
     
-    const uint32_t RADIX;
-    const uint32_t NODES;
+    const uint32_t MAX_COORD;
    
-    const bool m_doWrap;
-
-    void CheckAllQuiet();
-
-    TocinoAddress OppositeCorner(
-            const uint8_t,
-            const uint8_t,
-            const uint8_t ) const;
+    bool IsCorner( uint32_t ) const;
+    uint32_t GetOppositeCorner( const uint8_t ) const;
     
-    void TestHelper( const unsigned, const unsigned );
+    void TestHelper( const Time, const unsigned );
 
     virtual void DoRun();
-
-    NodeContainer m_machines;
-
-    // 3D vector of NetDevices
-    Tocino3DTorusNetDeviceContainer m_netDevices;
-
-    TocinoTestResults m_results;
 };
 
 }
