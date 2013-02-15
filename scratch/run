@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#../waf --run "3d-torus-bisection-bandwidth --PrintAttributes=ns3::TocinoChannel"
+#../waf --run "3d-torus-bisection-bandwidth --PrintAttributes=ns3::TocinoTrafficMatrixApplication"
+#../waf --run "3d-torus-bisection-bandwidth --PrintAttributes=ns3::TocinoDimensionOrderRouter"
+
+# max payload head flit is 40
+# max payload other flit is 62
+# thus (62*N)+40 gives a packet that decomposes nicely into flits
+# 1528 = (62*24)+40
+
+time ../waf --run "3d-torus-bisection-bandwidth \
+--radix=4 \
+--packetbytes=1528 \
+--duration=100us
+--ns3::TocinoTrafficMatrixApplication::MeanTimeBetweenSends=100ns \
+--ns3::TocinoTrafficMatrixApplication::MaxTimeBetweenSends=200ns"
+

@@ -29,7 +29,9 @@ public:
     
     TocinoNetDevice();
     virtual ~TocinoNetDevice();
-    
+   
+    virtual void DoDispose();
+
     virtual void SetIfIndex( const uint32_t index );
     virtual uint32_t GetIfIndex( void ) const;
     virtual Ptr<Channel> GetChannel( void ) const;
@@ -56,8 +58,9 @@ public:
     virtual bool SupportsSendFrom( void ) const;
     
     void Initialize();
-
+    
     void SetChannel( uint32_t, Ptr<TocinoChannel> );
+    Ptr<TocinoChannel> GetChannel( uint32_t );
 
     TocinoAddress GetTocinoAddress( void ) const;
 

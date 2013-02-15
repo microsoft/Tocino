@@ -21,8 +21,21 @@ typedef std::vector< TocinoTrafficVector > TocinoTrafficMatrix;
    
 typedef NetDevice::ReceiveCallback ReceiveCallback;
 
+// N.B.
+// The function 
+//      ns3::UniformVariable::GetInteger(s, l)
+// is implemented via call to 
+//      GetValue (s, l + 1)
+// without check for overflow. This means we must
+// not use  
+//      std::numeric_limits< uint32_t >::max()
+// as the value for TOCINO_TOTAL_TRAFFIC, or else
+// the +1 will overflow and we will be picking from
+// the range [0,0] and get 0 every time.
+// -MAS
+
 const uint32_t TOCINO_TOTAL_TRAFFIC =
-    std::numeric_limits< uint32_t >::max();
+    std::numeric_limits< uint32_t >::max() - 1;
 
 class TocinoTrafficMatrixApplication : public Application
 {
@@ -67,6 +80,9 @@ class TocinoTrafficMatrixApplication : public Application
     
     Ptr<ExponentialRandomVariable>
         m_sendIntervalRandomVariable;
+
+    UniformVariable
+        m_destinationRandomVariable;
 
     Time m_meanTimeBetweenSends;
     Time m_maxTimeBetweenSends;

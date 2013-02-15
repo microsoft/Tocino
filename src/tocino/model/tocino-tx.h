@@ -23,7 +23,7 @@ class TocinoTx
 {
     public:
 
-    TocinoTx( const uint32_t, Ptr<TocinoNetDevice> );
+    TocinoTx( const uint32_t, TocinoNetDevice* );
   
     uint32_t GetPortNumber() const;
 
@@ -35,8 +35,10 @@ class TocinoTx
     void RemoteResume( const TocinoInputVC );
     
     void SetChannel( Ptr<TocinoChannel> channel );
+    Ptr<TocinoChannel> GetChannel() const;
 
     Ptr<NetDevice> GetNetDevice();
+    Ptr<TocinoNetDevice> GetTocinoNetDevice();
     
     void Transmit();
    
@@ -94,7 +96,7 @@ class TocinoTx
 
     enum TocinoTransmitterState {IDLE, BUSY} m_state;
  
-    const Ptr<TocinoNetDevice> m_tnd;
+    TocinoNetDevice* m_tnd;
     Ptr<TocinoChannel> m_channel;
     Ptr<TocinoArbiter> m_arbiter;
 
@@ -117,7 +119,7 @@ class TocinoTx
         
         friend
             TocinoTx::TocinoTx( 
-                const uint32_t, Ptr<TocinoNetDevice> );
+                const uint32_t, TocinoNetDevice* );
 
         friend OutputQueue&
             TocinoTx::GetOutputQueue(

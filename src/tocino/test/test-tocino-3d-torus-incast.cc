@@ -36,20 +36,14 @@ TestTocino3DTorusIncast::TestTocino3DTorusIncast( uint32_t radix, bool doWrap )
     }
 }
 
-int
-TestTocino3DTorusIncast::Middle() const
-{
-    return ( RADIX-1 ) / 2;
-}
-
 bool
 TestTocino3DTorusIncast::IsCenter( const uint32_t idx ) const
 {
     const TocinoAddress ta = m_helper.IndexToTocinoAddress( idx );
    
-    if( ( ta.GetX() == Middle() ) &&
-        ( ta.GetY() == Middle() ) &&
-        ( ta.GetZ() == Middle() ) )
+    if( ( ta.GetX() == m_helper.Middle() ) &&
+        ( ta.GetY() == m_helper.Middle() ) &&
+        ( ta.GetZ() == m_helper.Middle() ) )
     {
         return true;
     }
@@ -65,9 +59,9 @@ TestTocino3DTorusIncast::IsCenterNeighbor( const uint32_t idx ) const
     int exact = 0;
     int offByOne = 0;
 
-    int dx = abs( Middle() - ta.GetX() );
-    int dy = abs( Middle() - ta.GetY() );
-    int dz = abs( Middle() - ta.GetZ() );
+    int dx = abs( m_helper.Middle() - ta.GetX() );
+    int dy = abs( m_helper.Middle() - ta.GetY() );
+    int dz = abs( m_helper.Middle() - ta.GetZ() );
 
     if( dx == 0 ) { exact++; }
     else if( dx == 1 ) { offByOne++; }
@@ -128,7 +122,10 @@ TestTocino3DTorusIncast::TestHelper(
     
     //NS_LOG_UNCOND( results.ToString() );
   
-    const TocinoAddress center( Middle(), Middle(), Middle() );
+    const TocinoAddress center(
+            m_helper.Middle(),
+            m_helper.Middle(),
+            m_helper.Middle() );
 
     for( uint32_t src = 0; src < NODES; ++src )
     {

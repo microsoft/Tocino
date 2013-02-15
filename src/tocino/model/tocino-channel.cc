@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"microsoft"; indent-tabs-mode:nil; -*- */
 
-#include <cstdio>
+#include <sstream>
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
@@ -28,22 +28,29 @@ TypeId TocinoChannel::GetTypeId( void )
   static TypeId tid = TypeId("ns3::TocinoChannel")
     .SetParent<Channel>()
     .AddConstructor<TocinoChannel>()
+    .AddAttribute ("Delay", "Transmission delay through the channel",
+                   TimeValue (Seconds (0)),
+                   MakeTimeAccessor (&TocinoChannel::m_delay),
+                   MakeTimeChecker ())
     .AddAttribute ("DataRate", 
                    "The data transmission rate of the channel",
                    DataRateValue (DataRate ("10Gbps")),
                    MakeDataRateAccessor (&TocinoChannel::m_bps),
                    MakeDataRateChecker ())
-    .AddAttribute ("Delay", "Transmission delay through the channel",
-                   TimeValue (Seconds (0)),
-                   MakeTimeAccessor (&TocinoChannel::m_delay),
-                   MakeTimeChecker ());
+    ;
   return tid;
 }
 
 TocinoChannel::TocinoChannel()
-{
-    m_state = IDLE;
-}
+    : m_delay( Seconds( 0 ) )
+    , m_bps( DataRate( "10Gbps" ) )
+    , m_flit( NULL )
+    , m_tx( NULL )
+    , m_rx( NULL )
+    , m_state( IDLE )
+    , m_bytesTransmitted( 0 )
+    , m_flitsTransmitted( 0 )
+{}
 
 TocinoChannel::~TocinoChannel()
 {};
@@ -53,19 +60,45 @@ Time TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
     return Seconds(m_bps.CalculateTxTime(p->GetSize()*8));
 }
 
-void TocinoChannel::SetNetDevice(Ptr<TocinoNetDevice> tnd)
-{
-    m_tnd = tnd;
-}
-
 void TocinoChannel::SetTransmitter(TocinoTx* tx)
 {
     m_tx = tx;
+
+    std::ostringstream oss;
+    
+    Ptr<TocinoNetDevice> txNetDevice = m_tx->GetTocinoNetDevice();
+    TocinoAddress txAdd = txNetDevice->GetTocinoAddress();
+
+    oss << "("
+        << static_cast<unsigned>( txAdd.GetX() )
+        << ","
+        << static_cast<unsigned>( txAdd.GetY() )
+        << ","
+        << static_cast<unsigned>( txAdd.GetZ() )
+        << ")";
+
+    m_txString = oss.str();
 }
+
 
 void TocinoChannel::SetReceiver(TocinoRx* rx)
 {
     m_rx = rx;
+    
+    std::ostringstream oss;
+    
+    Ptr<TocinoNetDevice> rxNetDevice = m_rx->GetTocinoNetDevice();
+    TocinoAddress rxAdd = rxNetDevice->GetTocinoAddress();
+
+    oss << "("
+        << static_cast<unsigned>( rxAdd.GetX() )
+        << ","
+        << static_cast<unsigned>( rxAdd.GetY() )
+        << ","
+        << static_cast<unsigned>( rxAdd.GetZ() )
+        << ")";
+
+    m_rxString = oss.str();
 }
 
 uint32_t TocinoChannel::GetNDevices() const
@@ -79,25 +112,37 @@ TocinoChannel::GetDevice(uint32_t i) const
     if (i == TX_DEV)
     {
         if (m_tx == NULL) return 0;
-        return m_tx->GetNetDevice();
+        return Ptr<NetDevice>( m_tx->GetNetDevice() );
     }
     if (m_rx == NULL) return 0;
-    return m_rx->GetNetDevice();
+    return Ptr<NetDevice>( m_rx->GetNetDevice() );
+}
+
+Ptr<TocinoNetDevice> 
+TocinoChannel::GetTocinoDevice(uint32_t i) const
+{
+    if (i == TX_DEV)
+    {
+        if (m_tx == NULL) return 0;
+        return Ptr<TocinoNetDevice>( m_tx->GetTocinoNetDevice() );
+    }
+    if (m_rx == NULL) return 0;
+    return Ptr<TocinoNetDevice>( m_rx->GetTocinoNetDevice() );
 }
 
 bool
-TocinoChannel::TransmitStart (Ptr<Packet> p)
+TocinoChannel::TransmitStart (Ptr<Packet> flit)
 {
     Time transmit_time;
-    
-    if (m_state != IDLE)
-    {
-        NS_LOG_ERROR ("TocinoChannel::TransmitStart(): m_state is not IDLE");
-        return false;
-    }
-    m_packet = p;
-    
-    transmit_time = GetTransmissionTime(p);
+  
+    NS_ASSERT( m_state == IDLE );
+
+    m_flit = flit;
+  
+    m_bytesTransmitted += flit->GetSize();
+    m_flitsTransmitted++;
+
+    transmit_time = GetTransmissionTime( flit );
     Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
     return true;
 }
@@ -111,7 +156,7 @@ TocinoChannel::TransmitEnd ()
                                    m_delay,
                                    &TocinoRx::Receive,
                                    m_rx,
-                                   m_packet);
+                                   m_flit);
 }
 
 uint32_t
@@ -199,9 +244,38 @@ TocinoChannel::FlitBuffersRequired() const
     // receipt of LLC flit
     flits++;
 
-    NS_LOG_LOGIC( flits << " buffers required" );
+    //NS_LOG_LOGIC( flits << " buffers required" );
 
     return flits;
+}
+
+uint32_t
+TocinoChannel::GetBytesTransmitted() const
+{
+    return m_bytesTransmitted;
+}
+
+uint32_t
+TocinoChannel::GetFlitsTransmitted() const
+{
+    return m_flitsTransmitted;
+}
+
+void
+TocinoChannel::ReportChannelStatistics() const
+{
+    std::ostringstream oss;
+    
+    oss << m_txString
+        << " --> "
+        << m_rxString
+        << " transmitted " 
+        << m_flitsTransmitted 
+        << " flits for a total of "
+        << m_bytesTransmitted
+        << " bytes";
+
+    NS_LOG_LOGIC( oss.str() );
 }
 
 } // namespace ns3

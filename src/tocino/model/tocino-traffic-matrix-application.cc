@@ -5,6 +5,7 @@
 #include "ns3/simulator.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
+#include "ns3/log.h"
 
 namespace ns3
 {
@@ -18,21 +19,21 @@ TocinoTrafficMatrixApplication::GetTypeId()
         .SetParent<Application>()
         .AddConstructor<TocinoTrafficMatrixApplication>()
         .AddAttribute(
-                "MTBS", 
+                "MeanTimeBetweenSends", 
                 "Mean time between Send operations, exponential distribution.",
-                TimeValue( Seconds( 0.001 ) ),
+                TimeValue( Time( "1ms" ) ),
                 MakeTimeAccessor(
                     &TocinoTrafficMatrixApplication::m_meanTimeBetweenSends ),
                 MakeTimeChecker() )
         .AddAttribute(
-                "MaxdT",
+                "MaxTimeBetweenSends",
                 "Max delay between Send operations.",
-                TimeValue( Seconds( 0.1 ) ),
+                TimeValue( Time( "100ms" ) ),
                 MakeTimeAccessor(
                     &TocinoTrafficMatrixApplication::m_maxTimeBetweenSends ),
                 MakeTimeChecker() )
         .AddAttribute(
-                "Size",
+                "PacketSize",
                 "Send size in bytes.",
                 UintegerValue( 0 ),
                 MakeUintegerAccessor(
@@ -43,8 +44,8 @@ TocinoTrafficMatrixApplication::GetTypeId()
 }
 
 TocinoTrafficMatrixApplication::TocinoTrafficMatrixApplication()
-    : m_meanTimeBetweenSends( Seconds( 0.001 ) )
-    , m_maxTimeBetweenSends( Seconds( 0.1 ) )
+    : m_meanTimeBetweenSends( Time( "1ms" ) )
+    , m_maxTimeBetweenSends( Time( "100ms" ) )
     , m_packetSize( 0 )
     , m_nodeNumber( 0 )
     , m_totalNodes( 0 )
@@ -154,15 +155,17 @@ const uint32_t TocinoTrafficMatrixApplication::DO_NOT_SEND =
 uint32_t
 TocinoTrafficMatrixApplication::SelectRandomDestination()
 {
-    UniformVariable randomVariable;
-    uint32_t rand = randomVariable.GetInteger( 0, TOCINO_TOTAL_TRAFFIC );
+    uint32_t rand =
+        m_destinationRandomVariable.GetInteger( 0, TOCINO_TOTAL_TRAFFIC );
 
-    uint32_t runningSum = 0;
+    uint32_t lowerBound = 0;
+    uint32_t upperBound = 0;
 
     for( uint32_t destNum = 0; destNum < m_trafficVector->size(); ++destNum )
     {
-        const uint32_t lowerBound = runningSum;
-        const uint32_t upperBound = (*m_trafficVector)[destNum];
+        upperBound += (*m_trafficVector)[destNum];
+        
+        NS_ASSERT( upperBound <= TOCINO_TOTAL_TRAFFIC );
 
         if( ( rand >= lowerBound ) && 
             ( rand < upperBound ) )
@@ -170,9 +173,7 @@ TocinoTrafficMatrixApplication::SelectRandomDestination()
             return destNum;
         }
 
-        runningSum += upperBound;
-
-        NS_ASSERT( runningSum <= TOCINO_TOTAL_TRAFFIC );
+        lowerBound = upperBound;
     }
 
     return DO_NOT_SEND;
@@ -184,7 +185,7 @@ TocinoTrafficMatrixApplication::ScheduleSend()
     NS_ASSERT( m_sendEvent.IsExpired() );
 
     const uint32_t destNum = SelectRandomDestination();
-       
+        
     if( destNum != DO_NOT_SEND )
     {
         Ptr<Node> destNode = m_nodeContainer->Get( destNum );

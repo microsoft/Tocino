@@ -18,7 +18,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     TocinoDimensionOrderRouter();
 
-    void Initialize( Ptr<TocinoNetDevice>, const TocinoInputPort );
+    void Initialize( const TocinoNetDevice*, const TocinoInputPort );
 
     TocinoRoute Route( Ptr<const Packet> ) const;
 
@@ -38,7 +38,7 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     
     bool RouteChangesDimension( const TocinoOutputPort ) const;
 
-    Ptr<TocinoNetDevice> m_tnd;
+    const TocinoNetDevice* m_tnd;
     TocinoInputPort m_inputPort;
 
     static const TocinoAddress::Coordinate NO_WRAP = 0;

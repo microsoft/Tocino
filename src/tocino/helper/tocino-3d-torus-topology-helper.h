@@ -4,14 +4,17 @@
 
 #include "ns3/net-device-container.h"
 #include "ns3/node-container.h"
+#include "ns3/nstime.h"
 
 #include "ns3/tocino-address.h"
+#include "ns3/tocino-misc.h"
 
 namespace ns3
 {
 
+class TocinoChannel;
 class TocinoNetDevice;
-   
+
 // N.B.
 // It's very useful to keep the net devices in a
 // multi-dimensional container that reflects the
@@ -47,9 +50,19 @@ class Tocino3DTorusTopologyHelper
     TocinoAddress IndexToTocinoAddress( uint32_t ) const;
     
     Tocino3DTorusNetDeviceContainer Install( const NodeContainer& );
-   
-    private:
+  
+    uint32_t Middle() const;
+
+    bool CrossesBisection( Ptr<TocinoChannel> ) const;
     
+    void ReportBisectionBandwidth( 
+            const Tocino3DTorusNetDeviceContainer&,
+            const Time ) const;
+    
+    private:
+   
+    // ISSUE-REVIEW:
+    // Better names? Make public?
     int Inc( const int ) const;
     int Dec( const int ) const;
 };

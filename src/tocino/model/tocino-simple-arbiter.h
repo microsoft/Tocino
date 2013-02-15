@@ -14,20 +14,22 @@ class TocinoNetDevice;
 
 class TocinoSimpleArbiter : public TocinoArbiter
 {
-public:
+    public:
+
     static TypeId GetTypeId( void );
     
     TocinoSimpleArbiter();
 
     TocinoArbiterAllocation Arbitrate();
 
-    void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* );
+    void Initialize( const TocinoNetDevice*, const TocinoTx* );
     
     TocinoArbiterAllocation GetVCOwner( const TocinoOutputVC ) const;
 
     static const TocinoArbiterAllocation ANY_QUEUE;
 
-private:
+    private:
+
     typedef std::vector< TocinoArbiterAllocation > AllocVector;
 
     AllocVector BuildCandidateSet() const;
@@ -36,7 +38,7 @@ private:
 
     void UpdateState( const TocinoArbiterAllocation );
     
-    Ptr<TocinoNetDevice> m_tnd;
+    const TocinoNetDevice* m_tnd;
     const TocinoTx *m_ttx;
 
     // This nested class controls access to our
@@ -54,7 +56,7 @@ private:
         
         friend void
             TocinoSimpleArbiter::Initialize(
-                Ptr<TocinoNetDevice>, const TocinoTx* );
+                const TocinoNetDevice*, const TocinoTx* );
         
         friend void
             TocinoSimpleArbiter::UpdateState(

@@ -26,8 +26,6 @@ public:
     bool TransmitStart(Ptr<Packet> p);
     Time GetTransmissionTime(Ptr<Packet> p);
     
-    void SetNetDevice(Ptr<TocinoNetDevice> tnd);
-    
     void SetTransmitter(TocinoTx* tx);
     void SetReceiver(TocinoRx* rx);
     uint32_t GetNDevices() const;
@@ -36,8 +34,14 @@ public:
     static const uint32_t RX_DEV = 1;
     
     Ptr<NetDevice> GetDevice(uint32_t i) const;
+    Ptr<TocinoNetDevice> GetTocinoDevice(uint32_t i) const;
 
     uint32_t FlitBuffersRequired() const;
+   
+    uint32_t GetBytesTransmitted() const;
+    uint32_t GetFlitsTransmitted() const;
+
+    void ReportChannelStatistics() const;
 
 private:
     
@@ -47,14 +51,19 @@ private:
     Time m_delay;
     DataRate m_bps;
     
-    Ptr<Packet> m_packet;
+    Ptr<Packet> m_flit;
     
-    Ptr<TocinoNetDevice> m_tnd;
     TocinoTx* m_tx;
     TocinoRx* m_rx;
-    
+   
+    std::string m_txString;
+    std::string m_rxString;
+
     enum TocinoChannelState {IDLE, BUSY};
     TocinoChannelState m_state;
+
+    uint32_t m_bytesTransmitted;
+    uint32_t m_flitsTransmitted;
 };
 
 } // namespace ns3

@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <limits>
-#include <string>
 
 #include "tocino-type-safe-uint32.h"
 
@@ -27,10 +26,6 @@ namespace ns3
 
     DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoInputPort );
     DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoOutputPort );
-    
-    std::string Tocino3dTorusPortNumberToString( const uint32_t );
-    std::string Tocino3dTorusPortNumberToString( const TocinoInputPort );
-    std::string Tocino3dTorusPortNumberToString( const TocinoOutputPort );
 }
 
 #endif //__TOCINO_MISC_H__

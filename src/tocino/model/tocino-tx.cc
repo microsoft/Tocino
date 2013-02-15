@@ -35,7 +35,7 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx( const uint32_t outputPortNumber, Ptr<TocinoNetDevice> tnd )
+TocinoTx::TocinoTx( const uint32_t outputPortNumber, TocinoNetDevice* tnd )
     : m_outputPort( outputPortNumber )
     , m_xState( TocinoAllXON )
     , m_remoteXState( TocinoAllXON )
@@ -112,6 +112,12 @@ void TocinoTx::SetChannel(Ptr<TocinoChannel> channel)
     m_channel = channel;
 }
 
+Ptr<TocinoChannel>
+TocinoTx::GetChannel() const
+{
+    return m_channel;
+}
+
 void TocinoTx::RemotePause( const TocinoInputVC inputVC )
 {
     NS_LOG_FUNCTION( inputVC );
@@ -184,9 +190,16 @@ void TocinoTx::RemoteResume( const TocinoInputVC inputVC )
     Transmit();
 }
 
-Ptr<NetDevice> TocinoTx::GetNetDevice()
+Ptr<NetDevice>
+TocinoTx::GetNetDevice()
 {
-    return m_tnd;
+    return Ptr<NetDevice>( m_tnd );
+}
+
+Ptr<TocinoNetDevice>
+TocinoTx::GetTocinoNetDevice()
+{ 
+    return Ptr<TocinoNetDevice>( m_tnd );
 }
 
 void

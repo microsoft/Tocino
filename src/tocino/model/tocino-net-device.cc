@@ -82,13 +82,30 @@ TocinoNetDevice::TocinoNetDevice()
 {}
 
 TocinoNetDevice::~TocinoNetDevice()
+{}
+
+void
+TocinoNetDevice::DoDispose()
 {
     NS_ASSERT( AllQuiet() );
+    
+    for (unsigned i = 0; i < m_transmitters.size(); i++)
+    {
+        Ptr<TocinoChannel> chan = m_transmitters[i]->GetChannel();
 
-    uint32_t i;
-    for (i = 0; i < m_nPorts; i++)
+        if( chan != NULL )
+        {
+            chan->ReportChannelStatistics();
+        }
+    }
+
+    for (unsigned i = 0; i < m_receivers.size(); i++)
     {
         delete m_receivers[i];
+    }
+
+    for (unsigned i = 0; i < m_transmitters.size(); i++)
+    {
         delete m_transmitters[i];
     }
 }
@@ -124,6 +141,11 @@ uint32_t TocinoNetDevice::GetIfIndex( void ) const
 
 Ptr<Channel> TocinoNetDevice::GetChannel( void ) const
 {
+    // Tocino net devices have many channels,
+    // so this API is not implemented.  See
+    // the GetChannel(uint) version.
+    
+    NS_ASSERT( false );
     return 0;
 }
 
@@ -350,8 +372,20 @@ TocinoNetDevice::SetChannel(
         uint32_t port,
         Ptr<TocinoChannel> chan )
 {
+    NS_ASSERT( port < m_receivers.size() );
+    NS_ASSERT( port < m_transmitters.size() );
+
     m_receivers[port]->SetChannel( chan );
     m_transmitters[port]->SetChannel( chan );
+}
+
+Ptr<TocinoChannel>
+TocinoNetDevice::GetChannel(
+        uint32_t port )
+{
+    NS_ASSERT( port < m_transmitters.size() );
+
+    return m_transmitters[port]->GetChannel();
 }
 
 void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
@@ -535,13 +569,16 @@ bool TocinoNetDevice::AllQuiet() const
         }
     }
 
-    for (unsigned i = 0; i < m_nPorts; i++)
+    for (unsigned i = 0; i < m_receivers.size(); i++)
     {
         if( !m_receivers[i]->AllQuiet() )
         {
             quiet = false;
         }
-    
+    }
+
+    for (unsigned i = 0; i < m_transmitters.size(); i++)
+    {
         if( !m_transmitters[i]->AllQuiet() )
         {
             quiet = false;

@@ -79,7 +79,7 @@ struct TocinoRouter : public Object
     // the hell do you define an abstract base class where
     // derived classes can choose?
     virtual void Initialize(
-            Ptr<TocinoNetDevice>, 
+            const TocinoNetDevice*, 
             const TocinoInputPort ) = 0;
     
     virtual TocinoRoute Route( Ptr<const Packet> ) const = 0;

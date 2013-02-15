@@ -49,7 +49,7 @@ TocinoDimensionOrderRouter::TocinoDimensionOrderRouter()
 
 void 
 TocinoDimensionOrderRouter::Initialize( 
-        Ptr<TocinoNetDevice> tnd, 
+        const TocinoNetDevice* tnd, 
         const TocinoInputPort inputPort )
 {
     m_tnd = tnd;

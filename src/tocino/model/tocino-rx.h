@@ -24,13 +24,15 @@ class TocinoRx
 {
     public:
 
-    TocinoRx( const uint32_t, Ptr<TocinoNetDevice> );
+    TocinoRx( const uint32_t, TocinoNetDevice* );
 
     uint32_t GetPortNumber() const;
 
     Ptr<NetDevice> GetNetDevice();
+    Ptr<TocinoNetDevice> GetTocinoNetDevice();
     
     void SetChannel( Ptr<TocinoChannel> channel );
+    Ptr<TocinoChannel> GetChannel() const;
 
     bool IsVCBlocked( const TocinoInputVC ) const;
 
@@ -88,7 +90,7 @@ class TocinoRx
 
     const TocinoInputPort m_inputPort;
 
-    const Ptr<TocinoNetDevice> m_tnd;
+    TocinoNetDevice* m_tnd;
     Ptr<TocinoChannel> m_channel;
 
     // corresponding transmitter
@@ -116,7 +118,7 @@ class TocinoRx
         
         friend 
             TocinoRx::TocinoRx( const uint32_t,
-                Ptr<TocinoNetDevice> );
+                TocinoNetDevice* );
         
         friend InputQueue&
             TocinoRx::GetInputQueue(

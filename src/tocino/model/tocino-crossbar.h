@@ -23,7 +23,7 @@ class TocinoCrossbar
     public:
 
     TocinoCrossbar(
-            Ptr<TocinoNetDevice>,
+            const TocinoNetDevice*,
             const TocinoInputPort );
 
     bool IsForwardable( const TocinoRoute ) const;
@@ -36,7 +36,7 @@ class TocinoCrossbar
             const TocinoOutputPort,
             const TocinoOutputVC ) const;
   
-    const Ptr<TocinoNetDevice> m_tnd;
+    const TocinoNetDevice* m_tnd;
     const TocinoInputPort m_inputPort;
  
     typedef std::vector< TocinoInputVC > ForwardingTableVec;

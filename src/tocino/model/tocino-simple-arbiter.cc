@@ -44,7 +44,7 @@ TocinoSimpleArbiter::TocinoSimpleArbiter()
 #endif
 {}
 
-void TocinoSimpleArbiter::Initialize( Ptr<TocinoNetDevice> tnd, const TocinoTx* ttx )
+void TocinoSimpleArbiter::Initialize( const TocinoNetDevice* tnd, const TocinoTx* ttx )
 {
     m_tnd = tnd;
     m_ttx = ttx;

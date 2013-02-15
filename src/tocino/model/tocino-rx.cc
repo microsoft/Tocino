@@ -11,6 +11,7 @@
 #include "tocino-net-device.h"
 #include "tocino-rx.h"
 #include "tocino-tx.h"
+#include "tocino-3d-torus-topology.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
@@ -29,7 +30,7 @@ namespace ns3 {
 
 TocinoRx::TocinoRx( 
         const uint32_t inputPortNumber,
-        Ptr<TocinoNetDevice> tnd
+        TocinoNetDevice* tnd
 )
     : m_inputPort( inputPortNumber )
     , m_tnd( tnd )
@@ -54,7 +55,13 @@ TocinoRx::GetPortNumber() const
 Ptr<NetDevice>
 TocinoRx::GetNetDevice()
 { 
-    return m_tnd;
+    return Ptr<NetDevice>( m_tnd );
+}
+
+Ptr<TocinoNetDevice>
+TocinoRx::GetTocinoNetDevice()
+{ 
+    return Ptr<TocinoNetDevice>( m_tnd );
 }
 
 void
@@ -64,6 +71,12 @@ TocinoRx::SetChannel( Ptr<TocinoChannel> chan )
     
     const uint32_t reserve = chan->FlitBuffersRequired();
     SetReserveFlits( reserve );
+}
+
+Ptr<TocinoChannel>
+TocinoRx::GetChannel() const
+{
+    return m_channel;
 }
 
 bool
@@ -129,7 +142,7 @@ TocinoRx::AnnounceRoutingDecision(
     const TocinoOutputVC outputVC = route.outputVC;
 
     NS_LOG_LOGIC( logPrefix.str()
-            << Tocino3dTorusPortNumberToString( outputPort )
+            << Tocino3DTorusTopology::PortNumberToString( outputPort )
             << " (outputPort=" << outputPort
             << ", inputVC=" << inputVC
             << ", outputVC=" << outputVC << ")" );

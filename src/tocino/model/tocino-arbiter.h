@@ -47,7 +47,7 @@ struct TocinoArbiter : public Object
 
     virtual TocinoArbiterAllocation Arbitrate() = 0;
 
-    virtual void Initialize( Ptr<TocinoNetDevice>, const TocinoTx* ) = 0;
+    virtual void Initialize( const TocinoNetDevice*, const TocinoTx* ) = 0;
 
     virtual TocinoArbiterAllocation GetVCOwner( const TocinoOutputVC ) const = 0;
 

@@ -17,7 +17,6 @@ class TestTocino3DTorusIncast : public TestTocino3DTorus
 
     private:
     
-    int Middle() const;
     bool IsCenter( const uint32_t ) const;
     bool IsCenterNeighbor( const uint32_t ) const;
 

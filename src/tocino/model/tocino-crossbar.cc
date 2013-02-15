@@ -27,7 +27,7 @@ namespace ns3
 {
 
 TocinoCrossbar::TocinoCrossbar(
-        Ptr<TocinoNetDevice> tnd,
+        const TocinoNetDevice* tnd,
         const TocinoInputPort inputPort )
     : m_tnd( tnd )
     , m_inputPort( inputPort )
