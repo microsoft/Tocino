@@ -74,7 +74,22 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     
     if( TopologyHasWrapAround() )
     {
-        if( abs(delta) > m_wrapPoint/2 )
+        const uint32_t RADIX = m_wrapPoint+1;
+#if 0
+        if( abs(delta) == RADIX/2 )
+        {
+            static bool flip = false;
+            
+            if( flip )
+            {
+                routePositive = !routePositive;
+            }
+
+            flip = !flip;
+        }
+        else 
+#endif
+        if( abs(delta) > RADIX/2 )
         {
             routePositive = !routePositive;
         }

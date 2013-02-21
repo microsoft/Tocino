@@ -28,6 +28,7 @@ def build(bld):
         'model/tocino-routing-table.cc',
         'model/tocino-rx.cc',
         'model/tocino-simple-arbiter.cc',
+        'model/tocino-test-results.cc',
         'model/tocino-traffic-matrix-application.cc',
         'model/tocino-tx.cc',
         ]
@@ -48,7 +49,6 @@ def build(bld):
         'test/test-tocino-multihop.cc',
         'test/test-tocino-point-to-point.cc',
         'test/test-tocino-ring.cc',
-        'test/tocino-test-results.cc',
         'test/tocino-test-suite.cc',
         ]
     
@@ -78,6 +78,7 @@ def build(bld):
         'model/tocino-routing-table.h',
         'model/tocino-rx.h',
         'model/tocino-simple-arbiter.h',
+        'model/tocino-test-results.h',
         'model/tocino-traffic-matrix-application.h',
         'model/tocino-tx.h',
         'model/tocino-type-safe-uint32.h',

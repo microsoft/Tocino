@@ -70,6 +70,7 @@ TocinoNetDevice::TocinoNetDevice()
     , m_ifIndex( 0 )
     , m_mtu( DEFAULT_MTU )
     , m_address( 0 )
+    , m_outgoingFlitsMaxSize( 0 )
     , m_rxCallback( NULL )
     , m_promiscRxCallback( NULL )
     , m_nPorts( DEFAULT_NPORTS )
@@ -88,7 +89,11 @@ void
 TocinoNetDevice::DoDispose()
 {
     NS_ASSERT( AllQuiet() );
-    
+   
+    NS_LOG_LOGIC( "m_outgoingFlits reached "
+            << m_outgoingFlitsMaxSize
+            << " entries" );
+
     for (unsigned i = 0; i < m_transmitters.size(); i++)
     {
         Ptr<TocinoChannel> chan = m_transmitters[i]->GetChannel();
@@ -333,7 +338,9 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     m_outgoingFlits.insert( m_outgoingFlits.end(), fp.begin(), fp.end() );
 
     // ISSUE-REVIEW: this can grow unbounded?
-    NS_ASSERT_MSG( m_outgoingFlits.size() < 100, "Crazy large packet queue?" );
+    //NS_ASSERT_MSG( m_outgoingFlits.size() < 100, "Crazy large packet queue?" );
+    m_outgoingFlitsMaxSize =
+        std::max( m_outgoingFlitsMaxSize, m_outgoingFlits.size() );
 
     TrySendFlits();
 

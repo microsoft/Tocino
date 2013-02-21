@@ -6,9 +6,9 @@
 #include "ns3/log.h"
 
 #include "ns3/tocino-net-device.h"
+#include "ns3/tocino-test-results.h"
 
 #include "test-tocino-3d-torus-incast.h"
-#include "tocino-test-results.h"
 
 using namespace ns3;
 

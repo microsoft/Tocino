@@ -78,7 +78,7 @@ class TocinoTrafficMatrixApplication : public Application
 
     EventId m_sendEvent;
     
-    Ptr<ExponentialRandomVariable>
+    ExponentialRandomVariable
         m_sendIntervalRandomVariable;
 
     UniformVariable

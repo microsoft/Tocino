@@ -38,9 +38,14 @@ public:
 
     uint32_t FlitBuffersRequired() const;
    
-    uint32_t GetBytesTransmitted() const;
-    uint32_t GetFlitsTransmitted() const;
-
+    uint32_t GetTotalBytesTransmitted() const;
+    uint32_t GetTotalFlitsTransmitted() const;
+    Time GetTotalTransmitTime() const;
+    
+    uint32_t GetLLCBytesTransmitted() const;
+    uint32_t GetLLCFlitsTransmitted() const;
+    Time GetLLCTransmitTime() const;
+    
     void ReportChannelStatistics() const;
 
 private:
@@ -62,8 +67,13 @@ private:
     enum TocinoChannelState {IDLE, BUSY};
     TocinoChannelState m_state;
 
-    uint32_t m_bytesTransmitted;
-    uint32_t m_flitsTransmitted;
+    uint32_t m_totalBytesTransmitted;
+    uint32_t m_totalFlitsTransmitted;
+    Time m_totalTransmitTime;
+    
+    uint32_t m_LLCBytesTransmitted;
+    uint32_t m_LLCFlitsTransmitted;
+    Time m_LLCTransmitTime;
 };
 
 } // namespace ns3

@@ -351,6 +351,15 @@ TocinoRx::TryForwardFlit()
             m_tx->RemoteResume( inputVC );
         }
     }
+
+    // ISSUE-REVIEW: This seems to help slightly, but is it
+    // realistic to expect hardware to do this?
+    //
+    // ISSUE-REVIEW: Consider rewriting this as a loop within
+    // the TryForwardFlit function, rather than ScheduleNow.
+    //
+    // Try to forward another flit?
+    Simulator::ScheduleNow( &TocinoRx::TryForwardFlit, this );
 }
 
 void

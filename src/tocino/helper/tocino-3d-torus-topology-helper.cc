@@ -220,7 +220,7 @@ Tocino3DTorusTopologyHelper::ReportBisectionBandwidth(
 
                     if( CrossesBisection( chan ) )
                     {
-                        bisectionBytes += chan->GetBytesTransmitted();
+                        bisectionBytes += chan->GetTotalBytesTransmitted();
                     }
                 }
 

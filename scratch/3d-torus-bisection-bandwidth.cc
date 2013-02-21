@@ -12,6 +12,7 @@
 #include "ns3/tocino-misc.h"
 #include "ns3/tocino-3d-torus-topology-helper.h"
 #include "ns3/tocino-net-device.h"
+#include "ns3/tocino-test-results.h"
 
 using namespace std;
 using namespace ns3;
@@ -53,11 +54,12 @@ int main( int argc, char** argv )
     machines.Create( NODES );
    
     Tocino3DTorusTopologyHelper helper( radix );
-   
+    TocinoTestResults results;
+  
     // all-to-all pattern    
     TocinoTrafficMatrix trafficMatrix( NODES,
             TocinoTrafficVector( NODES, TOCINO_TOTAL_TRAFFIC/NODES ) );
-    
+
     Tocino3DTorusNetDeviceContainer netDevices =
         helper.Install( machines );
   
@@ -75,12 +77,21 @@ int main( int argc, char** argv )
         app->SetStopTime( duration );
         app->SetPacketSize( packetBytes );
         
+        app->SetReceiveCallback( 
+                MakeCallback( &TocinoTestResults::AcceptPacket, &results ) );
+        
         machines.Get( node )->AddApplication( app );
     }
 
     Simulator::Run();
 
-    helper.ReportBisectionBandwidth( netDevices, duration );
+    Time end = Simulator::Now();
+    
+    cout << "Finished after " << end.GetMicroSeconds() << " us" << endl;
+    
+    cout << results.ToString() << endl;
+
+    helper.ReportBisectionBandwidth( netDevices, end );
 
     Simulator::Destroy();
 }

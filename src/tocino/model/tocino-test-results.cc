@@ -135,7 +135,8 @@ TocinoTestResults::ToString() const
 
         for( j = row.begin(); j != row.end(); j++ ) 
         {
-            oss << i->first
+            oss << "TocinoTestResults: "
+                << i->first
                 << " --> "
                 << j->first
                 << " = "

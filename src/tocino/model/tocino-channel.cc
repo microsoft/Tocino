@@ -48,8 +48,12 @@ TocinoChannel::TocinoChannel()
     , m_tx( NULL )
     , m_rx( NULL )
     , m_state( IDLE )
-    , m_bytesTransmitted( 0 )
-    , m_flitsTransmitted( 0 )
+    , m_totalBytesTransmitted( 0 )
+    , m_totalFlitsTransmitted( 0 )
+    , m_totalTransmitTime( Seconds( 0 ) )
+    , m_LLCBytesTransmitted( 0 )
+    , m_LLCFlitsTransmitted( 0 )
+    , m_LLCTransmitTime( Seconds( 0 ) )
 {}
 
 TocinoChannel::~TocinoChannel()
@@ -57,7 +61,7 @@ TocinoChannel::~TocinoChannel()
 
 Time TocinoChannel::GetTransmissionTime(Ptr<Packet> p)
 {
-    return Seconds(m_bps.CalculateTxTime(p->GetSize()*8));
+    return Seconds( m_bps.CalculateTxTime( p->GetSize() ) );
 }
 
 void TocinoChannel::SetTransmitter(TocinoTx* tx)
@@ -138,11 +142,22 @@ TocinoChannel::TransmitStart (Ptr<Packet> flit)
     NS_ASSERT( m_state == IDLE );
 
     m_flit = flit;
-  
-    m_bytesTransmitted += flit->GetSize();
-    m_flitsTransmitted++;
-
+    
     transmit_time = GetTransmissionTime( flit );
+  
+    m_totalBytesTransmitted += flit->GetSize();
+    m_totalFlitsTransmitted++;
+
+    m_totalTransmitTime += transmit_time;
+
+    if( IsTocinoFlowControlFlit( flit ) )
+    {
+        m_LLCBytesTransmitted += flit->GetSize();
+        m_LLCFlitsTransmitted++;
+
+        m_LLCTransmitTime += transmit_time;
+    }
+
     Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
     return true;
 }
@@ -250,32 +265,78 @@ TocinoChannel::FlitBuffersRequired() const
 }
 
 uint32_t
-TocinoChannel::GetBytesTransmitted() const
+TocinoChannel::GetTotalBytesTransmitted() const
 {
-    return m_bytesTransmitted;
+    return m_totalBytesTransmitted;
 }
 
 uint32_t
-TocinoChannel::GetFlitsTransmitted() const
+TocinoChannel::GetTotalFlitsTransmitted() const
 {
-    return m_flitsTransmitted;
+    return m_totalFlitsTransmitted;
+}
+
+Time
+TocinoChannel::GetTotalTransmitTime() const
+{
+    return m_totalTransmitTime;
+}
+
+uint32_t
+TocinoChannel::GetLLCBytesTransmitted() const
+{
+    return m_LLCBytesTransmitted;
+}
+
+uint32_t
+TocinoChannel::GetLLCFlitsTransmitted() const
+{
+    return m_LLCFlitsTransmitted;
+}
+
+Time
+TocinoChannel::GetLLCTransmitTime() const
+{
+    return m_LLCTransmitTime;
 }
 
 void
 TocinoChannel::ReportChannelStatistics() const
 {
-    std::ostringstream oss;
+    std::ostringstream prefix;
     
-    oss << m_txString
-        << " --> "
-        << m_rxString
-        << " transmitted " 
-        << m_flitsTransmitted 
-        << " flits for a total of "
-        << m_bytesTransmitted
-        << " bytes";
+    prefix << m_txString << " --> " << m_rxString << ": ";
+    
+    NS_LOG_LOGIC( prefix.str() 
+            << "transmitted " 
+            << m_totalBytesTransmitted
+            << " bytes in "
+            << m_totalTransmitTime.GetSeconds()
+            << " seconds" );
+   
+    double fracLLC = 
+        static_cast<double>(m_LLCFlitsTransmitted) / m_totalFlitsTransmitted * 100;
+    
+    NS_LOG_LOGIC( prefix.str() 
+            << "transmitted "
+            << m_totalFlitsTransmitted
+            << " flits ("
+            << fracLLC
+            << "% LLC)" );
 
-    NS_LOG_LOGIC( oss.str() );
+    double now = Simulator::Now().GetSeconds();
+
+    // ISSUE-REVIEW: should we use ns3::DataRate for the rates here?
+    double kfpsActual = static_cast<double>(m_totalFlitsTransmitted) / now / 1000;
+    double bpsActual = static_cast<double>(m_totalBytesTransmitted) * 8 / now;
+    double mbpsActual = bpsActual / 1024 / 1024;
+
+    double channelUtilization = bpsActual / m_bps.GetBitRate() * 100;
+
+    NS_LOG_LOGIC( prefix.str() 
+            << kfpsActual << " Kflits/second, "
+            << mbpsActual << " Mbps ("
+            << channelUtilization << "% util)" );
 }
 
 } // namespace ns3

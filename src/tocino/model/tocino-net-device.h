@@ -111,7 +111,9 @@ private:
 
     // current flits to be sent 
     FlittizedPacket m_outgoingFlits;
- 
+
+    uint32_t m_outgoingFlitsMaxSize;
+    
     // state for EjectFlit
     std::vector< Ptr<Packet> > m_incomingPackets;
     std::vector< TocinoAddress > m_incomingSources;
