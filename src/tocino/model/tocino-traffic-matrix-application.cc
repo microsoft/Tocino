@@ -85,6 +85,12 @@ TocinoTrafficMatrixApplication::Initialize(
 
     m_netDevice->SetReceiveCallback( 
             MakeCallback( &TocinoTrafficMatrixApplication::AcceptPacket, this ) );
+
+    m_sendIntervalRandomVariable =
+        CreateObject<ExponentialRandomVariable>();
+
+    m_destinationRandomVariable =
+        CreateObject<UniformRandomVariable>();
 }
 
 void
@@ -153,7 +159,7 @@ uint32_t
 TocinoTrafficMatrixApplication::SelectRandomDestination()
 {
     uint32_t rand =
-        m_destinationRandomVariable.GetInteger( 0, TOCINO_TOTAL_TRAFFIC );
+        m_destinationRandomVariable->GetInteger( 0, TOCINO_TOTAL_TRAFFIC );
 
     uint32_t lowerBound = 0;
     uint32_t upperBound = 0;
@@ -197,7 +203,7 @@ TocinoTrafficMatrixApplication::ScheduleSend()
     }
 
     Time dt = Time(
-            m_sendIntervalRandomVariable.GetValue(
+            m_sendIntervalRandomVariable->GetValue(
                 m_meanTimeBetweenSends.GetDouble(),
                 m_maxTimeBetweenSends.GetDouble() ) );
     

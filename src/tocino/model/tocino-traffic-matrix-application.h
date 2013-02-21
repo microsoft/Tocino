@@ -7,7 +7,6 @@
 
 #include "ns3/ptr.h"
 #include "ns3/application.h"
-#include "ns3/random-variable.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/net-device.h"
 
@@ -78,10 +77,10 @@ class TocinoTrafficMatrixApplication : public Application
 
     EventId m_sendEvent;
     
-    ExponentialRandomVariable
+    Ptr<ExponentialRandomVariable>
         m_sendIntervalRandomVariable;
 
-    UniformVariable
+    Ptr<UniformRandomVariable>
         m_destinationRandomVariable;
 
     Time m_meanTimeBetweenSends;
