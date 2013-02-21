@@ -91,8 +91,9 @@ TestTocino3DTorusAllToAll::DoRun()
 {
     if( m_doWrap )
     {
-        Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint",
-                UintegerValue( RADIX-1 ) );
+        Config::SetDefault( 
+                "ns3::TocinoDimensionOrderRouter::EnableWrapAround",
+                UintegerValue( RADIX ) );
     }
     
     TestHelper( Seconds( 0.5 ), 20 );

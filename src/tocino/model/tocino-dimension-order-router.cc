@@ -32,11 +32,11 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
 {
     static TypeId tid = TypeId( "ns3::TocinoDimensionOrderRouter" )
         .SetParent<TocinoRouter>()
-        .AddAttribute ("WrapPoint", 
-            "For rings/tori, the maximum coordinate value in any dimension",
-            UintegerValue (TocinoDimensionOrderRouter::NO_WRAP),
-            MakeUintegerAccessor (&TocinoDimensionOrderRouter::m_wrapPoint),
-            MakeUintegerChecker<TocinoAddress::Coordinate> ())
+        .AddAttribute( "EnableWrapAround", 
+            "The radix of rings/tori with wrap-around links.",
+            UintegerValue( 0 ),
+            MakeUintegerAccessor( &TocinoDimensionOrderRouter::EnableWrapAround ),
+            MakeUintegerChecker<uint32_t>() )
         .AddConstructor<TocinoDimensionOrderRouter>();
     return tid;
 }
@@ -44,7 +44,8 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
 TocinoDimensionOrderRouter::TocinoDimensionOrderRouter()
     : m_tnd( NULL )
     , m_inputPort( TOCINO_INVALID_PORT )
-    , m_wrapPoint( NO_WRAP )
+    , m_wrap( false )
+    , m_radix( 0 )
 {}
 
 void 
@@ -58,7 +59,7 @@ TocinoDimensionOrderRouter::Initialize(
 
 bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
 {
-    return m_wrapPoint != NO_WRAP;
+    return m_wrap;
 }
 
 TocinoDimensionOrderRouter::Direction
@@ -74,9 +75,8 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     
     if( TopologyHasWrapAround() )
     {
-        const uint32_t RADIX = m_wrapPoint+1;
 #if 0
-        if( abs(delta) == RADIX/2 )
+        if( abs(delta) == m_radix/2 )
         {
             static bool flip = false;
             
@@ -89,7 +89,7 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
         }
         else 
 #endif
-        if( abs(delta) > RADIX/2 )
+        if( abs(delta) > m_radix/2 )
         {
             routePositive = !routePositive;
         }
@@ -111,7 +111,7 @@ TocinoDimensionOrderRouter::RouteCrossesDateline(
     if( (srcCoord == 0) && (dir == DIR_NEG) )
         return true;
 
-    if( (srcCoord == m_wrapPoint) && (dir == DIR_POS) )
+    if( (srcCoord == m_radix-1) && (dir == DIR_POS) )
         return true;
 
     return false;
@@ -218,6 +218,15 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
     }
 
     return TocinoRoute( outputPort, inputVC, outputVC );
+}
+
+void 
+TocinoDimensionOrderRouter::EnableWrapAround( uint32_t radix )
+{
+    if( radix == 0 ) return;
+
+    m_radix = radix;
+    m_wrap = true;
 }
 
 }

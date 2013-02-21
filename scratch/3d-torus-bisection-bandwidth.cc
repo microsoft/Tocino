@@ -29,8 +29,9 @@ int main( int argc, char** argv )
     cmd.AddValue( "duration", "Time duration of simulation", duration );
     cmd.Parse( argc, argv );
     
-    Config::SetDefault( "ns3::TocinoDimensionOrderRouter::WrapPoint",
-            UintegerValue( radix-1 ) );
+    Config::SetDefault(
+            "ns3::TocinoDimensionOrderRouter::EnableWrapAround",
+            UintegerValue( radix ) );
     
     const unsigned NODES = radix * radix * radix;
 

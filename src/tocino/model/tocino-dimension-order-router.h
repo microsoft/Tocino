@@ -14,6 +14,7 @@ namespace ns3
 class TocinoDimensionOrderRouter : public TocinoRouter
 {
     public:
+
     static TypeId GetTypeId( void );
 
     TocinoDimensionOrderRouter();
@@ -22,6 +23,8 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     TocinoRoute Route( Ptr<const Packet> ) const;
 
+    void EnableWrapAround( uint32_t );
+    
     private:
 
     bool TopologyHasWrapAround() const;
@@ -41,8 +44,8 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     const TocinoNetDevice* m_tnd;
     TocinoInputPort m_inputPort;
 
-    static const TocinoAddress::Coordinate NO_WRAP = 0;
-    TocinoAddress::Coordinate m_wrapPoint;
+    bool m_wrap;
+    uint32_t m_radix;
 };
 
 }
