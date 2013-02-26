@@ -185,7 +185,6 @@ TocinoSimpleArbiter::GetVCOwner( const TocinoOutputVC outputVC ) const
     return m_legalQueue.vec[ outputVC.AsUInt32() ];
 }
 
-// Intentionally distinct from TocinoArbiter::DO_NOTHING 
 const TocinoArbiterAllocation TocinoSimpleArbiter::ANY_QUEUE = 
-    TocinoArbiterAllocation( TOCINO_INVALID_PORT-1, TOCINO_INVALID_VC-1 );
+    TocinoArbiterAllocation( TOCINO_INVALID_PORT, TOCINO_INVALID_VC );
 }

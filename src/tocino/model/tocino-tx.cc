@@ -35,8 +35,11 @@ NS_LOG_COMPONENT_DEFINE ("TocinoTx");
 
 namespace ns3 {
 
-TocinoTx::TocinoTx( const uint32_t outputPortNumber, TocinoNetDevice* tnd )
-    : m_outputPort( outputPortNumber )
+TocinoTx::TocinoTx(
+        const TocinoOutputPort outputPort,
+        TocinoNetDevice* tnd
+)
+    : m_outputPort( outputPort )
     , m_xState( TocinoAllXON )
     , m_remoteXState( TocinoAllXON )
     , m_doUpdateXState( 0 )

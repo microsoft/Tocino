@@ -82,6 +82,25 @@ TocinoNetDevice::TocinoNetDevice()
 #endif
 {}
 
+void
+TocinoNetDevice::Initialize()
+{
+    // size data structures
+    m_incomingPackets.resize(m_nVCs, NULL);
+    m_incomingSources.resize(m_nVCs);
+    m_receivers.resize(m_nPorts);
+    m_transmitters.resize(m_nPorts);
+
+    // create receivers and routers
+    // create transmitters and arbiters
+    for( uint32_t i = 0; i < m_nPorts; i++ )
+    {
+        // MAS - must create transmitter first
+        m_transmitters[i] = new TocinoTx( i, this );
+        m_receivers[i] = new TocinoRx( i, this );
+    }
+}
+
 TocinoNetDevice::~TocinoNetDevice()
 {}
 
@@ -115,24 +134,6 @@ TocinoNetDevice::DoDispose()
     }
 }
 
-void
-TocinoNetDevice::Initialize()
-{
-    // size data structures
-    m_incomingPackets.resize(m_nVCs, NULL);
-    m_incomingSources.resize(m_nVCs);
-    m_receivers.resize(m_nPorts);
-    m_transmitters.resize(m_nPorts);
-
-    // create receivers and routers
-    // create transmitters and arbiters
-    for ( uint32_t i = 0; i < m_nPorts; i++)
-    {
-        // MAS - must create transmitter first
-        m_transmitters[i] = new TocinoTx( i, this );
-        m_receivers[i] = new TocinoRx( i, this );
-    }
-}
 
 void TocinoNetDevice::SetIfIndex( const uint32_t index )
 {

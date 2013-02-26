@@ -11,16 +11,18 @@
 namespace ns3 {
 
 void
-TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
-                     Ptr<TocinoNetDevice> rx_nd, uint32_t rx_port )
+TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, TocinoOutputPort tx_port,
+                     Ptr<TocinoNetDevice> rx_nd, TocinoInputPort rx_port )
 {
+    uint32_t txPortNum = tx_port.AsUInt32();
+    uint32_t rxPortNum = rx_port.AsUInt32();
+
     Ptr<TocinoChannel> c = CreateObject<TocinoChannel>();
     
-
-    tx_nd->SetChannel( tx_port, c );
+    tx_nd->SetChannel( txPortNum, c );
     
-    c->SetTransmitter( tx_nd->GetTransmitter( tx_port ) );
-    c->SetReceiver( rx_nd->GetReceiver( rx_port ) );
+    c->SetTransmitter( tx_nd->GetTransmitter( txPortNum ) );
+    c->SetReceiver( rx_nd->GetReceiver( rxPortNum ) );
 }
 
 }

@@ -11,7 +11,6 @@
 #include "tocino-net-device.h"
 #include "tocino-rx.h"
 #include "tocino-tx.h"
-#include "tocino-3d-torus-topology.h"
 
 NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 
@@ -29,21 +28,21 @@ NS_LOG_COMPONENT_DEFINE ("TocinoRx");
 namespace ns3 {
 
 TocinoRx::TocinoRx( 
-        const uint32_t inputPortNumber,
+        const TocinoInputPort inputPort,
         TocinoNetDevice* tnd
 )
-    : m_inputPort( inputPortNumber )
+    : m_inputPort( inputPort )
     , m_tnd( tnd )
-    , m_tx( tnd->GetTransmitter( inputPortNumber ) )
+    , m_tx( tnd->GetTransmitter( inputPort.AsUInt32() ) )
     , m_routingTable( tnd->GetNVCs() )
-    , m_crossbar( tnd, inputPortNumber )
+    , m_crossbar( tnd, inputPort )
 {
     m_inputQueues.vec.resize( m_tnd->GetNVCs() );
     
     ObjectFactory routerFactory;
     routerFactory.SetTypeId( m_tnd->GetRouterTypeId() );
     m_router = routerFactory.Create<TocinoRouter>();
-    m_router->Initialize( m_tnd, inputPortNumber );
+    m_router->Initialize( m_tnd, inputPort );
 }
 
 uint32_t
@@ -142,7 +141,7 @@ TocinoRx::AnnounceRoutingDecision(
     const TocinoOutputVC outputVC = route.outputVC;
 
     NS_LOG_LOGIC( logPrefix.str()
-            << Tocino3DTorusTopology::PortNumberToString( outputPort )
+            << TocinoPortToString( outputPort )
             << " (outputPort=" << outputPort
             << ", inputVC=" << inputVC
             << ", outputVC=" << outputVC << ")" );
@@ -260,8 +259,7 @@ TocinoRx::RewriteFlitHeaderVC(
     flit->AddHeader( h );
 }
 
-// Intentionally distinct from TOCINO_INVALID_VC
-const TocinoInputVC TocinoRx::NO_FORWARDABLE_VC( TOCINO_INVALID_VC-1 );
+const TocinoInputVC TocinoRx::NO_FORWARDABLE_VC( TOCINO_INVALID_VC );
 
 TocinoInputVC
 TocinoRx::FindForwardableVC() const

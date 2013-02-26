@@ -4,14 +4,16 @@
 
 #include "ns3/ptr.h"
 
+#include "ns3/tocino-misc.h"
+
 namespace ns3 {
 
 class TocinoChannel;
 class TocinoNetDevice;
 
 void
-TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, uint32_t tx_port,
-                     Ptr<TocinoNetDevice> rx_nd, uint32_t rx_port );
+TocinoChannelHelper( Ptr<TocinoNetDevice> tx_nd, TocinoOutputPort tx_port,
+                     Ptr<TocinoNetDevice> rx_nd, TocinoInputPort rx_port );
 
 }
 

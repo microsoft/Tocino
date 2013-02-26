@@ -28,8 +28,9 @@ public:
     static TypeId GetTypeId( void );
     
     TocinoNetDevice();
+    void Initialize();
+    
     virtual ~TocinoNetDevice();
-   
     virtual void DoDispose();
 
     virtual void SetIfIndex( const uint32_t index );
@@ -56,8 +57,6 @@ public:
     virtual void SetReceiveCallback( NetDevice::ReceiveCallback cb );
     virtual void SetPromiscReceiveCallback( PromiscReceiveCallback cb );
     virtual bool SupportsSendFrom( void ) const;
-    
-    void Initialize();
     
     void SetChannel( uint32_t, Ptr<TocinoChannel> );
     Ptr<TocinoChannel> GetChannel( uint32_t );

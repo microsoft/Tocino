@@ -62,7 +62,7 @@ bool TocinoDimensionOrderRouter::TopologyHasWrapAround() const
     return m_wrap;
 }
 
-TocinoDimensionOrderRouter::Direction
+TocinoDirection
 TocinoDimensionOrderRouter::DetermineRoutingDirection(
         const TocinoAddress::Coordinate src,
         const TocinoAddress::Coordinate dst ) const
@@ -96,22 +96,22 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     }
 
     if( routePositive )
-        return DIR_POS;
+        return TOCINO_DIRECTION_POS;
 
-    return DIR_NEG;
+    return TOCINO_DIRECTION_NEG;
 }
 
 bool
 TocinoDimensionOrderRouter::RouteCrossesDateline(
         const TocinoAddress::Coordinate srcCoord,
-        const Direction dir ) const
+        const TocinoDirection dir ) const
 {
     NS_ASSERT( TopologyHasWrapAround() );
 
-    if( (srcCoord == 0) && (dir == DIR_NEG) )
+    if( (srcCoord == 0) && (dir == TOCINO_DIRECTION_NEG) )
         return true;
 
-    if( (srcCoord == m_radix-1) && (dir == DIR_POS) )
+    if( (srcCoord == m_radix-1) && (dir == TOCINO_DIRECTION_POS) )
         return true;
 
     return false;
@@ -164,7 +164,7 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
     }
     
     // Dimension-order routing
-    Direction dir = DIR_INVALID;
+    TocinoDirection dir = TOCINO_INVALID_DIRECTION;
 
     TocinoAddress::Coordinate localCoord;
     TocinoAddress::Coordinate destCoord;
@@ -176,28 +176,16 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
 
         if( localCoord != destCoord )
         {
-            // FIXME: router should not be assuming this
-            const int PORT_POS = dim*2;
-            const int PORT_NEG = PORT_POS+1;
-
             dir = DetermineRoutingDirection( localCoord, destCoord );
 
-            if( dir == DIR_POS )
-            {
-                outputPort = PORT_POS;
-            }
-            else
-            {
-                NS_ASSERT( dir == DIR_NEG );
-                outputPort = PORT_NEG;
-            }
+            outputPort = TocinoGetPort( dim, dir );
 
             break;
         }
     }
 
     NS_ASSERT( outputPort != TOCINO_INVALID_PORT );
-    NS_ASSERT( dir != DIR_INVALID );
+    NS_ASSERT( dir != TOCINO_INVALID_DIRECTION );
 
     // Dateline algorithm for deadlock avoidance in rings/tori
     if( TopologyHasWrapAround() )

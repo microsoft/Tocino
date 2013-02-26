@@ -8,7 +8,6 @@
 
 #include "ns3/tocino-net-device.h"
 #include "ns3/tocino-channel.h"
-#include "ns3/tocino-3d-torus-topology.h"
 
 namespace ns3
 {
@@ -100,39 +99,39 @@ Tocino3DTorusTopologyHelper::Install( const NodeContainer& nc )
 
                 TocinoChannelHelper(
                         cur,
-                        Tocino3DTorusTopology::X_POS, 
+                        TOCINO_PORT_X_POS, 
                         netDevices[ Inc(x) ][y][z],
-                        Tocino3DTorusTopology::X_NEG );
+                        TOCINO_PORT_X_NEG );
 
                 TocinoChannelHelper(
                         cur,
-                        Tocino3DTorusTopology::X_NEG,
+                        TOCINO_PORT_X_NEG,
                         netDevices[ Dec(x) ][y][z],
-                        Tocino3DTorusTopology::X_POS );
+                        TOCINO_PORT_X_POS );
 
                 TocinoChannelHelper(
                         cur,
-                        Tocino3DTorusTopology::Y_POS,
+                        TOCINO_PORT_Y_POS,
                         netDevices[x][ Inc(y) ][z],
-                        Tocino3DTorusTopology::Y_NEG );
+                        TOCINO_PORT_Y_NEG );
 
                 TocinoChannelHelper(
                         cur,
-                        Tocino3DTorusTopology::Y_NEG,
+                        TOCINO_PORT_Y_NEG,
                         netDevices[x][ Dec(y) ][z],
-                        Tocino3DTorusTopology::Y_POS );
+                        TOCINO_PORT_Y_POS );
 
                 TocinoChannelHelper(
                         cur,
-                        Tocino3DTorusTopology::Z_POS,
+                        TOCINO_PORT_Z_POS,
                         netDevices[x][y][ Inc(z) ],
-                        Tocino3DTorusTopology::Z_NEG );
+                        TOCINO_PORT_Z_NEG );
 
                 TocinoChannelHelper(
                         cur,
-                        Tocino3DTorusTopology::Z_NEG,
+                        TOCINO_PORT_Z_NEG,
                         netDevices[x][y][ Dec(z) ],
-                        Tocino3DTorusTopology::Z_POS );
+                        TOCINO_PORT_Z_POS );
 
                 // Attach net device to the correct node
                 uint32_t idx = CoordinatesToIndex( x, y, z );

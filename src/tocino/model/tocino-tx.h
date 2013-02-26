@@ -23,7 +23,7 @@ class TocinoTx
 {
     public:
 
-    TocinoTx( const uint32_t, TocinoNetDevice* );
+    TocinoTx( const TocinoOutputPort, TocinoNetDevice* );
   
     uint32_t GetPortNumber() const;
 
@@ -119,7 +119,7 @@ class TocinoTx
         
         friend
             TocinoTx::TocinoTx( 
-                const uint32_t, TocinoNetDevice* );
+                const TocinoOutputPort, TocinoNetDevice* );
 
         friend OutputQueue&
             TocinoTx::GetOutputQueue(

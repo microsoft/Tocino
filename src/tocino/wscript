@@ -14,7 +14,6 @@ def build(bld):
         'helper/tocino-helper.cc',
         'model/all2all.cc',
         'model/callback-queue.cc',
-        'model/tocino-3d-torus-topology.cc',
         'model/tocino-arbiter.cc',
         'model/tocino-channel.cc',
         'model/tocino-crossbar.cc',
@@ -62,7 +61,6 @@ def build(bld):
         'helper/tocino-3d-torus-topology-helper.h',
         'model/all2all.h',
         'model/callback-queue.h',
-        'model/tocino-3d-torus-topology.h',
         'model/tocino-address.h',
         'model/tocino-arbiter.h',
         'model/tocino-channel.h',
@@ -81,7 +79,6 @@ def build(bld):
         'model/tocino-test-results.h',
         'model/tocino-traffic-matrix-application.h',
         'model/tocino-tx.h',
-        'model/tocino-type-safe-uint32.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:

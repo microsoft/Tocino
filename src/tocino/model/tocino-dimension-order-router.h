@@ -7,6 +7,7 @@
 #include "tocino-router.h"
 #include "tocino-net-device.h"
 #include "tocino-address.h"
+#include "tocino-misc.h"
 
 namespace ns3
 {
@@ -29,15 +30,13 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     bool TopologyHasWrapAround() const;
 
-    enum Direction { DIR_POS, DIR_NEG, DIR_INVALID };
-
-    Direction DetermineRoutingDirection(
+    TocinoDirection DetermineRoutingDirection(
             const TocinoAddress::Coordinate, 
             const TocinoAddress::Coordinate ) const;
 
     bool RouteCrossesDateline(
             const TocinoAddress::Coordinate,
-            const Direction ) const;
+            const TocinoDirection ) const;
     
     bool RouteChangesDimension( const TocinoOutputPort ) const;
 

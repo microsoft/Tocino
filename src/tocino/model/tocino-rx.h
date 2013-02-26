@@ -24,7 +24,7 @@ class TocinoRx
 {
     public:
 
-    TocinoRx( const uint32_t, TocinoNetDevice* );
+    TocinoRx( const TocinoInputPort, TocinoNetDevice* );
 
     uint32_t GetPortNumber() const;
 
@@ -117,7 +117,8 @@ class TocinoRx
         // friend function here, you're wrong. -MAS
         
         friend 
-            TocinoRx::TocinoRx( const uint32_t,
+            TocinoRx::TocinoRx(
+                const TocinoInputPort,
                 TocinoNetDevice* );
         
         friend InputQueue&
