@@ -117,27 +117,6 @@ TocinoDimensionOrderRouter::RouteCrossesDateline(
     return false;
 }
 
-bool 
-TocinoDimensionOrderRouter::RouteChangesDimension(
-        const TocinoOutputPort outputPort ) const
-{
-    // ISSUE-REVIEW: what if outputPort == host port?
-    if( m_inputPort == m_tnd->GetHostPort() )
-    {
-        return false;
-    }
-
-    const uint32_t ip = m_inputPort.AsUInt32();
-    const uint32_t op = outputPort.AsUInt32();
-
-    if( (ip/2) != (op/2) )
-    {
-        return true;
-    }
-
-    return false;
-}
-
 TocinoRoute
 TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const 
 {
@@ -162,40 +141,62 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
         outputPort = m_tnd->GetHostPort();
         return TocinoRoute( outputPort, inputVC, outputVC );
     }
+ 
+    const bool injecting =
+        m_inputPort == m_tnd->GetHostPort() ? true : false;
     
-    // Dimension-order routing
-    TocinoDirection dir = TOCINO_INVALID_DIRECTION;
+    const TocinoDimension inputDim = TocinoGetDimension( m_inputPort );
+    
+    TocinoDimension outputDim = TOCINO_INVALID_DIMENSION;
+    TocinoDirection outputDir = TOCINO_INVALID_DIRECTION;
 
     TocinoAddress::Coordinate localCoord;
     TocinoAddress::Coordinate destCoord;
 
-    for( int dim = 0; dim < TocinoAddress::DIM; ++dim )
+    // Dimension-order routing
+    for( outputDim = TOCINO_DIMENSION_X;
+            outputDim < TocinoAddress::MAX_DIM; ++outputDim )
     {
-        localCoord = localAddr.GetCoordinate(dim);
-        destCoord = destAddr.GetCoordinate(dim);
+        localCoord = localAddr.GetCoordinate( outputDim );
+        destCoord = destAddr.GetCoordinate( outputDim );
 
         if( localCoord != destCoord )
         {
-            dir = DetermineRoutingDirection( localCoord, destCoord );
-
-            outputPort = TocinoGetPort( dim, dir );
-
             break;
         }
     }
 
+    if( injecting || (inputDim != outputDim) )
+    {
+        // Changing dimension, choose new direction
+        outputDir = DetermineRoutingDirection( localCoord, destCoord );
+    }
+    else
+    {
+        const TocinoDirection inputDir = 
+            TocinoGetOppositeDirection( TocinoGetDirection( m_inputPort ) );
+
+        // Continue in the same direction
+        outputDir = inputDir;
+    }
+    
+    NS_ASSERT( outputDim != TOCINO_INVALID_DIMENSION );
+    NS_ASSERT( outputDir != TOCINO_INVALID_DIRECTION );
+    
+    outputPort = TocinoGetPort( outputDim, outputDir );
+
     NS_ASSERT( outputPort != TOCINO_INVALID_PORT );
-    NS_ASSERT( dir != TOCINO_INVALID_DIRECTION );
 
     // Dateline algorithm for deadlock avoidance in rings/tori
     if( TopologyHasWrapAround() )
     {
-        if( RouteChangesDimension( outputPort ) )
+        // Are we changing dimension?
+        if( !injecting && (inputDim != outputDim) )
         {
             // Reset to virtual channel zero
             outputVC = 0;
         }
-        else if( RouteCrossesDateline( localCoord, dir ) )
+        else if( RouteCrossesDateline( localCoord, outputDir ) )
         {
             NS_ASSERT_MSG( inputVC < m_tnd->GetNVCs(), 
                     "Flit on last VC cannot cross dateline!" );

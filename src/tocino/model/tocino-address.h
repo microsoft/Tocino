@@ -6,6 +6,8 @@
 
 #include "ns3/mac48-address.h"
 
+#include "tocino-misc.h"
+
 namespace ns3 {
 
 class TocinoAddress
@@ -98,17 +100,14 @@ class TocinoAddress
         return m_address.z;
     }
   
-    // FIXME: TocinoAddress should probably
-    // become a class template with this as
-    // a non-type template parameter
-    static const int DIM = 3;
+    static const int MAX_DIM = 3;
 
-    Coordinate GetCoordinate( int d ) const
+    Coordinate GetCoordinate( TocinoDimension d ) const
     {
-        NS_ASSERT( d >= 0 );
-        NS_ASSERT( d < DIM );
+        NS_ASSERT( d != TOCINO_INVALID_DIMENSION );
+        NS_ASSERT( d < MAX_DIM );
 
-        return m_address.coord[d];
+        return m_address.coord[ d.AsUInt32() ];
     }
 
     private:
@@ -129,7 +128,7 @@ class TocinoAddress
                 {
                     Coordinate x, y, z;
                 };
-                Coordinate coord[DIM];
+                Coordinate coord[MAX_DIM];
             };
 
             uint8_t reserved  : 7;

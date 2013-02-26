@@ -100,6 +100,24 @@ TocinoGetPort(
     return TOCINO_INVALID_PORT;
 }
 
+TocinoDirection
+TocinoGetOppositeDirection( const TocinoDirection dir )
+{
+    NS_ASSERT( dir != TOCINO_INVALID_DIRECTION );
+
+    if( dir == TOCINO_DIRECTION_POS )
+    {
+        return TOCINO_DIRECTION_NEG;
+    }
+    else
+    {
+        NS_ASSERT( dir == TOCINO_DIRECTION_NEG );
+        return TOCINO_DIRECTION_POS;
+    }
+
+    return TOCINO_INVALID_DIRECTION;
+}
+
 std::string
 TocinoDirectionToString(
         const TocinoDirection dir )
@@ -154,7 +172,8 @@ TocinoPortToString(
     TocinoDimension dim = TocinoGetDimension( port );
     TocinoDirection dir = TocinoGetDirection( port );
 
-    oss << dim << dir;
+    oss << TocinoDimensionToString(dim)
+        << TocinoDirectionToString(dir);
 
     return oss.str();
 }

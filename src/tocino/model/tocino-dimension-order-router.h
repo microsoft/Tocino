@@ -37,8 +37,6 @@ class TocinoDimensionOrderRouter : public TocinoRouter
     bool RouteCrossesDateline(
             const TocinoAddress::Coordinate,
             const TocinoDirection ) const;
-    
-    bool RouteChangesDimension( const TocinoOutputPort ) const;
 
     const TocinoNetDevice* m_tnd;
     TocinoInputPort m_inputPort;

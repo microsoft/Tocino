@@ -89,6 +89,8 @@ TocinoDirection TocinoGetDirection( const TocinoPort );
 TocinoDimension TocinoGetDimension( const TocinoPort );
 TocinoPort TocinoGetPort( const TocinoDimension, const TocinoDirection );
 
+TocinoDirection TocinoGetOppositeDirection( const TocinoDirection );
+
 std::string TocinoDirectionToString( const TocinoDirection );
 std::string TocinoDimensionToString( const TocinoDimension );
 std::string TocinoPortToString( const TocinoPort );
