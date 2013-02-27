@@ -2,6 +2,7 @@
 #include "ns3/packet.h"
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
+#include "ns3/boolean.h"
 
 #include "tocino-dimension-order-router.h"
 #include "tocino-misc.h"
@@ -37,6 +38,11 @@ TypeId TocinoDimensionOrderRouter::GetTypeId(void)
             UintegerValue( 0 ),
             MakeUintegerAccessor( &TocinoDimensionOrderRouter::EnableWrapAround ),
             MakeUintegerChecker<uint32_t>() )
+        .AddAttribute( "OutOfOrderOK", 
+            "It's OK to route packets in such a way that they may arrive out of order.",
+            BooleanValue( false ),
+            MakeBooleanAccessor( &TocinoDimensionOrderRouter::m_outOfOrderOK ),
+            MakeBooleanChecker() )
         .AddConstructor<TocinoDimensionOrderRouter>();
     return tid;
 }
@@ -75,21 +81,21 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     
     if( TopologyHasWrapAround() )
     {
-#if 0
         if( abs(delta) == m_radix/2 )
         {
-            static bool flip = false;
-            
-            if( flip )
+            if( m_outOfOrderOK )
             {
-                routePositive = !routePositive;
-            }
+                static bool flip = false;
 
-            flip = !flip;
+                if( flip )
+                {
+                    routePositive = !routePositive;
+                }
+
+                flip = !flip;
+            }
         }
-        else 
-#endif
-        if( abs(delta) > m_radix/2 )
+        else if( abs(delta) > m_radix/2 )
         {
             routePositive = !routePositive;
         }

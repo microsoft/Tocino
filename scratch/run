@@ -38,7 +38,8 @@ time ../waf --run "3d-torus-bisection-bandwidth \
     --packetbytes=22 \
     --duration=100us \
     --ns3::TocinoTrafficMatrixApplication::MeanTimeBetweenSends=10ns \
-    --ns3::TocinoTrafficMatrixApplication::MaxTimeBetweenSends=20ns" \
+    --ns3::TocinoTrafficMatrixApplication::MaxTimeBetweenSends=20ns \
+    --ns3::TocinoDimensionOrderRouter::OutOfOrderOK=true" \
     >out.txt 2>&1
 
 echo

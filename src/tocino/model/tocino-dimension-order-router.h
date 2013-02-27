@@ -43,6 +43,8 @@ class TocinoDimensionOrderRouter : public TocinoRouter
 
     bool m_wrap;
     uint32_t m_radix;
+
+    bool m_outOfOrderOK;
 };
 
 }
