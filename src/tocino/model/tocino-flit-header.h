@@ -44,8 +44,8 @@ class TocinoFlitHeader : public Header
     void ClearHead();
     void ClearTail();
 
-    void SetVirtualChannel( uint8_t );
-    uint8_t GetVirtualChannel();
+    void SetVirtualChannel( TocinoVC );
+    TocinoVC GetVirtualChannel();
 
     void SetLength( uint8_t );
     uint8_t GetLength();
@@ -84,7 +84,7 @@ class TocinoFlitHeader : public Header
 
 bool IsTocinoFlitHead( Ptr<const Packet> );
 bool IsTocinoFlitTail( Ptr<const Packet> );
-uint8_t GetTocinoFlitVirtualChannel( Ptr<const Packet> );
+TocinoVC GetTocinoFlitVirtualChannel( Ptr<const Packet> );
 TocinoAddress GetTocinoFlitDestination( Ptr<const Packet> );
 
 }

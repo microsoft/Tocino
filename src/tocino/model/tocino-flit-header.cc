@@ -201,14 +201,14 @@ void TocinoFlitHeader::ClearTail()
     m_isTail = false;
 }
 
-void TocinoFlitHeader::SetVirtualChannel( uint8_t vc )
+void TocinoFlitHeader::SetVirtualChannel( TocinoVC vc )
 {
-    m_virtualChannel = vc;
+    m_virtualChannel = vc.AsUInt32();
 }
 
-uint8_t TocinoFlitHeader::GetVirtualChannel()
+TocinoVC TocinoFlitHeader::GetVirtualChannel()
 {
-    return m_virtualChannel;
+    return TocinoVC( m_virtualChannel );
 }
     
 void TocinoFlitHeader::SetLength( uint8_t l )
@@ -256,7 +256,7 @@ bool IsTocinoFlitTail( Ptr<const Packet> flit )
     return h.IsTail();
 }
 
-uint8_t GetTocinoFlitVirtualChannel( Ptr<const Packet> flit )
+TocinoVC GetTocinoFlitVirtualChannel( Ptr<const Packet> flit )
 {
     TocinoFlitHeader h;
     flit->PeekHeader( h );

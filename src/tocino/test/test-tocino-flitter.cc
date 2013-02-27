@@ -15,6 +15,7 @@ namespace
 {
     const TocinoAddress TEST_SRC(0);
     const TocinoAddress TEST_DST(1);
+    const TocinoInputVC TEST_VC(0);
     const TocinoFlitHeader::Type TEST_TYPE( TocinoFlitHeader::MAX_TYPE );
 }
 
@@ -33,7 +34,7 @@ void TestTocinoFlitter::TestEmpty()
     Ptr<Packet> p = Create<Packet>( 0 );
     std::deque< Ptr<Packet> > flits;
 
-    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_VC, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 1, "Empty packet should result in one flit" );
 }
@@ -46,7 +47,7 @@ void TestTocinoFlitter::TestOneFlit( const unsigned LEN )
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
     
-    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_VC, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 1, "Incorrect number of flits" );
 
@@ -72,7 +73,7 @@ void TestTocinoFlitter::TestTwoFlits( const unsigned TAIL_LEN )
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
     
-    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_VC, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 2, "Incorrect number of flits" );
 
@@ -108,7 +109,7 @@ void TestTocinoFlitter::TestThreeFlits( const unsigned TAIL_LEN )
     Ptr<Packet> p = Create<Packet>( LEN );
     std::deque< Ptr<Packet> > flits;
 
-    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_TYPE );
+    flits = tnd.Flitter( p, TEST_SRC, TEST_DST, TEST_VC, TEST_TYPE );
 
     NS_TEST_ASSERT_MSG_EQ( flits.size(), 3, "Incorrect number of flits" );
 

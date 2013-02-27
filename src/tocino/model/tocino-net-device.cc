@@ -78,7 +78,7 @@ TocinoNetDevice::TocinoNetDevice()
     , m_routerTypeId( TocinoDimensionOrderRouter::GetTypeId() )
     , m_arbiterTypeId( TocinoSimpleArbiter::GetTypeId() )
 #ifdef TOCINO_VC_STRESS_MODE
-    , m_flowCounter( 0 )
+    , m_packetCounter( 0 )
 #endif
 {}
 
@@ -86,10 +86,11 @@ void
 TocinoNetDevice::Initialize()
 {
     // size data structures
-    m_incomingPackets.resize(m_nVCs, NULL);
-    m_incomingSources.resize(m_nVCs);
-    m_receivers.resize(m_nPorts);
-    m_transmitters.resize(m_nPorts);
+    m_outgoingFlits.resize( m_nVCs );
+    m_incomingPackets.resize( m_nVCs, NULL );
+    m_incomingSources.resize( m_nVCs );
+    m_receivers.resize( m_nPorts );
+    m_transmitters.resize( m_nPorts );
 
     // create receivers and routers
     // create transmitters and arbiters
@@ -227,7 +228,7 @@ bool TocinoNetDevice::IsBridge( void ) const
 }
 
 std::deque< Ptr<Packet> >
-TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const TocinoAddress& dst, const TocinoFlitHeader::Type type )
+TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const TocinoAddress& dst, const TocinoInputVC vc, const TocinoFlitHeader::Type type )
 {
     uint32_t start = 0;
     bool isFirstFlit = true;
@@ -252,10 +253,6 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
     
         TocinoFlitHeader h( src, dst );
 
-#ifdef TOCINO_VC_STRESS_MODE
-        uint8_t vc = m_flowCounter % m_nVCs;
-#endif
-
         if( isFirstFlit )
         {
             h.SetHead();
@@ -265,17 +262,11 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
         if( isLastFlit )
         {
             h.SetTail();
-#ifdef TOCINO_VC_STRESS_MODE
-            // Round-robin across all the VCs
-            m_flowCounter++;
-#endif
         }
 
         h.SetLength( LEN );
 
-#ifdef TOCINO_VC_STRESS_MODE
         h.SetVirtualChannel( vc );
-#endif
 
         flit->AddHeader(h);
             
@@ -332,16 +323,39 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
 
     p->AddHeader( eh );
     p->AddTrailer( et );
-        
-    FlittizedPacket fp = Flitter( p, source, destination, TocinoFlitHeader::ETHERNET );
+
+#ifndef TOCINO_VC_STRESS_MODE
+    // Always inject on VC 0
+    const uint32_t injectionVC = 0;
+#else
+    // Round-robin across all the VCs
+    
+    // N.B.
+    // We must never use the topmost VC,
+    // as this is required for the deadlock
+    // avoidance via dateline algorithm.
+    const uint32_t injectionVC = m_packetCounter % (m_nVCs-1);
+    m_packetCounter++;
+#endif
+
+    FlittizedPacket fp
+        = Flitter( p, source, destination, injectionVC, TocinoFlitHeader::ETHERNET );
+
+    NS_ASSERT( injectionVC < m_outgoingFlits.size() );
 
     // add the new flits to the end of the outgoing flit Q
-    m_outgoingFlits.insert( m_outgoingFlits.end(), fp.begin(), fp.end() );
+    m_outgoingFlits[injectionVC].insert(
+            m_outgoingFlits[injectionVC].end(), fp.begin(), fp.end() );
 
     // ISSUE-REVIEW: this can grow unbounded?
-    //NS_ASSERT_MSG( m_outgoingFlits.size() < 100, "Crazy large packet queue?" );
-    m_outgoingFlitsMaxSize =
-        std::max( m_outgoingFlitsMaxSize, m_outgoingFlits.size() );
+    for( uint32_t vc = 0; vc < m_nVCs; ++vc )
+    {
+        //NS_ASSERT_MSG( m_outgoingFlits[vc].size() < 100, 
+        //      "Crazy large packet queue?" );
+
+        m_outgoingFlitsMaxSize =
+            std::max( m_outgoingFlitsMaxSize, m_outgoingFlits[vc].size() );
+    }
 
     TrySendFlits();
 
@@ -425,32 +439,32 @@ void TocinoNetDevice::InjectFlit( Ptr<Packet> f ) const
 void TocinoNetDevice::TrySendFlits()
 {
     NS_LOG_FUNCTION_NOARGS();
-    
-    if( m_outgoingFlits.empty() )
+   
+    for( uint32_t vc = 0; vc < m_nVCs; ++vc )
     {
-        NS_LOG_LOGIC( "nothing to do" );
-        return;
-    }
-
-    NS_ASSERT( !m_outgoingFlits.empty() );
-
-    while( !m_outgoingFlits.empty() )
-    {
-        Ptr<Packet> flit = m_outgoingFlits.front();
-        
-        TocinoInputVC injectionVC = GetTocinoFlitVirtualChannel( flit );
-
-        if( m_receivers[ GetHostPort() ]->IsVCBlocked( injectionVC ) )
+        if( m_outgoingFlits[vc].empty() )
         {
-            break;
+            continue;
         }
 
-        // must pop prior to calling InjectFlit; InjectFlit can indirectly generate
-        // a call to TrySendFlits which can cause a flit to be sent twice if pop
-        // occurs after InjectFlits
-        m_outgoingFlits.pop_front();
+        while( !m_outgoingFlits[vc].empty() )
+        {
+            Ptr<Packet> flit = m_outgoingFlits[vc].front();
 
-        InjectFlit(flit);
+            NS_ASSERT( vc == GetTocinoFlitVirtualChannel( flit ) );
+
+            if( m_receivers[ GetHostPort() ]->IsVCBlocked( vc ) )
+            {
+                break;
+            }
+
+            // must pop prior to calling InjectFlit; InjectFlit can indirectly generate
+            // a call to TrySendFlits which can cause a flit to be sent twice if pop
+            // occurs after InjectFlits
+            m_outgoingFlits[vc].pop_front();
+
+            InjectFlit(flit);
+        }
     }
 }
 
@@ -464,7 +478,7 @@ void TocinoNetDevice::EjectFlit( Ptr<Packet> f )
     NS_ASSERT( m_incomingPackets.size() == m_nVCs );
     NS_ASSERT( m_incomingSources.size() == m_nVCs );
 
-    const uint8_t vc = h.GetVirtualChannel();
+    const uint32_t vc = h.GetVirtualChannel().AsUInt32();
 
     Ptr< Packet >& pkt = m_incomingPackets[vc];
     TocinoAddress& src = m_incomingSources[vc];
@@ -562,10 +576,13 @@ bool TocinoNetDevice::AllQuiet() const
 {
     bool quiet = true;
 
-    if( !m_outgoingFlits.empty() )
+    for( uint32_t vc = 0; vc < m_nVCs; ++vc )
     {
-        NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
-        quiet = false;
+        if( !m_outgoingFlits[vc].empty() )
+        {
+            NS_LOG_LOGIC( "Not quiet: TrySendFlits() in progress?" );
+            quiet = false;
+        }
     }
 
     for (unsigned i = 0; i < m_incomingPackets.size(); i++)

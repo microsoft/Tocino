@@ -70,8 +70,19 @@ const uint32_t TOCINO_MAX_PORTS = 7;
 // Virtual Channels
 //
 
-DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoInputVC );
-DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoOutputVC );
+DEFINE_TOCINO_TYPE_SAFE_UINT32( TocinoVC );
+
+struct TocinoInputVC : public TocinoVC {
+    TocinoInputVC() : TocinoVC() {}
+    TocinoInputVC( TocinoVC x ) : TocinoVC( x ) {}
+    TocinoInputVC( uint32_t x ) : TocinoVC( x ) {}
+};
+
+struct TocinoOutputVC : public TocinoVC {
+    TocinoOutputVC() : TocinoVC() {}
+    TocinoOutputVC( TocinoVC x ) : TocinoVC( x ) {}
+    TocinoOutputVC( uint32_t x ) : TocinoVC( x ) {}
+};
 
 const uint32_t TOCINO_INVALID_VC = std::numeric_limits<uint32_t>::max();
 

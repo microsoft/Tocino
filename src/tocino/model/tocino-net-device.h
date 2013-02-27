@@ -76,6 +76,7 @@ public:
             const Ptr<Packet>,
             const TocinoAddress&,
             const TocinoAddress&,
+            const TocinoInputVC,
             const TocinoFlitHeader::Type );
    
     bool AllQuiet() const;
@@ -108,12 +109,12 @@ private:
 
     typedef std::deque< Ptr<Packet> > FlittizedPacket;
 
-    // current flits to be sent 
-    FlittizedPacket m_outgoingFlits;
+    // current flits to be sent (per-VC)
+    std::vector< FlittizedPacket > m_outgoingFlits;
 
     uint32_t m_outgoingFlitsMaxSize;
     
-    // state for EjectFlit
+    // state for EjectFlit (per-VC)
     std::vector< Ptr<Packet> > m_incomingPackets;
     std::vector< TocinoAddress > m_incomingSources;
  
@@ -138,7 +139,7 @@ private:
     TypeId m_arbiterTypeId;
 
 #ifdef TOCINO_VC_STRESS_MODE
-    uint32_t m_flowCounter;
+    uint32_t m_packetCounter;
 #endif
 };
 
