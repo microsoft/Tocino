@@ -6,24 +6,61 @@
 
 export NS_LOG="TocinoNetDevice:TocinoChannel"
 
-dosomething(){
+summarizeNumber(){
+    local name=$1
+    
+    grep "$name" tmp.txt | grep -o "[[:digit:]\.]*" > tmp2.txt
+
+    cat tmp2.txt | sort -rn > tmp3.txt
+   
+    echo -en "   $name:\t"
+    head -n 1 tmp3.txt | tr -d '\n'
+    echo -n " ... "
+    tail -n 1 tmp3.txt
+}
+
+summarizePercentage(){
+    local name=$1
+    
+    grep "$name" tmp.txt | grep -o "[[:digit:]\.]*%" > tmp2.txt
+
+    cat tmp2.txt | sort -rn > tmp3.txt
+   
+    echo -en "   $name:\t"
+    head -n 1 tmp3.txt | tr -d '\n'
+    echo -n " ... "
+    tail -n 1 tmp3.txt
+}
+
+summarizeChannel(){
     local src=$1
     local dst=$2
 
-    grep "TocinoChannel:ReportChannelStatistics" out.txt > chan.txt
-
-    echo Link between $src and $dst
-    egrep ": \(.,.,$src" chan.txt | egrep "> \(.,.,$dst" | grep util | grep -o "[[:digit:]\.]*%" > tmp.txt
-    egrep ": \(.,$src,." chan.txt | egrep "> \(.,$dst,." | grep util | grep -o "[[:digit:]\.]*%" >> tmp.txt
-    egrep ": \($src,.,." chan.txt | egrep "> \($dst,.,." | grep util | grep -o "[[:digit:]\.]*%" >> tmp.txt
-
-    cat tmp.txt | sort -rn > tmp2.txt
+    echo Links between $src and $dst
+    egrep ": \(.,.,$src" chan.txt | egrep "> \(.,.,$dst" > tmp.txt
+    egrep ": \(.,$src,." chan.txt | egrep "> \(.,$dst,." >> tmp.txt
+    egrep ": \($src,.,." chan.txt | egrep "> \($dst,.,." >> tmp.txt
     
-    echo -n "   Max: "
-    head -n 1 tmp2.txt
+    #summarizeNumber "total throughput"
+    #summarizeNumber "data throughput"
+    #summarizeNumber "LLC throughput"
 
-    echo -n "   Min: "
-    tail -n 1 tmp2.txt
+    #summarizeNumber "total bytes"
+    #summarizeNumber "data bytes"
+    #summarizePercentage "data bytes"
+    #summarizeNumber "LLC bytes"
+    #summarizePercentage "LLC bytes"
+
+    #summarizeNumber "total flits"
+    #summarizeNumber "data flits"
+    #summarizePercentage "data flits"
+    #summarizeNumber "LLC flits"
+    #summarizePercentage "LLC flits"
+
+    summarizePercentage "percent busy time"
+    #summarizePercentage "percent idle time"
+    #summarizePercentage "percent data time"
+    summarizePercentage "percent LLC time"
 }
 
 # max payload head flit is 40
@@ -39,6 +76,9 @@ time ../waf --run "3d-torus-bisection-bandwidth \
     --duration=100us \
     --ns3::TocinoTrafficMatrixApplication::MeanTimeBetweenSends=10ns \
     --ns3::TocinoTrafficMatrixApplication::MaxTimeBetweenSends=20ns \
+    --ns3::TocinoNetDevice::VirtualChannels=16 \
+    --ns3::TocinoNetDevice::RoundRobinVCInject=true \
+    --ns3::TocinoSimpleArbiter::InterleaveVCs=true \
     --ns3::TocinoDimensionOrderRouter::OutOfOrderOK=true" \
     >out.txt 2>&1
 
@@ -50,29 +90,20 @@ grep "Finished after" out.txt
 grep "Bisection bandwidth" out.txt
 
 echo
+    
+grep "TocinoChannel:ReportChannelStatistics" out.txt > chan.txt
 
-dosomething 0 1
-dosomething 1 0
+summarizeChannel 0 1
+summarizeChannel 1 0
 
-dosomething 1 2
-dosomething 2 1
+summarizeChannel 1 2
+summarizeChannel 2 1
 
-dosomething 2 3
-dosomething 3 2
+summarizeChannel 2 3
+summarizeChannel 3 2
 
-dosomething 3 0
-dosomething 0 3
-
-grep LLC out.txt | egrep -o "[[:digit:]\.]*%" | sort -rn > llc.txt
-
-echo
-echo "LLC flit %age"
-
-echo -n "   Max: "
-head -n 1 llc.txt
-
-echo -n "   Min: "
-tail -n 1 llc.txt
+summarizeChannel 3 0
+summarizeChannel 0 3
 
 echo
 echo -n "Maximum m_outgoingFlits: "

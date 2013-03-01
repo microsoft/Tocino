@@ -5,6 +5,7 @@
 
 #include "ns3/log.h"
 #include "ns3/random-variable.h"
+#include "ns3/boolean.h"
 
 #include "tocino-misc.h"
 #include "tocino-tx.h"
@@ -32,6 +33,11 @@ TypeId TocinoSimpleArbiter::GetTypeId(void)
 {
     static TypeId tid = TypeId( "ns3::TocinoSimpleArbiter" )
         .SetParent<TocinoArbiter>()
+        .AddAttribute( "InterleaveVCs", 
+            "Bias arbitraton to promote interleaving of VCs on the wire.",
+            BooleanValue( false ),
+            MakeBooleanAccessor( &TocinoSimpleArbiter::m_interleaveVCs),
+            MakeBooleanChecker() )
         .AddConstructor<TocinoSimpleArbiter>();
     return tid;
 }
@@ -39,9 +45,8 @@ TypeId TocinoSimpleArbiter::GetTypeId(void)
 TocinoSimpleArbiter::TocinoSimpleArbiter()
     : m_tnd( NULL )
     , m_ttx( NULL )
-#ifdef TOCINO_VC_STRESS_MODE
+    , m_interleaveVCs( false )
     , m_lastVC( TOCINO_INVALID_VC )
-#endif
 {}
 
 void TocinoSimpleArbiter::Initialize( const TocinoNetDevice* tnd, const TocinoTx* ttx )
@@ -93,17 +98,14 @@ TocinoSimpleArbiter::BuildCandidateSet() const
 }
 
 TocinoArbiterAllocation
-TocinoSimpleArbiter::FairSelectWinner( const AllocVector& cand ) const
+TocinoSimpleArbiter::SelectWinnerInterleaveVCs( const AllocVector& cand ) const
 {
     UniformVariable rv;
 
-#ifndef TOCINO_VC_STRESS_MODE
-    return cand[ rv.GetInteger( 0, cand.size()-1 ) ];
-#else
     // try to select a different outVC than last time
     TocinoArbiterAllocation winner( DO_NOTHING );
     AllocVector newCand;
-   
+
     if( m_lastVC != TOCINO_INVALID_VC )
     {
         for( unsigned i = 0; i < cand.size(); ++i )
@@ -126,10 +128,18 @@ TocinoSimpleArbiter::FairSelectWinner( const AllocVector& cand ) const
         NS_LOG_LOGIC( "intentional VC interleaving" );
         winner = newCand[ rv.GetInteger( 0, newCand.size()-1 ) ];
     }
-    
+
     m_lastVC = winner.outputVC;
+
     return winner;
-#endif 
+}
+
+TocinoArbiterAllocation
+TocinoSimpleArbiter::FairSelectWinner( const AllocVector& cand ) const
+{
+    UniformVariable rv;
+        
+    return cand[ rv.GetInteger( 0, cand.size()-1 ) ];
 }
 
 void
@@ -167,7 +177,16 @@ TocinoSimpleArbiter::Arbitrate()
         return DO_NOTHING;
     }
 
-    TocinoArbiterAllocation winner = FairSelectWinner( candidates );
+    TocinoArbiterAllocation winner;
+
+    if( m_interleaveVCs )
+    {
+        winner = SelectWinnerInterleaveVCs( candidates );
+    }
+    else
+    {
+        winner = FairSelectWinner( candidates );
+    }
 
     UpdateState( winner );
     

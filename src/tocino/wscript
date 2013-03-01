@@ -51,9 +51,6 @@ def build(bld):
         'test/tocino-test-suite.cc',
         ]
     
-    #for m in [ module, module_test ]:
-    #    m.env.append_value("DEFINES", "TOCINO_VC_STRESS_MODE")
-
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'tocino'
     headers.source = [

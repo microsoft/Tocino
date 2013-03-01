@@ -34,6 +34,7 @@ class TocinoSimpleArbiter : public TocinoArbiter
 
     AllocVector BuildCandidateSet() const;
 
+    TocinoArbiterAllocation SelectWinnerInterleaveVCs( const AllocVector& ) const;
     TocinoArbiterAllocation FairSelectWinner( const AllocVector& ) const;
 
     void UpdateState( const TocinoArbiterAllocation );
@@ -68,9 +69,8 @@ class TocinoSimpleArbiter : public TocinoArbiter
     }
     m_legalQueue;
 
-#ifdef TOCINO_VC_STRESS_MODE
+    bool m_interleaveVCs;
     mutable TocinoOutputVC m_lastVC;
-#endif
 };
 
 }

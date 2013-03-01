@@ -5,6 +5,7 @@
 #include "ns3/log.h"
 #include "ns3/data-rate.h"
 #include "ns3/uinteger.h"
+#include "ns3/boolean.h"
 #include "ns3/node.h"
 #include "ns3/channel.h"
 #include "ns3/ethernet-header.h"
@@ -41,27 +42,32 @@ TypeId TocinoNetDevice::GetTypeId(void)
 {
     static TypeId tid = TypeId( "ns3::TocinoNetDevice" )
         .SetParent<NetDevice>()
-        .AddConstructor<TocinoNetDevice>()
-        .AddAttribute ("Ports", 
+        .AddAttribute( "Ports", 
             "Number of ports on net device.",
-            UintegerValue (TocinoNetDevice::DEFAULT_NPORTS),
-            MakeUintegerAccessor (&TocinoNetDevice::m_nPorts),
-            MakeUintegerChecker<uint32_t> ())
-        .AddAttribute ("VirtualChannels", 
+            UintegerValue( TocinoNetDevice::DEFAULT_NPORTS ),
+            MakeUintegerAccessor( &TocinoNetDevice::SetNPorts ),
+            MakeUintegerChecker<uint32_t>() )
+        .AddAttribute( "VirtualChannels", 
             "Number of virtual channels on each port.",
-            UintegerValue (TocinoNetDevice::DEFAULT_NVCS),
-            MakeUintegerAccessor (&TocinoNetDevice::m_nVCs),
-            MakeUintegerChecker<uint32_t> ())
-        .AddAttribute ("RouterType",
+            UintegerValue( TocinoNetDevice::DEFAULT_NVCS ),
+            MakeUintegerAccessor( &TocinoNetDevice::SetNVCs ),
+            MakeUintegerChecker<uint32_t>() )
+        .AddAttribute( "RouterType",
             "Name of type which implements routing algorithm.",
-            TypeIdValue (TocinoDimensionOrderRouter::GetTypeId ()),
-            MakeTypeIdAccessor (&TocinoNetDevice::m_routerTypeId),
-            MakeTypeIdChecker ())
-        .AddAttribute ("ArbiterType",
+            TypeIdValue( TocinoDimensionOrderRouter::GetTypeId() ),
+            MakeTypeIdAccessor( &TocinoNetDevice::m_routerTypeId ),
+            MakeTypeIdChecker() )
+        .AddAttribute( "ArbiterType",
             "Name of type which implements arbitration algorithm.",
-            TypeIdValue (TocinoSimpleArbiter::GetTypeId ()),
-            MakeTypeIdAccessor (&TocinoNetDevice::m_arbiterTypeId),
-            MakeTypeIdChecker ());
+            TypeIdValue( TocinoSimpleArbiter::GetTypeId() ),
+            MakeTypeIdAccessor( &TocinoNetDevice::m_arbiterTypeId ),
+            MakeTypeIdChecker() )
+        .AddAttribute( "RoundRobinVCInject", 
+            "Round-robin switch injection VC on each packets.",
+            BooleanValue( false ),
+            MakeBooleanAccessor( &TocinoNetDevice::m_roundRobinVCInject),
+            MakeBooleanChecker() )
+        .AddConstructor<TocinoNetDevice>();
     return tid;
 }
 
@@ -77,9 +83,8 @@ TocinoNetDevice::TocinoNetDevice()
     , m_nVCs( DEFAULT_NVCS )
     , m_routerTypeId( TocinoDimensionOrderRouter::GetTypeId() )
     , m_arbiterTypeId( TocinoSimpleArbiter::GetTypeId() )
-#ifdef TOCINO_VC_STRESS_MODE
+    , m_roundRobinVCInject( false )
     , m_packetCounter( 0 )
-#endif
 {}
 
 void
@@ -324,19 +329,24 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     p->AddHeader( eh );
     p->AddTrailer( et );
 
-#ifndef TOCINO_VC_STRESS_MODE
-    // Always inject on VC 0
-    const uint32_t injectionVC = 0;
-#else
-    // Round-robin across all the VCs
-    
-    // N.B.
-    // We must never use the topmost VC,
-    // as this is required for the deadlock
-    // avoidance via dateline algorithm.
-    const uint32_t injectionVC = m_packetCounter % (m_nVCs-1);
-    m_packetCounter++;
-#endif
+    uint32_t injectionVC = TOCINO_INVALID_VC;
+
+    if( m_roundRobinVCInject )
+    {
+        // Round-robin across all the VCs
+
+        // N.B.
+        // We must never use the topmost VC,
+        // as this is required for the deadlock
+        // avoidance via dateline algorithm.
+        injectionVC = m_packetCounter % (m_nVCs-1);
+        m_packetCounter++;
+    }
+    else
+    {
+        // Always inject on VC 0
+        injectionVC = 0;
+    }
 
     FlittizedPacket fp
         = Flitter( p, source, destination, injectionVC, TocinoFlitHeader::ETHERNET );
@@ -560,10 +570,28 @@ TocinoNetDevice::GetNPorts() const
     return m_nPorts;
 }
 
+void
+TocinoNetDevice::SetNPorts( uint32_t ports )
+{ 
+    NS_ASSERT( ports <= TOCINO_MAX_PORTS );
+    
+    ports = std::min( ports, TOCINO_MAX_PORTS );
+    m_nPorts = ports;
+}
+
 uint32_t
 TocinoNetDevice::GetNVCs() const
 {
     return m_nVCs;
+}
+
+void
+TocinoNetDevice::SetNVCs( uint32_t vcs )
+{ 
+    NS_ASSERT( vcs <= TOCINO_MAX_VCS );
+    
+    vcs = std::min( vcs, TOCINO_MAX_VCS );
+    m_nVCs = vcs;
 }
 
 uint32_t

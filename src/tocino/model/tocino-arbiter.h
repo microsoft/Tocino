@@ -24,6 +24,11 @@ struct TocinoArbiterAllocation
         , outputVC( vc )
     {}
     
+    TocinoArbiterAllocation()
+        : inputPort( TOCINO_INVALID_PORT )
+        , outputVC( TOCINO_INVALID_VC )
+    {}
+    
     bool operator==( const TocinoArbiterAllocation& other ) const
     {
         if( other.inputPort != inputPort )

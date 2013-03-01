@@ -306,37 +306,125 @@ TocinoChannel::ReportChannelStatistics() const
     std::ostringstream prefix;
     
     prefix << m_txString << " --> " << m_rxString << ": ";
+
+    // Bytes
+    uint32_t dataBytesTransmitted = m_totalBytesTransmitted - m_LLCBytesTransmitted;
+
+    double dataBytesPercentage =
+        static_cast<double>(dataBytesTransmitted) / m_totalBytesTransmitted * 100;
+
+    double LLCBytesPercentage =
+        static_cast<double>(m_LLCBytesTransmitted) / m_totalBytesTransmitted * 100;
+
+    NS_LOG_LOGIC( prefix.str()
+            << "total bytes: "
+            << m_totalBytesTransmitted );
     
     NS_LOG_LOGIC( prefix.str() 
-            << "transmitted " 
-            << m_totalBytesTransmitted
-            << " bytes in "
-            << m_totalTransmitTime.GetSeconds()
-            << " seconds" );
-   
-    double fracLLC = 
+            << "data bytes: " 
+            << dataBytesTransmitted
+            << " ("
+            << dataBytesPercentage
+            << "%)" );
+
+    NS_LOG_LOGIC( prefix.str()
+            << "LLC bytes: "
+            << m_LLCBytesTransmitted
+            << " ("
+            << LLCBytesPercentage
+            << "%)" );
+
+    // Flits
+    uint32_t dataFlitsTransmitted = m_totalFlitsTransmitted - m_LLCFlitsTransmitted;
+    
+    double dataFlitsPercentage =
+        static_cast<double>(dataFlitsTransmitted) / m_totalFlitsTransmitted * 100;
+
+    double LLCFlitsPercentage =
         static_cast<double>(m_LLCFlitsTransmitted) / m_totalFlitsTransmitted * 100;
+
+    NS_LOG_LOGIC( prefix.str()
+            << "total flits: "
+            << m_totalFlitsTransmitted );
     
     NS_LOG_LOGIC( prefix.str() 
-            << "transmitted "
-            << m_totalFlitsTransmitted
-            << " flits ("
-            << fracLLC
-            << "% LLC)" );
+            << "data flits: " 
+            << dataFlitsTransmitted
+            << " ("
+            << dataFlitsPercentage
+            << "%)" );
 
-    double now = Simulator::Now().GetSeconds();
+    NS_LOG_LOGIC( prefix.str()
+            << "LLC flits: "
+            << m_LLCFlitsTransmitted
+            << " ("
+            << LLCFlitsPercentage
+            << "%)" );
 
-    // ISSUE-REVIEW: should we use ns3::DataRate for the rates here?
-    double kfpsActual = static_cast<double>(m_totalFlitsTransmitted) / now / 1000;
-    double bpsActual = static_cast<double>(m_totalBytesTransmitted) * 8 / now;
-    double mbpsActual = bpsActual / 1024 / 1024;
+    // Utilization
+    Time dataTransmitTime = m_totalTransmitTime - m_LLCTransmitTime;
+    Time idleTime = Simulator::Now() - m_totalTransmitTime;
+  
+    const double totalSeconds = Simulator::Now().GetSeconds();
 
-    double channelUtilization = bpsActual / m_bps.GetBitRate() * 100;
+    double percentTimeBusy = 
+        m_totalTransmitTime.GetSeconds() / totalSeconds * 100;
 
-    NS_LOG_LOGIC( prefix.str() 
-            << kfpsActual << " Kflits/second, "
-            << mbpsActual << " Mbps ("
-            << channelUtilization << "% util)" );
+    double percentTimeIdle =
+        idleTime.GetSeconds() / totalSeconds * 100;
+
+    double percentTimeXmitData =
+        dataTransmitTime.GetSeconds() / totalSeconds * 100;
+
+    double percentTimeXmitLLC =
+        m_LLCTransmitTime.GetSeconds() / totalSeconds * 100;
+
+    NS_LOG_LOGIC( prefix.str()
+            << "percent busy time: "
+            << percentTimeBusy
+            << "%" );
+    
+    NS_LOG_LOGIC( prefix.str()
+            << "percent idle time: "
+            << percentTimeIdle
+            << "%" );
+    
+    NS_LOG_LOGIC( prefix.str()
+            << "percent data time: "
+            << percentTimeXmitData
+            << "%" );
+    
+    NS_LOG_LOGIC( prefix.str()
+            << "percent LLC time: "
+            << percentTimeXmitLLC
+            << "%" );
+
+    // Throughput
+    double totalMbps =
+        static_cast<double>(m_totalBytesTransmitted) * 8 / totalSeconds / 1024 / 1024;
+    
+    double dataMbps =
+        static_cast<double>(dataBytesTransmitted) * 8 / totalSeconds / 1024 / 1024;
+    
+    double LLCMbps =
+        static_cast<double>(m_LLCBytesTransmitted) * 8 / totalSeconds / 1024 / 1024;
+
+    NS_LOG_LOGIC( prefix.str()
+            << "total throughput: "
+            << totalMbps
+            << " Mbps" );
+    
+    NS_LOG_LOGIC( prefix.str()
+            << "data throughput: "
+            << dataMbps
+            << " Mbps" );
+    
+    NS_LOG_LOGIC( prefix.str()
+            << "LLC throughput: "
+            << LLCMbps
+            << " Mbps" );
+    
+    NS_LOG_LOGIC( prefix.str() );
 }
 
 } // namespace ns3

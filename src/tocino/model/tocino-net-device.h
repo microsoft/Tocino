@@ -67,7 +67,10 @@ public:
     TocinoTx* GetTransmitter( const TocinoOutputPort ) const;
    
     uint32_t GetNPorts() const;
+    void SetNPorts( uint32_t );
+
     uint32_t GetNVCs() const;
+    void SetNVCs( uint32_t );
 
     // Get the injection/ejection port
     uint32_t GetHostPort() const;
@@ -122,12 +125,7 @@ private:
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
     
     static const uint32_t DEFAULT_NPORTS = 7;
-
-#ifndef TOCINO_VC_STRESS_MODE
     static const uint32_t DEFAULT_NVCS = 2;
-#else
-    static const uint32_t DEFAULT_NVCS = TOCINO_MAX_VCS;
-#endif
 
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port
@@ -138,9 +136,8 @@ private:
     TypeId m_routerTypeId;
     TypeId m_arbiterTypeId;
 
-#ifdef TOCINO_VC_STRESS_MODE
+    bool m_roundRobinVCInject;
     uint32_t m_packetCounter;
-#endif
 };
 
 } // namespace ns3
