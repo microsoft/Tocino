@@ -83,16 +83,20 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     {
         if( abs(delta) == m_radix/2 )
         {
+            // Tie-breaker
             if( m_outOfOrderOK )
             {
+                // Alternate packet direction (may result in OoO delivery)
                 static bool flip = false;
-
-                if( flip )
-                {
-                    routePositive = !routePositive;
-                }
+                    
+                routePositive = flip;
 
                 flip = !flip;
+            }
+            else 
+            {
+                // Even coords route positive, odds negative 
+                routePositive = ( src & 1 );
             }
         }
         else if( abs(delta) > m_radix/2 )
