@@ -5,6 +5,7 @@
 #../waf --run "3d-torus-bisection-bandwidth --PrintAttributes=ns3::TocinoDimensionOrderRouter"
 
 export NS_LOG="TocinoNetDevice:TocinoChannel"
+export NS_GLOBAL_VALUE="RngRun=2"
 
 summarizeNumber(){
     local name=$1
@@ -57,10 +58,10 @@ summarizeChannel(){
     #summarizeNumber "LLC flits"
     #summarizePercentage "LLC flits"
 
-    summarizePercentage "percent busy time"
-    #summarizePercentage "percent idle time"
-    #summarizePercentage "percent data time"
+    #summarizePercentage "percent busy time"
+    summarizePercentage "percent data time"
     summarizePercentage "percent LLC time"
+    summarizePercentage "percent idle time"
 }
 
 # max payload head flit is 40
@@ -91,7 +92,7 @@ grep "Bisection bandwidth" out.txt
 
 echo
     
-grep "TocinoChannel:ReportChannelStatistics" out.txt > chan.txt
+grep "TocinoChannel:ReportStatistics" out.txt > chan.txt
 
 summarizeChannel 0 1
 summarizeChannel 1 0

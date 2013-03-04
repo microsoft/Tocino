@@ -125,7 +125,7 @@ TocinoNetDevice::DoDispose()
 
         if( chan != NULL )
         {
-            chan->ReportChannelStatistics();
+            chan->ReportStatistics();
         }
     }
 
@@ -333,13 +333,14 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
 
     if( m_roundRobinVCInject )
     {
-        // Round-robin across all the VCs
-
+        // Round-robin across all the VC pairs
+        //
         // N.B.
-        // We must never use the topmost VC,
-        // as this is required for the deadlock
-        // avoidance via dateline algorithm.
-        injectionVC = m_packetCounter % (m_nVCs-1);
+        // We may inject on the base (even-numbered)
+        // VC of each pair. The high (odd-numbered) 
+        // VCs are reserved for deadlock avoidance via
+        // dateline algorithm.
+        injectionVC = (m_packetCounter*2) % m_nVCs;
         m_packetCounter++;
     }
     else

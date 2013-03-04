@@ -82,6 +82,8 @@ void TocinoChannel::SetTransmitter(TocinoTx* tx)
         << ")";
 
     m_txString = oss.str();
+
+    m_vcUsageHistogram.resize( m_tx->GetTocinoNetDevice()->GetNVCs(), 0 );
 }
 
 
@@ -157,6 +159,9 @@ TocinoChannel::TransmitStart (Ptr<Packet> flit)
 
         m_LLCTransmitTime += transmit_time;
     }
+
+    TocinoOutputVC vc = GetTocinoFlitVirtualChannel( flit );
+    m_vcUsageHistogram[ vc.AsUInt32() ]++;
 
     Simulator::Schedule(transmit_time, &TocinoChannel::TransmitEnd, this);
     return true;
@@ -301,7 +306,7 @@ TocinoChannel::GetLLCTransmitTime() const
 }
 
 void
-TocinoChannel::ReportChannelStatistics() const
+TocinoChannel::ReportStatistics() const
 {
     std::ostringstream prefix;
     
@@ -424,8 +429,16 @@ TocinoChannel::ReportChannelStatistics() const
             << LLCMbps
             << " Mbps" );
     
+    for( uint32_t vc = 0; vc < m_vcUsageHistogram.size(); vc++ )
+    {
+        NS_LOG_LOGIC( prefix.str()
+                << "vc " 
+                << vc
+                << " "
+                << m_vcUsageHistogram[ vc ] );
+    }
+    
     NS_LOG_LOGIC( prefix.str() );
 }
 
 } // namespace ns3
-

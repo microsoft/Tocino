@@ -203,15 +203,15 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
         // Are we changing dimension?
         if( !injecting && (inputDim != outputDim) )
         {
-            // Reset to virtual channel zero
-            outputVC = 0;
+            // Reset to the base (even-numbered) VC of the pair
+            outputVC = inputVC.AsUInt32() & ~1;
         }
         else if( RouteCrossesDateline( localCoord, outputDir ) )
         {
             NS_ASSERT_MSG( inputVC < m_tnd->GetNVCs(), 
                     "Flit on last VC cannot cross dateline!" );
 
-            // Switch to the next virtual channel
+            // Switch to the high (odd-numbered) VC of the pair
             outputVC = inputVC.AsUInt32() + 1;
         }
     }

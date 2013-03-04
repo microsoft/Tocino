@@ -46,7 +46,7 @@ public:
     uint32_t GetLLCFlitsTransmitted() const;
     Time GetLLCTransmitTime() const;
     
-    void ReportChannelStatistics() const;
+    void ReportStatistics() const;
 
 private:
     
@@ -74,6 +74,8 @@ private:
     uint32_t m_LLCBytesTransmitted;
     uint32_t m_LLCFlitsTransmitted;
     Time m_LLCTransmitTime;
+    
+    std::vector< uint32_t > m_vcUsageHistogram;
 };
 
 } // namespace ns3
