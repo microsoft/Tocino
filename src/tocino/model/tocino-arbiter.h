@@ -50,11 +50,23 @@ struct TocinoArbiter : public Object
 {
     static TypeId GetTypeId( void );
 
+    // ISSUE-REVIEW:
+    // There is way too much stuff in this interface.
+    // We're pretty much adding pure-virtuals here just
+    // to use them later without a dynamic downcast.
+    //
+    // All we really need is Arbitrate, and maybe Initialize
+    // The other stuff should only be in derived classes
+    // which support those functions.
+    //  -MAS
+    
     virtual TocinoArbiterAllocation Arbitrate() = 0;
 
     virtual void Initialize( const TocinoNetDevice*, const TocinoTx* ) = 0;
 
     virtual TocinoArbiterAllocation GetVCOwner( const TocinoOutputVC ) const = 0;
+
+    virtual void ReportStatistics() const = 0;
 
     static const TocinoArbiterAllocation DO_NOTHING;
 };

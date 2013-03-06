@@ -121,12 +121,7 @@ TocinoNetDevice::DoDispose()
 
     for (unsigned i = 0; i < m_transmitters.size(); i++)
     {
-        Ptr<TocinoChannel> chan = m_transmitters[i]->GetChannel();
-
-        if( chan != NULL )
-        {
-            chan->ReportStatistics();
-        }
+        m_transmitters[i]->ReportStatistics();
     }
 
     for (unsigned i = 0; i < m_receivers.size(); i++)

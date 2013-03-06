@@ -47,6 +47,10 @@ TocinoSimpleArbiter::TocinoSimpleArbiter()
     , m_ttx( NULL )
     , m_interleaveVCs( false )
     , m_lastVC( TOCINO_INVALID_VC )
+    , m_stallAllocatedQueueIsEmpty( 0 )
+    , m_stallAllocatedQueueNotEmptyButXOFF( 0 )
+    , m_stallUnallocatedButAllQueuesEmpty( 0 )
+    , m_stallUnallocatedButAllNonEmptyQueuesAreXOFF( 0 )
 {}
 
 void TocinoSimpleArbiter::Initialize( const TocinoNetDevice* tnd, const TocinoTx* ttx )
@@ -54,6 +58,26 @@ void TocinoSimpleArbiter::Initialize( const TocinoNetDevice* tnd, const TocinoTx
     m_tnd = tnd;
     m_ttx = ttx;
     m_legalQueue.vec.assign( m_tnd->GetNVCs(), ANY_QUEUE );
+}
+
+bool
+TocinoSimpleArbiter::CanTransmitFrom(
+        const TocinoInputPort inputPort,
+        const TocinoOutputVC outputVC ) const
+{
+    // We can transmit from a queue iff
+    //  -It is not empty
+    //  -The corresponding output VC is enabled
+    
+    if( !m_ttx->IsQueueEmpty( inputPort, outputVC ) )
+    {
+        if( !m_ttx->IsVCPaused( outputVC ) )
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 TocinoSimpleArbiter::AllocVector
@@ -69,7 +93,7 @@ TocinoSimpleArbiter::BuildCandidateSet() const
             for( TocinoInputPort inputPort = 0; 
                     inputPort < m_tnd->GetNPorts(); ++inputPort )
             {
-                if( m_ttx->CanTransmitFrom( inputPort, outputVC ) )
+                if( CanTransmitFrom( inputPort, outputVC ) )
                 {
                     NS_ASSERT( m_ttx->IsNextFlitHead( inputPort, outputVC ) );
             
@@ -85,7 +109,7 @@ TocinoSimpleArbiter::BuildCandidateSet() const
 
             NS_ASSERT( GetVCOwner( outputVC ).outputVC == outputVC );
 
-            if( m_ttx->CanTransmitFrom( alloc.inputPort, alloc.outputVC ) )
+            if( CanTransmitFrom( alloc.inputPort, alloc.outputVC ) )
             {
                 NS_ASSERT( !m_ttx->IsNextFlitHead( alloc.inputPort, alloc.outputVC ) );
 
@@ -166,6 +190,66 @@ TocinoSimpleArbiter::UpdateState( const TocinoArbiterAllocation winner )
     }
 }
 
+void
+TocinoSimpleArbiter::CollectStallInfo()
+{
+    // Given that we *know* we will stall (no candidates)
+    // keep track of the reason why
+   
+    for( uint32_t vc = 0; vc < m_tnd->GetNVCs(); ++vc )
+    {
+        TocinoArbiterAllocation alloc = GetVCOwner( vc );
+
+        if( alloc != ANY_QUEUE )
+        {
+            NS_ASSERT( vc == alloc.outputVC );
+            
+            if( m_ttx->IsQueueEmpty( alloc.inputPort, vc ) )
+            {
+                m_stallAllocatedQueueIsEmpty++;
+            }
+            else
+            {
+                NS_ASSERT( m_ttx->IsVCPaused( vc ) );
+                
+                m_stallAllocatedQueueNotEmptyButXOFF++;
+            }
+        }
+        else
+        {
+            bool allEmpty = true;
+
+            for( TocinoInputPort inputPort = 0; 
+                    inputPort < m_tnd->GetNPorts(); ++inputPort )
+            {
+                if( !m_ttx->IsQueueEmpty( inputPort, vc ) )
+                {
+                    allEmpty = false;
+                    break;
+                }
+            }
+
+            if( allEmpty )
+            {
+                m_stallUnallocatedButAllQueuesEmpty++;
+            }
+            else
+            {
+                for( TocinoInputPort inputPort = 0; 
+                        inputPort < m_tnd->GetNPorts(); ++inputPort )
+                {
+                    if( !m_ttx->IsQueueEmpty( inputPort, vc ) )
+                    {
+                        NS_ASSERT( m_ttx->IsVCPaused( vc ) );
+                    }
+                }
+                
+                m_stallUnallocatedButAllNonEmptyQueuesAreXOFF++;
+            }
+        }
+    }
+}
+
 TocinoArbiterAllocation
 TocinoSimpleArbiter::Arbitrate()
 {
@@ -173,6 +257,8 @@ TocinoSimpleArbiter::Arbitrate()
 
     if( candidates.empty() )
     {
+        CollectStallInfo();
+
         NS_LOG_LOGIC( "no candidates" );
         return DO_NOTHING;
     }
@@ -206,4 +292,45 @@ TocinoSimpleArbiter::GetVCOwner( const TocinoOutputVC outputVC ) const
 
 const TocinoArbiterAllocation TocinoSimpleArbiter::ANY_QUEUE = 
     TocinoArbiterAllocation( TOCINO_INVALID_PORT, TOCINO_INVALID_VC );
+
+void
+TocinoSimpleArbiter::ReportStatistics() const
+{
+    // We have a reason per VC per stall
+    
+    uint32_t totalStallReasons = 
+        m_stallAllocatedQueueIsEmpty + 
+        m_stallAllocatedQueueNotEmptyButXOFF +
+        m_stallUnallocatedButAllQueuesEmpty +
+        m_stallUnallocatedButAllNonEmptyQueuesAreXOFF;
+    
+    NS_LOG_LOGIC( "stalls due to allocated queue being empty: "
+            << m_stallAllocatedQueueIsEmpty
+            << " ("
+            << ( static_cast<double>(m_stallAllocatedQueueIsEmpty) /
+                totalStallReasons * 100 )
+            << "%)" );
+    
+    NS_LOG_LOGIC( "stalls due to allocated queue not empty, but XOFF: "
+            << m_stallAllocatedQueueNotEmptyButXOFF
+            << " ("
+            << ( static_cast<double>(m_stallAllocatedQueueNotEmptyButXOFF) /
+                totalStallReasons * 100 )
+            << "%)" );
+    
+    NS_LOG_LOGIC( "stalls when no queue is allocated but all queues are empty: "
+            << m_stallUnallocatedButAllQueuesEmpty
+            << " ("
+            << ( static_cast<double>(m_stallUnallocatedButAllQueuesEmpty) /
+                totalStallReasons * 100 )
+            << "%)" );
+    
+    NS_LOG_LOGIC( "stalls when no queue is allocated but all non-empty queues are XOFF: "
+            << m_stallUnallocatedButAllNonEmptyQueuesAreXOFF
+            << " ("
+            << ( static_cast<double>(m_stallUnallocatedButAllNonEmptyQueuesAreXOFF) /
+                totalStallReasons * 100 )
+            << "%)" );
+}
+
 }

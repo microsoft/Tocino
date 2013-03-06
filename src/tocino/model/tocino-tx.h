@@ -51,7 +51,7 @@ class TocinoTx
             const TocinoOutputVC,
             Ptr<Packet> );
     
-    bool CanTransmitFrom( 
+    bool IsQueueEmpty( 
             const TocinoInputPort, 
             const TocinoOutputVC ) const;
     
@@ -65,6 +65,8 @@ class TocinoTx
 
     bool AllQuiet() const;
     void DumpState() const;
+
+    void ReportStatistics() const;
 
     private:
     

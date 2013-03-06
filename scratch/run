@@ -4,7 +4,7 @@
 #../waf --run "3d-torus-bisection-bandwidth --PrintAttributes=ns3::TocinoTrafficMatrixApplication"
 #../waf --run "3d-torus-bisection-bandwidth --PrintAttributes=ns3::TocinoDimensionOrderRouter"
 
-export NS_LOG="TocinoNetDevice:TocinoChannel"
+export NS_LOG="TocinoNetDevice:TocinoChannel:TocinoSimpleArbiter"
 export NS_GLOBAL_VALUE="RngRun=2"
 
 summarizeNumber(){

@@ -344,27 +344,16 @@ TocinoTx::AcceptFlit(
 }
 
 bool
-TocinoTx::CanTransmitFrom(
+TocinoTx::IsQueueEmpty(
         const TocinoInputPort inputPort,
         const TocinoOutputVC outputVC ) const
 {
     NS_ASSERT( inputPort < m_tnd->GetNPorts() );
     NS_ASSERT( outputVC < m_tnd->GetNVCs() );
    
-    // We can transmit from a queue iff
-    //  -It is not empty
-    //  -The corresponding output VC is enabled
-    
-    if( !GetOutputQueue( inputPort, outputVC ).IsEmpty() ) 
-    {
-        if( !IsVCPaused( outputVC ) )
-        {
-            return true;
-        }
-    }
-
-    return false;
+    return GetOutputQueue( inputPort, outputVC ).IsEmpty();
 }
+
 
 Ptr<const Packet>
 TocinoTx::PeekNextFlit( 
@@ -474,6 +463,20 @@ TocinoTx::DumpState() const
         }
     }
 #endif
+}
+
+void
+TocinoTx::ReportStatistics() const
+{
+    if( m_arbiter != NULL )
+    {
+        m_arbiter->ReportStatistics();
+    }
+
+    if( m_channel != NULL )
+    { 
+        m_channel->ReportStatistics();
+    }
 }
 
 } // namespace ns3

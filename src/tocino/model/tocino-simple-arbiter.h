@@ -28,11 +28,19 @@ class TocinoSimpleArbiter : public TocinoArbiter
 
     static const TocinoArbiterAllocation ANY_QUEUE;
 
+    void ReportStatistics() const;
+
     private:
 
     typedef std::vector< TocinoArbiterAllocation > AllocVector;
 
+    bool CanTransmitFrom(
+            const TocinoInputPort,
+            const TocinoOutputVC ) const;
+
     AllocVector BuildCandidateSet() const;
+
+    void CollectStallInfo();
 
     TocinoArbiterAllocation SelectWinnerInterleaveVCs( const AllocVector& ) const;
     TocinoArbiterAllocation FairSelectWinner( const AllocVector& ) const;
@@ -71,6 +79,12 @@ class TocinoSimpleArbiter : public TocinoArbiter
 
     bool m_interleaveVCs;
     mutable TocinoOutputVC m_lastVC;
+
+    // Statistics on stall conditions
+    uint32_t m_stallAllocatedQueueIsEmpty;
+    uint32_t m_stallAllocatedQueueNotEmptyButXOFF;
+    uint32_t m_stallUnallocatedButAllQueuesEmpty;
+    uint32_t m_stallUnallocatedButAllNonEmptyQueuesAreXOFF;
 };
 
 }
