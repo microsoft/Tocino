@@ -44,6 +44,9 @@ class TocinoFlitHeader : public Header
     void ClearHead();
     void ClearTail();
 
+    void CloakHead();
+    void AssumeHead();
+
     void SetVirtualChannel( TocinoVC );
     TocinoVC GetVirtualChannel();
 
@@ -58,8 +61,9 @@ class TocinoFlitHeader : public Header
         SATA,
         IPV4,
         IPV6,
+        ENCAPSULATED_PACKET,
         MIN_TYPE = INVALID,
-        MAX_TYPE = IPV6
+        MAX_TYPE = ENCAPSULATED_PACKET
     };
 
     void SetType( Type );
@@ -80,10 +84,15 @@ class TocinoFlitHeader : public Header
     uint8_t m_length;
 
     Type m_type;
+
+    bool m_cloakHead;
+    bool m_assumeHead;
 };
 
 bool IsTocinoFlitHead( Ptr<const Packet> );
 bool IsTocinoFlitTail( Ptr<const Packet> );
+bool IsTocinoEncapsulatedPacket( Ptr<const Packet> );
+
 TocinoVC GetTocinoFlitVirtualChannel( Ptr<const Packet> );
 TocinoAddress GetTocinoFlitDestination( Ptr<const Packet> );
 

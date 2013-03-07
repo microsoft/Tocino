@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <limits>
 #include <ostream>
+#include <deque>
+
+#include "ns3/packet.h"
 
 #include "tocino-type-safe-uint32.h"
 
@@ -13,6 +16,8 @@
 
 namespace ns3
 {
+
+class TocinoAddress;
 
 //
 // Directions
@@ -106,6 +111,11 @@ std::string TocinoDirectionToString( const TocinoDirection );
 std::string TocinoDimensionToString( const TocinoDimension );
 std::string TocinoPortToString( const TocinoPort );
 
+typedef std::deque< Ptr<Packet> > TocinoFlittizedPacket;
+
+void TocinoAddIntermediateDestination(
+        TocinoFlittizedPacket&,
+        const TocinoAddress& );
 }
 
 #endif //__TOCINO_MISC_H__

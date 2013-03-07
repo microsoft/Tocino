@@ -227,13 +227,13 @@ bool TocinoNetDevice::IsBridge( void ) const
     return false;
 }
 
-std::deque< Ptr<Packet> >
+TocinoFlittizedPacket
 TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const TocinoAddress& dst, const TocinoInputVC vc, const TocinoFlitHeader::Type type )
 {
     uint32_t start = 0;
     bool isFirstFlit = true;
     
-    std::deque< Ptr<Packet> > q;
+    TocinoFlittizedPacket q;
    
     uint32_t remainder = p->GetSize(); // GetSerializedSize?
 
@@ -344,7 +344,7 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
         injectionVC = 0;
     }
 
-    FlittizedPacket fp
+    TocinoFlittizedPacket fp
         = Flitter( p, source, destination, injectionVC, TocinoFlitHeader::ETHERNET );
 
     NS_ASSERT( injectionVC < m_outgoingFlits.size() );

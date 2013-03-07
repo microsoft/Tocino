@@ -31,6 +31,8 @@ TocinoFlitHeader::TocinoFlitHeader()
     , m_virtualChannel( 0 )
     , m_length( 0 )
     , m_type( INVALID )
+    , m_cloakHead( false )
+    , m_assumeHead( false )
 {}
 
 
@@ -42,6 +44,8 @@ TocinoFlitHeader::TocinoFlitHeader( TocinoAddress src, TocinoAddress dst )
     , m_virtualChannel( 0 )
     , m_length( 0 )
     , m_type( INVALID )
+    , m_cloakHead( false )
+    , m_assumeHead( false )
 {}
 
 TypeId TocinoFlitHeader::GetInstanceTypeId( void ) const
@@ -88,8 +92,17 @@ namespace {
 void TocinoFlitHeader::Serialize( Buffer::Iterator i ) const
 {
     Flags f;
-    
-    f.head = m_isHead;
+   
+    if( m_cloakHead )
+    {
+        NS_ASSERT( m_isHead );
+        f.head = false;
+    }
+    else
+    {
+        f.head = m_isHead;
+    }
+
     f.tail = m_isTail;
     f.length = m_length;
     f.type = m_type;
@@ -119,7 +132,15 @@ uint32_t TocinoFlitHeader::Deserialize( Buffer::Iterator i )
 
     f.asU16 = i.ReadU16();
 
-    m_isHead = f.head;
+    if( m_assumeHead )
+    {
+        m_isHead = true;
+    }
+    else
+    {
+        m_isHead = f.head;
+    }
+
     m_isTail = f.tail;
     m_length = f.length;
     m_type = CheckedConvertToType( f.type );
@@ -173,6 +194,7 @@ TocinoAddress TocinoFlitHeader::GetDestination()
     
 bool TocinoFlitHeader::IsHead() const
 {
+
     return m_isHead;
 }
 
@@ -199,6 +221,17 @@ void TocinoFlitHeader::ClearHead()
 void TocinoFlitHeader::ClearTail()
 {
     m_isTail = false;
+}
+
+void TocinoFlitHeader::CloakHead()
+{
+    NS_ASSERT( m_isHead );
+    m_cloakHead = true;
+}
+
+void TocinoFlitHeader::AssumeHead()
+{
+    m_assumeHead = true;
 }
 
 void TocinoFlitHeader::SetVirtualChannel( TocinoVC vc )
@@ -254,6 +287,16 @@ bool IsTocinoFlitTail( Ptr<const Packet> flit )
     flit->PeekHeader( h );
 
     return h.IsTail();
+}
+
+bool IsTocinoEncapsulatedPacket( Ptr<const Packet> flit )
+{
+    TocinoFlitHeader h;
+    flit->PeekHeader( h );
+    
+    NS_ASSERT( h.IsHead() );
+
+    return h.GetType() == TocinoFlitHeader::ENCAPSULATED_PACKET;
 }
 
 TocinoVC GetTocinoFlitVirtualChannel( Ptr<const Packet> flit )

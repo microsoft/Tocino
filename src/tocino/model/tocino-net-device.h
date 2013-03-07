@@ -2,8 +2,6 @@
 #ifndef __TOCINO_NET_DEVICE_H__
 #define __TOCINO_NET_DEVICE_H__
 
-#include <deque>
-
 #include "ns3/net-device.h"
 
 #include "tocino-address.h"
@@ -75,7 +73,7 @@ public:
     // Get the injection/ejection port
     uint32_t GetHostPort() const;
 
-    std::deque< Ptr<Packet> > Flitter(
+    TocinoFlittizedPacket Flitter(
             const Ptr<Packet>,
             const TocinoAddress&,
             const TocinoAddress&,
@@ -110,10 +108,8 @@ private:
     
     TocinoAddress m_address;
 
-    typedef std::deque< Ptr<Packet> > FlittizedPacket;
-
     // current flits to be sent (per-VC)
-    std::vector< FlittizedPacket > m_outgoingFlits;
+    std::vector< TocinoFlittizedPacket > m_outgoingFlits;
 
     uint32_t m_outgoingFlitsMaxSize;
     

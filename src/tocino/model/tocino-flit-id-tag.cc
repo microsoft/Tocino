@@ -72,6 +72,12 @@ TocinoFlitIdTag::TocinoFlitIdTag(
 {}
 
 uint32_t
+TocinoFlitIdTag::GetAbsolutePacketNumber() const
+{
+    return m_absolutePacketNumber;
+}
+
+uint32_t
 TocinoFlitIdTag::NextPacketNumber()
 {
     static uint32_t next = 0;
@@ -89,6 +95,16 @@ GetTocinoFlitIdString( Ptr<const Packet> flit )
     tag.Print( oss );
 
     return oss.str();
+}
+
+uint32_t
+GetTocinoAbsolutePacketNumber( Ptr<const Packet> flit )
+{
+    TocinoFlitIdTag tag;
+    bool success = flit->PeekPacketTag( tag );
+    NS_ASSERT( success );
+
+    return tag.GetAbsolutePacketNumber();
 }
 
 } // namespace ns3

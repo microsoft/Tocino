@@ -1,8 +1,10 @@
-#include "tocino-misc.h"
-
 #include "ns3/simulator.h"
 #include "ns3/simulator-impl.h"
 #include "ns3/log.h"
+
+#include "tocino-misc.h"
+#include "tocino-flit-header.h"
+#include "tocino-flit-id-tag.h"
 
 namespace
 {
@@ -176,6 +178,62 @@ TocinoPortToString(
         << TocinoDirectionToString(dir);
 
     return oss.str();
+}
+
+void
+TocinoAddIntermediateDestination(
+        TocinoFlittizedPacket& packet,
+        const TocinoAddress& intermediateDest )
+{
+    // Given flittized packet going from A to C, 
+    // introduce an intermediate destination B, such that
+    // the packet will be routed from A, to B, and then to C.
+    
+    // We cloak the inner head flit as a regular 'ole body flit.
+    
+    // We then create a new "runt" head flit with the intermediate
+    // destination and staple it to the front of the packet.
+    
+    TocinoFlitHeader innerHeader;
+    Ptr<Packet> innerHeadFlit = packet.front();
+
+    innerHeadFlit->RemoveHeader( innerHeader );
+    
+    TocinoFlitHeader outerHeader( innerHeader.GetSource(), intermediateDest );
+
+    NS_ASSERT( innerHeader.IsHead() );
+    innerHeader.CloakHead();
+
+    innerHeadFlit->AddHeader( innerHeader );
+    
+    Ptr<Packet> outerHeadFlit = Create<Packet>();
+
+    outerHeader.SetHead();
+    outerHeader.SetType( TocinoFlitHeader::ENCAPSULATED_PACKET );
+    outerHeader.SetLength( TocinoFlitHeader::SIZE_HEAD );
+    outerHeader.SetVirtualChannel( innerHeader.GetVirtualChannel() );
+
+    outerHeadFlit->AddHeader( outerHeader );
+
+    packet.push_front( outerHeadFlit );
+   
+    // ISSUE-REVIEW: do we want to do something special with the
+    // packet tags in the case of encapsulation?  Right now I am
+    // just renumbering them.
+    
+    const uint32_t TOTAL_FLITS = packet.size();
+    const uint32_t ABS_PACKET_NUM = GetTocinoAbsolutePacketNumber( packet.back() );
+
+    for( uint32_t i = 0; i < TOTAL_FLITS; ++i )
+    {
+        const uint32_t REL_FLIT_NUM = i+1;
+        
+        TocinoFlitIdTag oldTag;
+        packet[i]->RemovePacketTag( oldTag );
+
+        TocinoFlitIdTag newTag( ABS_PACKET_NUM, REL_FLIT_NUM, TOTAL_FLITS );
+        packet[i]->AddPacketTag( newTag );
+    }
 }
 
 }

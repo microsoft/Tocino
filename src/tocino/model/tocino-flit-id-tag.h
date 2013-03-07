@@ -25,6 +25,8 @@ class TocinoFlitIdTag : public Tag
     TocinoFlitIdTag();
     TocinoFlitIdTag( uint32_t, uint32_t, uint32_t );
 
+    uint32_t GetAbsolutePacketNumber() const;
+
     static uint32_t NextPacketNumber();
 
     private:
@@ -38,6 +40,7 @@ class TocinoFlitIdTag : public Tag
 };
     
 std::string GetTocinoFlitIdString( Ptr<const Packet> );
+uint32_t GetTocinoAbsolutePacketNumber( Ptr<const Packet> );
 
 } // namespace ns3
 
