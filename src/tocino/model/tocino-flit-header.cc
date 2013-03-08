@@ -158,10 +158,10 @@ uint32_t TocinoFlitHeader::Deserialize( Buffer::Iterator i )
   
         Address a;
 
-        ReadFrom( i, a, sizeof( TocinoAddress ) );
+        ReadFrom( i, a, TocinoAddress::GetLength() );
         m_src = TocinoAddress::ConvertFrom( a );
 
-        ReadFrom( i, a, sizeof( TocinoAddress ) );
+        ReadFrom( i, a, TocinoAddress::GetLength() );
         m_dst = TocinoAddress::ConvertFrom( a );
     }
 
@@ -313,6 +313,21 @@ TocinoAddress GetTocinoFlitDestination( Ptr<const Packet> flit )
     flit->PeekHeader( h );
 
     return h.GetDestination();
+}
+
+void TocinoUncloakHeadFlit( Ptr<Packet> flit )
+{
+    TocinoFlitHeader h;
+
+    // N.B.
+    // We *know* this is a head flit, despite the fact that
+    // the "head" bit is false on the wire.  -MAS
+    h.AssumeHead();
+
+    flit->RemoveHeader( h );
+    NS_ASSERT( h.IsHead() );
+
+    flit->AddHeader( h );
 }
 
 }

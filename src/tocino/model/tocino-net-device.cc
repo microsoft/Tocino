@@ -298,27 +298,24 @@ TocinoNetDevice::Flitter( const Ptr<Packet> p, const TocinoAddress& src, const T
     return q;
 }
 
-bool TocinoNetDevice::Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber )
+bool 
+TocinoNetDevice::SendEx(
+        Ptr<Packet> packet,
+        const TocinoAddress& src,
+        const TocinoAddress& dest,
+        const TocinoAddress& via,
+        uint16_t protocolNumber )
 {
-    return SendFrom( packet, m_address, dest, protocolNumber );
-}
-
-bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Address& dest, uint16_t protocolNumber )
-{
-    TocinoAddress source = TocinoAddress::ConvertFrom(src);
-    TocinoAddress destination = TocinoAddress::ConvertFrom(dest);
-
     NS_LOG_FUNCTION( packet << src << dest << protocolNumber );
 
     // Avoid modifying the passed-in packet.
     Ptr<Packet> p = packet->Copy();
 
-
     EthernetHeader eh( false );
     EthernetTrailer et;
 
-    eh.SetSource( source.AsMac48Address() );
-    eh.SetDestination( destination.AsMac48Address() );
+    eh.SetSource( src.AsMac48Address() );
+    eh.SetDestination( dest.AsMac48Address() );
     eh.SetLengthType( protocolNumber );
 
     p->AddHeader( eh );
@@ -345,15 +342,20 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
     }
 
     TocinoFlittizedPacket fp
-        = Flitter( p, source, destination, injectionVC, TocinoFlitHeader::ETHERNET );
+        = Flitter( p, src, dest, injectionVC, TocinoFlitHeader::ETHERNET );
+
+    if( via.IsValid() )
+    {
+        TocinoAddIntermediateDestination( fp, via );
+    }
 
     NS_ASSERT( injectionVC < m_outgoingFlits.size() );
 
     // add the new flits to the end of the outgoing flit Q
+    // ISSUE-REVIEW: this can grow unbounded?
     m_outgoingFlits[injectionVC].insert(
             m_outgoingFlits[injectionVC].end(), fp.begin(), fp.end() );
 
-    // ISSUE-REVIEW: this can grow unbounded?
     for( uint32_t vc = 0; vc < m_nVCs; ++vc )
     {
         //NS_ASSERT_MSG( m_outgoingFlits[vc].size() < 100, 
@@ -367,6 +369,50 @@ bool TocinoNetDevice::SendFrom( Ptr<Packet> packet, const Address& src, const Ad
 
     // Tocino is a lossless network
     return true;
+}
+
+bool
+TocinoNetDevice::Send( 
+        Ptr<Packet> packet,
+        const Address& dest,
+        uint16_t protocolNumber )
+{
+    return SendEx(
+            packet, 
+            m_address,
+            TocinoAddress::ConvertFrom(dest),
+            TocinoAddress(),
+            protocolNumber );
+}
+
+bool 
+TocinoNetDevice::SendFrom(
+        Ptr<Packet> packet,
+        const Address& src,
+        const Address& dest,
+        uint16_t protocolNumber )
+{
+    return SendEx(
+            packet, 
+            TocinoAddress::ConvertFrom(src),
+            TocinoAddress::ConvertFrom(dest),
+            TocinoAddress(),
+            protocolNumber );
+}
+
+bool
+TocinoNetDevice::SendVia(
+        Ptr<Packet> packet,
+        const Address& dest,
+        const Address& via,
+        uint16_t protocolNumber )
+{
+    return SendEx(
+            packet, 
+            m_address,
+            TocinoAddress::ConvertFrom(dest),
+            TocinoAddress::ConvertFrom(via),
+            protocolNumber );
 }
 
 Ptr<Node>

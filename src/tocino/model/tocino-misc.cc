@@ -202,6 +202,17 @@ TocinoAddIntermediateDestination(
     TocinoFlitHeader outerHeader( innerHeader.GetSource(), intermediateDest );
 
     NS_ASSERT( innerHeader.IsHead() );
+
+    // N.B.
+    // We can't call ClearHead() here, because the eventual
+    // header serialization (as a result of AddHeader) would then
+    // no longer include the source and destination.  This is
+    // because non-head flits don't have a source or destination.
+    // Instead we use the CloakHead() feature, which simply tells
+    // the TocinoFlitHeader to lie about the "head" bit on the wire,
+    // but to still serialize out the source and destination.
+    //  -MAS
+    
     innerHeader.CloakHead();
 
     innerHeadFlit->AddHeader( innerHeader );

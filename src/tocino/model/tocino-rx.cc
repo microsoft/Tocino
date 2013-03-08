@@ -44,7 +44,7 @@ TocinoRx::TocinoRx(
     m_router = routerFactory.Create<TocinoRouter>();
     m_router->Initialize( m_tnd, inputPort );
 
-    m_coerceNextFlitToHead.resize( m_tnd->GetNVCs(), false );
+    m_cloakedHeadIsNext.resize( m_tnd->GetNVCs(), false );
 }
 
 uint32_t
@@ -164,21 +164,6 @@ TocinoRx::DestinationReached( Ptr<const Packet> flit ) const
     return false;
 }
 
-void
-TocinoRx::CoerceToHeadFlit( Ptr<Packet> flit ) const
-{
-    NS_LOG_FUNCTION( GetTocinoFlitIdString( flit ) );
-
-    TocinoFlitHeader h;
-    
-    h.AssumeHead();
-
-    flit->RemoveHeader( h );
-    NS_ASSERT( h.IsHead() );
-
-    flit->AddHeader( h );
-}
-
 const TocinoRoute
 TocinoRx::MakeRoutingDecision( Ptr<const Packet> flit )
 {
@@ -231,6 +216,12 @@ TocinoRx::Receive( Ptr<Packet> flit )
     }
 
     const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
+   
+    if( m_cloakedHeadIsNext[ inputVC.AsUInt32() ] )
+    {
+        TocinoUncloakHeadFlit( flit );
+        m_cloakedHeadIsNext[ inputVC.AsUInt32() ] = false;
+    }
         
     if( IsTocinoFlitHead( flit ) &&
         IsTocinoEncapsulatedPacket( flit ) &&
@@ -238,18 +229,12 @@ TocinoRx::Receive( Ptr<Packet> flit )
     {
         NS_LOG_LOGIC( "encapsulated packet has reached intermediate destination" );
         
-        m_coerceNextFlitToHead[ inputVC.AsUInt32() ] = true;
+        m_cloakedHeadIsNext[ inputVC.AsUInt32() ] = true;
         
         // Returning here effectively discards outer head flit
         return;
     }
     
-    if( m_coerceNextFlitToHead[ inputVC.AsUInt32() ] )
-    {
-        CoerceToHeadFlit( flit );
-        m_coerceNextFlitToHead[ inputVC.AsUInt32() ] = false;
-    }
-
     const TocinoRoute route = MakeRoutingDecision( flit );
 
     AnnounceRoutingDecision( flit, route );

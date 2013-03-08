@@ -96,6 +96,8 @@ bool IsTocinoEncapsulatedPacket( Ptr<const Packet> );
 TocinoVC GetTocinoFlitVirtualChannel( Ptr<const Packet> );
 TocinoAddress GetTocinoFlitDestination( Ptr<const Packet> );
 
+void TocinoUncloakHeadFlit( Ptr<Packet> );
+
 }
 
 #endif // __TOCINO_FLIT_HEADER_H

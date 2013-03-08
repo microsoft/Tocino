@@ -47,8 +47,24 @@ public:
     virtual Address GetMulticast( Ipv6Address a ) const;
     virtual bool IsPointToPoint( void ) const;
     virtual bool IsBridge( void ) const;
-    virtual bool Send( Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber );
-    virtual bool SendFrom(Ptr<Packet> packet, const Address& source, const Address& dest,uint16_t protocolNumber);
+    
+    virtual bool Send( 
+            Ptr<Packet> packet,
+            const Address& dest,
+            uint16_t protocolNumber );
+    
+    virtual bool SendFrom(
+            Ptr<Packet> packet,
+            const Address& source,
+            const Address& dest,
+            uint16_t protocolNumber );
+
+    virtual bool SendVia(
+            Ptr<Packet> packet,
+            const Address& dest,
+            const Address& intermediate,
+            uint16_t protocolNumber );
+
     virtual Ptr<Node> GetNode( void ) const;
     virtual void SetNode( Ptr<Node> node );
     virtual bool NeedsArp( void ) const;
@@ -97,7 +113,14 @@ private:
     // disable copy and copy-assignment
     TocinoNetDevice& operator=( const TocinoNetDevice& );
     TocinoNetDevice( const TocinoNetDevice& );
-       
+    
+    // Omnibus send function from which all others are implemented
+    bool SendEx( Ptr<Packet>, 
+            const TocinoAddress&,
+            const TocinoAddress&,
+            const TocinoAddress&,
+            uint16_t );
+
     void InjectFlit( Ptr<Packet> ) const; // send one flit
 
     Ptr<Node> m_node;

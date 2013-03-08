@@ -17,11 +17,15 @@ class TocinoAddress
     TocinoAddress()
     {
         m_address.raw = 0;
+        
+        m_isValid = false;
     }
 
     explicit TocinoAddress( uint32_t a )
     {
         m_address.raw = a;
+        
+        m_isValid = true;
     }
     
     typedef uint8_t Coordinate;
@@ -33,13 +37,15 @@ class TocinoAddress
         m_address.z = z;
         m_address.reserved = res;
         m_address.multicast = 0;
+        
+        m_isValid = true;
     }
 
     Address ConvertTo() const
     {
         return Address( GetType(),
             reinterpret_cast<const uint8_t*>( &m_address.raw ),
-            sizeof( m_address ) );
+            GetLength() );
     }
 
     operator Address() const
@@ -50,9 +56,20 @@ class TocinoAddress
     static TocinoAddress ConvertFrom( const Address &a )
     {
         TocinoAddress ta;
-        NS_ASSERT( a.CheckCompatible( GetType(), sizeof( m_address ) ) );
+        NS_ASSERT( a.CheckCompatible( GetType(), GetLength() ) );
         a.CopyTo( reinterpret_cast<uint8_t*>( &ta.m_address.raw ) );
+        ta.m_isValid = !a.IsInvalid();
         return ta;
+    }
+    
+    bool IsValid() const
+    {
+        return m_isValid;
+    }
+    
+    bool IsInvalid() const
+    {
+        return !m_isValid;
     }
 
     bool IsMulticast()
@@ -110,6 +127,11 @@ class TocinoAddress
         return m_address.coord[ d.AsUInt32() ];
     }
 
+    static uint8_t GetLength()
+    {
+        return sizeof( m_address );
+    }
+
     private:
 
     static uint8_t GetType()
@@ -137,6 +159,8 @@ class TocinoAddress
         uint32_t raw;
     }
     m_address;
+
+    bool m_isValid;
 };
 
 }

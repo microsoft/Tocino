@@ -52,7 +52,6 @@ class TocinoRx
     const TocinoRoute MakeRoutingDecision( Ptr<const Packet> );
 
     bool DestinationReached( Ptr<const Packet> ) const;
-    void CoerceToHeadFlit( Ptr<Packet> ) const;
 
     struct InputQueueEntry
     {
@@ -104,7 +103,7 @@ class TocinoRx
     TocinoCrossbar m_crossbar;
 
     // Support for encapsulated packet type
-    std::vector<bool> m_coerceNextFlitToHead;
+    std::vector<bool> m_cloakedHeadIsNext;
 
     // This nested class controls access to our
     // primary state variable
