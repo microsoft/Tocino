@@ -2,6 +2,7 @@
 
 #include "ns3/config.h"
 #include "ns3/uinteger.h"
+#include "ns3/boolean.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 
@@ -12,8 +13,11 @@
 
 using namespace ns3;
 
-TestTocino3DTorusCornerToCorner::TestTocino3DTorusCornerToCorner( uint32_t radix, bool doWrap )
-    : TestTocino3DTorus( radix, doWrap, " with corner-to-corner traffic" ) 
+TestTocino3DTorusCornerToCorner::TestTocino3DTorusCornerToCorner(
+        uint32_t radix,
+        bool doWrap,
+        bool doVLB )
+    : TestTocino3DTorus( radix, doWrap, doVLB, " with corner-to-corner traffic" ) 
     , MAX_COORD( radix - 1 )
 {}
 
@@ -159,6 +163,13 @@ TestTocino3DTorusCornerToCorner::DoRun()
         Config::SetDefault( 
                 "ns3::TocinoDimensionOrderRouter::EnableWrapAround",
                 UintegerValue( RADIX ) );
+    }
+
+    if( m_doVLB )
+    {
+        Config::SetDefault( 
+                "ns3::TocinoTrafficMatrixApplication::EnableValiantLoadBalancing",
+                BooleanValue( true ) );
     }
     
     TestHelper( Seconds( 0.5 ), 20 );

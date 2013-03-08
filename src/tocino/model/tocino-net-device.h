@@ -144,7 +144,7 @@ private:
     NetDevice::PromiscReceiveCallback m_promiscRxCallback;
     
     static const uint32_t DEFAULT_NPORTS = 7;
-    static const uint32_t DEFAULT_NVCS = 2;
+    static const uint32_t DEFAULT_NVCS = 4;
 
     uint32_t m_nPorts; // port count must include injection/ejection port
     uint32_t m_nVCs; // number of virtual channels on each port

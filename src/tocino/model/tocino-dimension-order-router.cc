@@ -216,6 +216,8 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
         }
     }
 
+    NS_ASSERT( outputVC < m_tnd->GetNVCs() );
+
     return TocinoRoute( outputPort, inputVC, outputVC );
 }
 

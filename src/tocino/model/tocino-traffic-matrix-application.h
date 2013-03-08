@@ -10,6 +10,8 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/net-device.h"
 
+#include "tocino-net-device.h"
+
 namespace ns3
 {
 
@@ -94,7 +96,7 @@ class TocinoTrafficMatrixApplication : public Application
     uint32_t m_packetsSent;
     uint32_t m_packetsReceived;
 
-    Ptr<NetDevice> m_netDevice;
+    Ptr<TocinoNetDevice> m_netDevice;
 
     // ISSUE-REVIEW: it would be better if these
     // could be const references
@@ -102,6 +104,8 @@ class TocinoTrafficMatrixApplication : public Application
     const TocinoTrafficVector* m_trafficVector;
     
     ReceiveCallback m_receiveCallback;
+
+    bool m_doVLB;
 };
 
 }

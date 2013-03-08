@@ -15,7 +15,7 @@ class TestTocino3DTorusCornerToCorner : public TestTocino3DTorus
 {
     public:
 
-    TestTocino3DTorusCornerToCorner( uint32_t radix, bool doWrap );
+    TestTocino3DTorusCornerToCorner( uint32_t radix, bool doWrap, bool doVLB );
 
     private:
     

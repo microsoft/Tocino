@@ -49,7 +49,7 @@ class TocinoRx
             Ptr<const Packet>,
             const TocinoRoute& ) const;
 
-    const TocinoRoute MakeRoutingDecision( Ptr<const Packet> );
+    const TocinoRoute MakeRoutingDecision( Ptr<const Packet>, bool );
 
     bool DestinationReached( Ptr<const Packet> ) const;
 

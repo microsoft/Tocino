@@ -5,6 +5,7 @@
 #include "ns3/simulator.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
+#include "ns3/boolean.h"
 #include "ns3/log.h"
 
 namespace ns3
@@ -39,6 +40,11 @@ TocinoTrafficMatrixApplication::GetTypeId()
                 MakeUintegerAccessor(
                     &TocinoTrafficMatrixApplication::m_packetSize ),
                 MakeUintegerChecker< uint32_t >() )
+        .AddAttribute( "EnableValiantLoadBalancing", 
+            "Bounce every flow through an intermediate node.",
+            BooleanValue( false ),
+            MakeBooleanAccessor( &TocinoTrafficMatrixApplication::m_doVLB),
+            MakeBooleanChecker() )
         ;
     return tid;
 }
@@ -54,6 +60,7 @@ TocinoTrafficMatrixApplication::TocinoTrafficMatrixApplication()
     , m_netDevice( NULL )
     , m_nodeContainer( NULL )
     , m_receiveCallback( NULL )
+    , m_doVLB( false )
 {};
 
 void 
@@ -81,7 +88,13 @@ TocinoTrafficMatrixApplication::Initialize(
     
     Ptr<Node> node = m_nodeContainer->Get( m_nodeNumber );
     NS_ASSERT( node->GetNDevices() == 1 );
-    m_netDevice = node->GetDevice(0);
+
+    // N.B.
+    // This will throw an exception if the NetDevice aggregated
+    // to the node is not actually a TocinoNetDevice.  This is
+    // by design.  We want to call private APIs.  -MAS
+
+    m_netDevice = DynamicCast<TocinoNetDevice>( node->GetDevice(0) );
 
     m_netDevice->SetReceiveCallback( 
             MakeCallback( &TocinoTrafficMatrixApplication::AcceptPacket, this ) );
@@ -192,12 +205,25 @@ TocinoTrafficMatrixApplication::ScheduleSend()
     if( destNum != DO_NOT_SEND )
     {
         Ptr<Node> destNode = m_nodeContainer->Get( destNum );
-        Ptr<NetDevice> destNetDevice = destNode->GetDevice(0);
-        Address destAddress = destNetDevice->GetAddress();
+        Address destAddress = destNode->GetDevice(0)->GetAddress();
 
         Ptr<Packet> packet = Create<Packet>( m_packetSize );
 
-        m_netDevice->Send( packet, destAddress, 0 );
+        if( !m_doVLB )
+        {
+            m_netDevice->Send( packet, destAddress, 0 );
+        }
+        else
+        {
+            Ptr<Node> viaNode =
+                m_nodeContainer->Get( 
+                    m_destinationRandomVariable->GetInteger( 
+                        0, m_trafficVector->size()-1 ) );
+
+            Address viaAddress = viaNode->GetDevice(0)->GetAddress();
+
+            m_netDevice->SendVia( packet, destAddress, viaAddress, 0 );
+        }
 
         m_packetsSent++;
     }

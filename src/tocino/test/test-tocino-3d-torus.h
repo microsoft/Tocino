@@ -17,7 +17,7 @@ class TestTocino3DTorus : public TestCase
 {
     public:
 
-    TestTocino3DTorus( uint32_t, bool, std::string );
+    TestTocino3DTorus( uint32_t, bool, bool, std::string );
 
     protected:
     
@@ -25,6 +25,7 @@ class TestTocino3DTorus : public TestCase
     const uint32_t NODES;
    
     const bool m_doWrap;
+    const bool m_doVLB;
 
     void CheckAllQuiet( const Tocino3DTorusNetDeviceContainer& );
    

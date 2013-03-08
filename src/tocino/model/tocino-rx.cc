@@ -165,7 +165,9 @@ TocinoRx::DestinationReached( Ptr<const Packet> flit ) const
 }
 
 const TocinoRoute
-TocinoRx::MakeRoutingDecision( Ptr<const Packet> flit )
+TocinoRx::MakeRoutingDecision(
+        Ptr<const Packet> flit,
+        bool wasCloakedHead )
 {
     const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
     
@@ -177,6 +179,12 @@ TocinoRx::MakeRoutingDecision( Ptr<const Packet> flit )
     if( isHead )
     {
         route = m_router->Route( flit );
+    
+        if( wasCloakedHead ) 
+        {
+            // Switch output VC to the base of the next pair
+            route.outputVC = (route.outputVC.AsUInt32() & ~1) + 2;
+        }
 
         if( !isTail )
         {
@@ -216,11 +224,14 @@ TocinoRx::Receive( Ptr<Packet> flit )
     }
 
     const TocinoInputVC inputVC = GetTocinoFlitVirtualChannel( flit );
-   
+  
+    bool wasCloakedHead = false;
+
     if( m_cloakedHeadIsNext[ inputVC.AsUInt32() ] )
     {
         TocinoUncloakHeadFlit( flit );
         m_cloakedHeadIsNext[ inputVC.AsUInt32() ] = false;
+        wasCloakedHead = true;
     }
         
     if( IsTocinoFlitHead( flit ) &&
@@ -235,8 +246,8 @@ TocinoRx::Receive( Ptr<Packet> flit )
         return;
     }
     
-    const TocinoRoute route = MakeRoutingDecision( flit );
-
+    const TocinoRoute route = MakeRoutingDecision( flit, wasCloakedHead );
+    
     AnnounceRoutingDecision( flit, route );
 
     bool blocked = EnqueueHelper( InputQueueEntry( flit, route ), inputVC );

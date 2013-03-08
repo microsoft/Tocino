@@ -6,13 +6,20 @@
 
 using namespace ns3;
 
-TestTocino3DTorus::TestTocino3DTorus( uint32_t radix, bool doWrap, std::string name )
-    : TestCase( doWrap ?
-            "Test a 3D torus" + name  :
-            "Test a 3D mesh" + name )
+TestTocino3DTorus::TestTocino3DTorus(
+        uint32_t radix,
+        bool doWrap,
+        bool doVLB,
+        std::string name )
+    : TestCase( 
+            ( doWrap ?
+             "Test a 3D torus" + name  :
+             "Test a 3D mesh" + name ) +
+            ( doVLB ? " (VLB)" : " (no VLB)" ) )
     , RADIX( radix )
     , NODES( radix * radix * radix )
     , m_doWrap( doWrap )
+    , m_doVLB( doVLB )
     , m_helper( radix )
 {}
 

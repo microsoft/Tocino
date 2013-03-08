@@ -22,7 +22,19 @@ class TocinoTestSuite : public TestSuite
 {
 public:
     TocinoTestSuite ();
+private:
+    void Add3DTorusTestCases( bool, bool );
 };
+
+void
+TocinoTestSuite::Add3DTorusTestCases( bool doTorus, bool doVLB )
+{
+    const uint32_t RADIX = 3;
+
+    AddTestCase( new TestTocino3DTorusCornerToCorner( RADIX, doTorus, doVLB ) );
+    AddTestCase( new TestTocino3DTorusIncast( RADIX, doTorus, doVLB ) );
+    AddTestCase( new TestTocino3DTorusAllToAll( RADIX, doTorus, doVLB ) );
+}
 
 TocinoTestSuite::TocinoTestSuite ()
     : TestSuite ("tocino", UNIT)
@@ -36,12 +48,10 @@ TocinoTestSuite::TocinoTestSuite ()
     AddTestCase( new TestTocinoMultihop );
     AddTestCase( new TestTocinoRing );
     AddTestCase( new TestTocinoDeadlock );
-    AddTestCase( new TestTocino3DTorusCornerToCorner( 3, false ) );
-    AddTestCase( new TestTocino3DTorusCornerToCorner( 3, true ) );
-    AddTestCase( new TestTocino3DTorusIncast( 3, false ) );
-    AddTestCase( new TestTocino3DTorusIncast( 3, true ) );
-    AddTestCase( new TestTocino3DTorusAllToAll( 3, false ) );
-    AddTestCase( new TestTocino3DTorusAllToAll( 3, true ) );
+    Add3DTorusTestCases( false, false );
+    Add3DTorusTestCases( true, false );
+    Add3DTorusTestCases( false, true );
+    Add3DTorusTestCases( true, true );
 }
 
 static TocinoTestSuite tocinoTestSuite;

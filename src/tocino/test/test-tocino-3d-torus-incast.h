@@ -13,7 +13,7 @@ class TestTocino3DTorusIncast : public TestTocino3DTorus
 {
     public:
 
-    TestTocino3DTorusIncast( uint32_t radix, bool doWrap );
+    TestTocino3DTorusIncast( uint32_t radix, bool doWrap, bool doVLB );
 
     private:
     

@@ -13,7 +13,7 @@ class TestTocino3DTorusAllToAll : public TestTocino3DTorus
 {
     public:
 
-    TestTocino3DTorusAllToAll( uint32_t radix, bool doWrap );
+    TestTocino3DTorusAllToAll( uint32_t radix, bool doWrap, bool doVLB );
 
     private:
     
