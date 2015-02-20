@@ -134,7 +134,7 @@ private:
     // current flits to be sent (per-VC)
     std::vector< TocinoFlittizedPacket > m_outgoingFlits;
 
-    uint32_t m_outgoingFlitsMaxSize;
+    uint64_t m_outgoingFlitsMaxSize;
     
     // state for EjectFlit (per-VC)
     std::vector< Ptr<Packet> > m_incomingPackets;

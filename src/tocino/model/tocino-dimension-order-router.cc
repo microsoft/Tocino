@@ -81,7 +81,7 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
     
     if( TopologyHasWrapAround() )
     {
-        if( abs(delta) == m_radix/2 )
+        if( abs(delta) == static_cast<int32_t>( m_radix/2 ) )
         {
             // Tie-breaker
             if( m_outOfOrderOK )
@@ -99,7 +99,7 @@ TocinoDimensionOrderRouter::DetermineRoutingDirection(
                 routePositive = ( src & 1 );
             }
         }
-        else if( abs(delta) > m_radix/2 )
+        else if( abs(delta) > static_cast<int32_t>( m_radix/2 ) )
         {
             routePositive = !routePositive;
         }
@@ -175,7 +175,7 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
             break;
         }
     }
-
+    
     if( injecting || (inputDim != outputDim) )
     {
         // Changing dimension, choose new direction
