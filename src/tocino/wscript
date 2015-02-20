@@ -76,6 +76,7 @@ def build(bld):
         'model/tocino-test-results.h',
         'model/tocino-traffic-matrix-application.h',
         'model/tocino-tx.h',
+	'model/tocino-type-safe-uint32.h'
         ]
 
     if bld.env.ENABLE_EXAMPLES:
