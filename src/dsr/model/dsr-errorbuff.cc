@@ -36,9 +36,10 @@
 #include "ns3/socket.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("DsrErrorBuffer");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("DsrErrorBuffer");
+  
 namespace dsr {
 
 uint32_t
@@ -58,6 +59,7 @@ ErrorBuffer::Enqueue (ErrorBuffEntry & entry)
       NS_LOG_INFO ("packet id " << i->GetPacket ()->GetUid () << " " << entry.GetPacket ()->GetUid () << " source " << i->GetSource () << " " << entry.GetSource ()
                                 << " next hop " << i->GetNextHop () << " " << entry.GetNextHop () << " dst " << i->GetDestination () << " " << entry.GetDestination ());
 
+      /// \todo check the source and destination over here
       if ((i->GetPacket ()->GetUid () == entry.GetPacket ()->GetUid ()) && (i->GetSource () == entry.GetSource ()) && (i->GetNextHop () == entry.GetSource ())
           && (i->GetDestination () == entry.GetDestination ()))
         {
@@ -115,7 +117,7 @@ ErrorBuffer::Dequeue (Ipv4Address dst, ErrorBuffEntry & entry)
       if (i->GetDestination () == dst)
         {
           entry = *i;
-          m_errorBuffer.erase (i);
+          i = m_errorBuffer.erase (i);
           NS_LOG_DEBUG ("Packet size while dequeuing " << entry.GetPacket ()->GetSize ());
           return true;
         }

@@ -338,18 +338,8 @@ public:
    */
   Ipv4Address GetNodeAddress (uint8_t index) const;
   /**
-   * \brief Set the data length.
-   * \param dataLength the data length
-   */
-  void SetDataLength (uint32_t dataLength);
-  /**
-   * \brief Get the data length.
-   * \return the data length
-   */
-  uint32_t GetDataLength () const;
-  /**
    * \brief Set the request id number.
-   * \param the identification number
+   * \param identification the identification number
    */
   void SetId (uint16_t identification);
   /**
@@ -386,10 +376,6 @@ public:
   virtual Alignment GetAlignment () const;
 
 private:
-  /**
-   * \brief The data length.
-   */
-  uint32_t m_dataLength;
   /**
    * \brief Identifier of the packet.
    */
@@ -512,12 +498,6 @@ public:
    * \return the router IPv4 Address
    */
   Ipv4Address GetNodeAddress (uint8_t index) const;
-  /*
-   * \brief Search the next hop Ipv4 address
-   * \param Our own IP address
-   * \return The next hop address of the route
-   */
-  Ipv4Address SearchNextHop (Ipv4Address ipv4Address);
   /**
    * \brief Print some informations about the packet.
    * \param os output stream
@@ -609,7 +589,7 @@ public:
   virtual ~DsrOptionSRHeader ();
   /*
    * \brief Set the number of segments left to send
-   * \param The segments left
+   * \param segmentsLeft The segments left
    */
   void SetSegmentsLeft (uint8_t segmentsLeft);
   /*
@@ -651,7 +631,7 @@ public:
   Ipv4Address GetNodeAddress (uint8_t index) const;
   /*
    * \brief Set the salvage value for a packet
-   * \param The salvage value of the packet
+   * \param salvage The salvage value of the packet
    */
   void SetSalvage (uint8_t salvage);
   /*
@@ -686,6 +666,13 @@ public:
    * \return The required alignment
    */
   virtual Alignment GetAlignment () const;
+
+  /**
+   * TracedCallback signature for DsrOptionSrHeader.
+   *
+   * \param [in] header The DsrOptionsSRHeader
+   */
+  typedef void (* TracedCallback) (const DsrOptionSRHeader & header);
 
 private:
   /**
@@ -735,7 +722,7 @@ private:
   \endverbatim
 */
 
-// / Error type
+/// Error type
 enum ErrorType
 {
   NODE_UNREACHABLE  = 1,   // !< NODE_UNREACHABLE
@@ -766,7 +753,7 @@ public:
   virtual ~DsrOptionRerrHeader ();
   /**
    * \brief Set the route error type
-   * \param The error type
+   * \param errorType The error type
    */
   void SetErrorType (uint8_t errorType);
   /**
@@ -776,7 +763,7 @@ public:
   uint8_t GetErrorType () const;
   /**
    * \brief Set the route error source address
-   * \param The error source address
+   * \param errorSrcAddress The error source address
    */
   virtual void SetErrorSrc (Ipv4Address errorSrcAddress);
   /**
@@ -790,12 +777,12 @@ public:
   virtual void SetSalvage (uint8_t salvage);
   /**
    * \brief Get the salvage value of the packet
-   * \param The salvage value of the packet
+   * \return The salvage value of the packet
    */
   virtual uint8_t GetSalvage () const;
   /**
    * \brief Set the error destination ip address
-   * \param The error destination address
+   * \param errorDstAddress The error destination address
    */
   virtual void SetErrorDst (Ipv4Address errorDstAddress);
   /**
@@ -833,17 +820,9 @@ public:
 
 private:
   /**
-   * \brief option data length
-   */
-  uint8_t        m_optDataLen;
-  /**
    * \brief The error type or route error option
    */
   uint8_t        m_errorType;
-  /**
-   * \brief The reserved field
-   */
-  uint8_t        m_reserved;
   /**
    * \brief The salavage field
    */
@@ -919,7 +898,7 @@ public:
   virtual ~DsrOptionRerrUnreachHeader ();
   /**
    * \brief Set the route error source address
-   * \param The error source address
+   * \param errorSrcAddress The error source address
    */
   virtual void SetErrorSrc (Ipv4Address errorSrcAddress);
   /**
@@ -933,12 +912,12 @@ public:
   virtual void SetSalvage (uint8_t salvage);
   /**
    * \brief Get the salvage value of the packet
-   * \param The salvage value of the packet
+   * \return The salvage value of the packet
    */
   virtual uint8_t GetSalvage () const;
   /**
    * \brief Set the error destination ip address
-   * \param The error destination address
+   * \param errorDstAddress The error destination address
    */
   virtual void SetErrorDst (Ipv4Address errorDstAddress);
   /**
@@ -948,7 +927,7 @@ public:
   virtual Ipv4Address GetErrorDst () const;
   /**
    * \brief Set the unreachable node ip address
-   * \param The unreachable ip address
+   * \param unreachNode The unreachable ip address
    */
   void SetUnreachNode (Ipv4Address unreachNode);
   /**
@@ -958,7 +937,7 @@ public:
   Ipv4Address GetUnreachNode () const;
   /**
    * \brief Set the unreachable node ip address
-   * \param The unreachable ip address
+   * \param originalDst The unreachable ip address
    */
   void SetOriginalDst (Ipv4Address originalDst);
   /**
@@ -996,17 +975,9 @@ public:
 
 private:
   /**
-   * \brief option data length
-   */
-  uint8_t        m_optDataLen;
-  /**
    * \brief The error type or route error option
    */
   uint8_t        m_errorType;
-  /**
-   * \brief The reserved field
-   */
-  uint8_t        m_reserved;
   /**
    * \brief The salavage field
    */
@@ -1027,10 +998,6 @@ private:
    * \brief The original destination address
    */
   Ipv4Address    m_originalDst;
-  /**
-   * \brief The specific error type
-   */
-  uint16_t       m_typeSpecific;
 };
 
 /**
@@ -1087,7 +1054,7 @@ public:
   virtual ~DsrOptionRerrUnsupportHeader ();
   /**
    * \brief Set the route error source address
-   * \param The error source address
+   * \param errorSrcAddress The error source address
    */
   virtual void SetErrorSrc (Ipv4Address errorSrcAddress);
   /**
@@ -1097,16 +1064,17 @@ public:
   virtual Ipv4Address GetErrorSrc () const;
   /**
    * \brief Set the salvage value of the packet
+   * \param salvage the salvage value
    */
   virtual void SetSalvage (uint8_t salvage);
   /**
    * \brief Get the salvage value of the packet
-   * \param The salvage value of the packet
+   * \return The salvage value of the packet
    */
   virtual uint8_t GetSalvage () const;
   /**
    * \brief Set the error destination ip address
-   * \param The error destination address
+   * \param errorDstAddress The error destination address
    */
   virtual void SetErrorDst (Ipv4Address errorDstAddress);
   /**
@@ -1116,7 +1084,7 @@ public:
   virtual Ipv4Address GetErrorDst () const;
   /**
    * \brief Set the unsupported option type value
-   * \param The unsupported option type value
+   * \param optionType The unsupported option type value
    */
   void SetUnsupported (uint16_t optionType);
   /**
@@ -1154,17 +1122,9 @@ public:
 
 private:
   /**
-   * \brief option data length
-   */
-  uint8_t        m_optDataLen;
-  /**
    * \brief The error type or route error option
    */
   uint8_t        m_errorType;
-  /**
-   * \brief The reserved field
-   */
-  uint8_t        m_reserved;
   /**
    * \brief The salavage field
    */
@@ -1223,7 +1183,7 @@ public:
   virtual ~DsrOptionAckReqHeader ();
   /**
    * \brief Set the Ack request id number.
-   * \param the identification number
+   * \param identification the identification number
    */
   void SetAckId (uint16_t identification);
   /**
@@ -1260,11 +1220,7 @@ public:
   virtual Alignment GetAlignment () const;
 
 private:
-  /*
-   * The option data length
-   */
-  uint8_t  m_optDataLen;
-  /*
+  /**
    * The identification field
    */
   uint16_t m_identification;
@@ -1314,7 +1270,7 @@ public:
   virtual ~DsrOptionAckHeader ();
   /**
    * \brief Set the Ack id number.
-   * \param the identification number
+   * \param identification the identification number
    */
   void SetAckId (uint16_t identification);
   /**
@@ -1324,7 +1280,7 @@ public:
   uint16_t GetAckId () const;
   /**
    * \brief Set Error source ip address.
-   * \param The real source address
+   * \param realSrcAddress The real source address
    */
   void SetRealSrc (Ipv4Address realSrcAddress);
   /**
@@ -1334,7 +1290,7 @@ public:
   Ipv4Address GetRealSrc () const;
   /**
    * \brief Set Error source ip address.
-   * \param The real dst address
+   * \param realDstAddress The real dst address
    */
   void SetRealDst (Ipv4Address realDstAddress);
   /**
@@ -1371,10 +1327,6 @@ public:
   virtual Alignment GetAlignment () const;
 
 private:
-  /**
-   * \brief option data length
-   */
-  uint8_t m_optDataLen;
   /**
    * \brief identification field
    */

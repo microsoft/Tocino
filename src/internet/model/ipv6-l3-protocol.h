@@ -28,6 +28,9 @@
 #include "ns3/ipv6.h"
 #include "ns3/ipv6-address.h"
 #include "ns3/ipv6-header.h"
+#include "ns3/ipv6-pmtu-cache.h"
+
+class Ipv6L3ProtocolTestCase;
 
 namespace ns3
 {
@@ -80,6 +83,9 @@ public:
     DROP_INTERFACE_DOWN, /**< Interface is down so can not send packet */
     DROP_ROUTE_ERROR, /**< Route error */
     DROP_UNKNOWN_PROTOCOL, /**< Unknown L4 protocol */
+    DROP_UNKNOWN_OPTION, /**< Unknown option */
+    DROP_MALFORMED_HEADER, /**< Malformed header */
+    DROP_FRAGMENT_TIMEOUT, /**< Fragment timeout */
   };
 
   /**
@@ -93,7 +99,7 @@ public:
   virtual ~Ipv6L3Protocol ();
 
   /**
-   * \brief Set node for this stack.
+   * \brief Set node associated with this stack.
    * \param node node to set
    */
   void SetNode (Ptr<Node> node);
@@ -115,7 +121,7 @@ public:
    * \param protocolNumber protocol number
    * \return corresponding Ipv6L4Protocol or 0 if not found
    */
-  Ptr<IpL4Protocol> GetProtocol (int protocolNumber) const;
+  virtual Ptr<IpL4Protocol> GetProtocol (int protocolNumber) const;
 
   /**
    * \brief Create raw IPv6 socket.
@@ -134,6 +140,12 @@ public:
    * \param ttl TTL to set
    */
   void SetDefaultTtl (uint8_t ttl);
+
+  /**
+   * \brief Set the default TCLASS.
+   * \param tclass TCLASS to set
+   */
+  void SetDefaultTclass (uint8_t tclass);
 
   /**
    * \brief Receive method when a packet arrive in the stack.
@@ -210,6 +222,7 @@ public:
   /**
    * \brief Get interface index which is on a specified net device.
    * \param device net device
+   * \returns the interface index
    */
   int32_t GetInterfaceForDevice (Ptr<const NetDevice> device) const;
 
@@ -217,6 +230,7 @@ public:
    * \brief Add an address on interface.
    * \param i interface index
    * \param address to add
+   * \returns true if the operation succeeded
    */
   bool AddAddress (uint32_t i, Ipv6InterfaceAddress address);
 
@@ -239,8 +253,17 @@ public:
    * \brief Remove an address from an interface.
    * \param interfaceIndex interface index
    * \param addressIndex address index on the interface
+   * \returns true if the operation succeeded
    */
   bool RemoveAddress (uint32_t interfaceIndex, uint32_t addressIndex);
+
+  /**
+   * \brief Remove a specified Ipv6 address from an interface.
+   * \param interfaceIndex interface index
+   * \param address Ipv6Address to be removed from the interface
+   * \returns true if the operation succeeded
+   */
+  bool RemoveAddress (uint32_t interfaceIndex, Ipv6Address address);
 
   /**
    * \brief Set metric for an interface.
@@ -264,8 +287,16 @@ public:
   uint16_t GetMtu (uint32_t i) const;
 
   /**
+   * \brief Set the Path MTU for the specified IPv6 destination address.
+   * \param dst Ipv6 destination address
+   * \param pmtu the Path MTU
+   */
+  virtual void SetPmtu (Ipv6Address dst, uint32_t pmtu);
+
+  /**
    * \brief Is specified interface up ?
    * \param i interface index
+   * \returns true if the interface is up
    */
   bool IsUp (uint32_t i) const;
 
@@ -284,6 +315,7 @@ public:
   /**
    * \brief Is interface allows forwarding ?
    * \param i interface index
+   * \returns true if the interface is forwarding
    */
   bool IsForwarding (uint32_t i) const;
 
@@ -293,6 +325,8 @@ public:
    * \param val true = enable forwarding, false = disable
    */
   void SetForwarding (uint32_t i, bool val);
+
+  Ipv6Address SourceAddressSelection (uint32_t interface, Ipv6Address dest);
 
   /**
    * \brief Get device by index.
@@ -340,6 +374,55 @@ public:
    */
   virtual void RegisterOptions ();
 
+  /**
+   * \brief Report a packet drop
+   *
+   * This function is used by Fragment Timeout handling to signal a fragment drop.
+   *
+   * \param ipHeader the IPv6 header of dropped packet
+   * \param p the packet (if available)
+   * \param dropReason the drop reason
+   *
+   */
+  virtual void ReportDrop (Ipv6Header ipHeader, Ptr<Packet> p, DropReason dropReason);
+
+  /**
+   * TracedCallback signature for packet sent, forwarded or
+   * local-delivered events.
+   *
+   * \param [in] header The Ipv6Header.
+   * \param [in] packet The packet.
+   * \param [in] interface
+   */
+  typedef void (* SentTracedCallback)
+    (const Ipv6Header & header, const Ptr<const Packet> packet,
+     const uint32_t interface);
+   
+  /**
+   * TracedCallback signature for packet transmission or reception events.
+   *
+   * \param [in] packet The packet.
+   * \param [in] ipv6
+   * \param [in] interface
+   */
+  typedef void (* TxRxTracedCallback)
+    (const Ptr<const Packet> packet, const Ptr<const Ipv6> ipv6,
+     const uint32_t interface);
+
+  /**
+   * TracedCallback signature for packet drop events.
+   *
+   * \param [in] header The Ipv6Header.
+   * \param [in] packet The packet.
+   * \param [in] reason The reason the packet was dropped.
+   * \param [in] ipv6
+   * \param [in] interface
+   */
+  typedef void (* DropTracedCallback)
+    (const Ipv6Header & header, const Ptr<const Packet> packet,
+     const DropReason reason, const Ptr<const Ipv6> ipv6,
+     const uint32_t interface);
+   
 protected:
   /**
    * \brief Dispose object.
@@ -355,14 +438,32 @@ protected:
 
 private:
   /* for unit-tests */
-  friend class Ipv6L3ProtocolTestCase;
+  friend class ::Ipv6L3ProtocolTestCase;
   friend class Ipv6ExtensionLooseRouting;
 
+  /**
+   * \brief Container of the IPv6 Interfaces.
+   */
   typedef std::list<Ptr<Ipv6Interface> > Ipv6InterfaceList;
+
+  /**
+   * \brief Container of the IPv6 Raw Sockets.
+   */
   typedef std::list<Ptr<Ipv6RawSocketImpl> > SocketList;
+
+  /**
+   * \brief Container of the IPv6 L4 instances.
+   */
   typedef std::list<Ptr<IpL4Protocol> > L4List_t;
 
+  /**
+   * \brief Container of the IPv6 Autoconfigured addresses.
+   */
   typedef std::list< Ptr<Ipv6AutoconfiguredPrefix> > Ipv6AutoconfiguredPrefixList;
+
+  /**
+   * \brief Iterator of the container of the IPv6 Autoconfigured addresses.
+   */
   typedef std::list< Ptr<Ipv6AutoconfiguredPrefix> >::iterator Ipv6AutoconfiguredPrefixListI;
 
   /**
@@ -380,17 +481,27 @@ private:
    */ 
   TracedCallback<const Ipv6Header &, Ptr<const Packet>, DropReason, Ptr<Ipv6>, uint32_t> m_dropTrace;
 
-  /**
-   * \brief Copy constructor.
-   * \param o object to copy
-   */
-  Ipv6L3Protocol (const Ipv6L3Protocol& o);
+  /// Trace of sent packets
+  TracedCallback<const Ipv6Header &, Ptr<const Packet>, uint32_t> m_sendOutgoingTrace;
+  /// Trace of unicast forwarded packets
+  TracedCallback<const Ipv6Header &, Ptr<const Packet>, uint32_t> m_unicastForwardTrace;
+  /// Trace of locally delivered packets
+  TracedCallback<const Ipv6Header &, Ptr<const Packet>, uint32_t> m_localDeliverTrace;
 
   /**
    * \brief Copy constructor.
-   * \param o object to copy
+   *
+   * Defined but not implemented to avoid misuse
    */
-  Ipv6L3Protocol &operator = (const Ipv6L3Protocol& o);
+  Ipv6L3Protocol (const Ipv6L3Protocol&);
+
+  /**
+   * \brief Copy constructor.
+   *
+   * Defined but not implemented to avoid misuse
+   * \returns the copied object
+   */
+  Ipv6L3Protocol &operator = (const Ipv6L3Protocol&);
 
   /**
    * \brief Construct an IPv6 header.
@@ -398,11 +509,12 @@ private:
    * \param dst destination IPv6 address
    * \param protocol L4 protocol
    * \param payloadSize payload size
-   * \param ttl TTL
+   * \param hopLimit Hop limit
+   * \param tclass Tclass
    * \return newly created IPv6 header
    */
   Ipv6Header BuildHeader (Ipv6Address src, Ipv6Address dst, uint8_t protocol,
-                          uint16_t payloadSize, uint8_t ttl);
+                          uint16_t payloadSize, uint8_t hopLimit, uint8_t tclass);
 
   /**
    * \brief Send packet with route.
@@ -414,19 +526,21 @@ private:
 
   /**
    * \brief Forward a packet.
+   * \param idev Pointer to ingress network device
    * \param rtentry route 
    * \param p packet to forward
    * \param header IPv6 header to add to the packet
    */
-  void IpForward (Ptr<Ipv6Route> rtentry, Ptr<const Packet> p, const Ipv6Header& header);
+  void IpForward (Ptr<const NetDevice> idev, Ptr<Ipv6Route> rtentry, Ptr<const Packet> p, const Ipv6Header& header);
 
   /**
-   * \brief Forward a packet in multicast.
+   * \brief Forward a multicast packet.
+   * \param idev Pointer to ingress network device
    * \param mrtentry route 
    * \param p packet to forward
    * \param header IPv6 header to add to the packet
    */
-  void IpMulticastForward (Ptr<Ipv6MulticastRoute> mrtentry, Ptr<const Packet> p, const Ipv6Header& header);
+  void IpMulticastForward (Ptr<const NetDevice> idev, Ptr<Ipv6MulticastRoute> mrtentry, Ptr<const Packet> p, const Ipv6Header& header);
 
   /**
    * \brief Deliver a packet.
@@ -469,6 +583,18 @@ private:
   virtual bool GetIpForward () const;
 
   /**
+   * \brief Set IPv6 MTU discover state.
+   * \param mtuDiscover IPv6 MTU discover enabled or not
+   */
+  virtual void SetMtuDiscover (bool mtuDiscover);
+
+  /**
+   * \brief Get IPv6 MTU discover state.
+   * \return MTU discover state (enabled or not)
+   */
+  virtual bool GetMtuDiscover (void) const;
+
+  /**
    * \brief Set the ICMPv6 Redirect sending state.
    * \param sendIcmpv6Redirect ICMPv6 Redirect sending enabled or not
    */
@@ -491,6 +617,16 @@ private:
   bool m_ipForward;
 
   /**
+   * \brief MTU Discover (i.e. Path MTU) state.
+   */
+  bool m_mtuDiscover;
+
+  /**
+   * \brief Path MTU Cache.
+   */
+  Ptr<Ipv6PmtuCache> m_pmtuCache;
+
+  /**
    * \brief List of transport protocol.
    */
   L4List_t m_protocols;
@@ -509,6 +645,11 @@ private:
    * \brief Default TTL for outgoing packets.
    */
   uint8_t m_defaultTtl;
+
+  /**
+   * \brief Default TCLASS for outgoing packets.
+   */
+  uint8_t m_defaultTclass;
 
   /**
    * \brief Routing protocol.

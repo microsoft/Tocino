@@ -21,18 +21,24 @@
 #include "fatal-error.h"
 #include "system-thread.h"
 #include "log.h"
-#include <string.h>
+#include <cstring>
 
-NS_LOG_COMPONENT_DEFINE ("SystemThread");
+/**
+ * @file
+ * @ingroup thread
+ * System-independent thread class ns3::SystemThread definitions.
+ */
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("SystemThread");
 
 #ifdef HAVE_PTHREAD_H
 
 SystemThread::SystemThread (Callback<void> callback)
   : m_callback (callback)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << &callback);
 }
 
 SystemThread::~SystemThread()
@@ -82,12 +88,14 @@ SystemThread::DoRun (void *arg)
 SystemThread::ThreadId 
 SystemThread::Self (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   return pthread_self ();
 }
 
 bool 
 SystemThread::Equals (SystemThread::ThreadId id)
 {
+  NS_LOG_FUNCTION (id);
   return (pthread_equal (pthread_self (), id) != 0);
 }
 

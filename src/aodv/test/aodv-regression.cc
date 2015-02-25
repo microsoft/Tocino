@@ -22,7 +22,6 @@
 #include "bug-772.h"
 #include "loopback.h"
 
-#include "ns3/mesh-helper.h"
 #include "ns3/simulator.h"
 #include "ns3/mobility-helper.h"
 #include "ns3/double.h"
@@ -44,8 +43,8 @@
 #include "ns3/rng-seed-manager.h"
 #include <sstream>
 
-namespace ns3 {
-namespace aodv {
+using namespace ns3;
+using namespace aodv;
 //-----------------------------------------------------------------------------
 // Test suite
 //-----------------------------------------------------------------------------
@@ -56,15 +55,18 @@ public:
   {
     SetDataDir (NS_TEST_SOURCEDIR);
     // General RREQ-RREP-RRER test case
-    AddTestCase (new ChainRegressionTest ("aodv-chain-regression-test"));
-    // Bug 606 test case, should crash if bug is not fixed
-    AddTestCase (new ChainRegressionTest ("bug-606-test", Seconds (10), 3, Seconds (1)));
-    // Bug 772 UDP test case
-    AddTestCase (new Bug772ChainTest ("udp-chain-test", "ns3::UdpSocketFactory", Seconds (3), 10));
-    // Bug 772 TCP test case
-    AddTestCase (new Bug772ChainTest ("tcp-chain-test", "ns3::TcpSocketFactory", Seconds (3), 10));
+    AddTestCase (new ChainRegressionTest ("aodv-chain-regression-test"), TestCase::QUICK);
+    /// \internal
+    /// \bugid{606} test case, should crash if bug is not fixed
+    AddTestCase (new ChainRegressionTest ("bug-606-test", Seconds (10), 3, Seconds (1)), TestCase::QUICK);
+    /// \internal
+    /// \bugid{772} UDP test case
+    AddTestCase (new Bug772ChainTest ("udp-chain-test", "ns3::UdpSocketFactory", Seconds (3), 10), TestCase::QUICK);
+    /// \internal
+    /// \bugid{772} TCP test case
+    AddTestCase (new Bug772ChainTest ("tcp-chain-test", "ns3::TcpSocketFactory", Seconds (3), 10), TestCase::QUICK);
     // Ping loopback test case
-    AddTestCase (new LoopbackTestCase ());
+    AddTestCase (new LoopbackTestCase (), TestCase::QUICK);
   }
 } g_aodvRegressionTestSuite;
  
@@ -161,10 +163,10 @@ ChainRegressionTest::CreateDevices ()
   internetStack.Install (*m_nodes);
   streamsUsed += internetStack.AssignStreams (*m_nodes, streamsUsed);
   // InternetStack uses m_size more streams
-  NS_TEST_ASSERT_MSG_EQ (streamsUsed, (devices.GetN () * 6) + m_size, "Stream assignment mismatch");
+  NS_TEST_ASSERT_MSG_EQ (streamsUsed, (devices.GetN () * 8) + m_size, "Stream assignment mismatch");
   streamsUsed += aodv.AssignStreams (*m_nodes, streamsUsed);
   // AODV uses m_size more streams
-  NS_TEST_ASSERT_MSG_EQ (streamsUsed, ((devices.GetN () * 6) + (2*m_size)), "Stream assignment mismatch");
+  NS_TEST_ASSERT_MSG_EQ (streamsUsed, ((devices.GetN () * 8) + (2*m_size)), "Stream assignment mismatch");
 
   Ipv4AddressHelper address;
   address.SetBase ("10.1.1.0", "255.255.255.0");
@@ -188,7 +190,4 @@ ChainRegressionTest::CheckResults ()
     {
       NS_PCAP_TEST_EXPECT_EQ (m_prefix << "-" << i << "-0.pcap");
     }
-}
-
-}
 }

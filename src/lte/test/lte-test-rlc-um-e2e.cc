@@ -36,10 +36,9 @@
 #include "lte-test-rlc-um-e2e.h"
 
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("LteRlcUmE2eTest");
-
-namespace ns3 {
-
 
 /**
  * Test x.x.x RLC UM: End-to-end flow
@@ -63,7 +62,16 @@ LteRlcUmE2eTestSuite::LteRlcUmE2eTestSuite ()
         {
           std::ostringstream name;
           name << " Losses = " << losses[l] << "%. Seed = " << seeds[s];
-          AddTestCase (new LteRlcUmE2eTestCase (name.str (), seeds[s], losses[l]));
+          TestCase::TestDuration testDuration;
+          if (l == 1 && s == 0)
+            {
+              testDuration = TestCase::QUICK;
+            }
+          else
+            {
+              testDuration = TestCase::EXTENSIVE;
+            }
+          AddTestCase (new LteRlcUmE2eTestCase (name.str (), seeds[s], losses[l]), testDuration);
         }
     }
 }
@@ -224,6 +232,3 @@ LteRlcUmE2eTestCase::DoRun (void)
 
   Simulator::Destroy ();
 }
-
-} // namespace ns3
-

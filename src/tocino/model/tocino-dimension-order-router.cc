@@ -160,8 +160,8 @@ TocinoDimensionOrderRouter::Route( Ptr<const Packet> flit ) const
     TocinoDimension outputDim = TOCINO_INVALID_DIMENSION;
     TocinoDirection outputDir = TOCINO_INVALID_DIRECTION;
 
-    TocinoAddress::Coordinate localCoord;
-    TocinoAddress::Coordinate destCoord;
+    TocinoAddress::Coordinate localCoord = -1;
+    TocinoAddress::Coordinate destCoord = -1;
 
     // Dimension-order routing
     for( outputDim = TOCINO_DIMENSION_X;

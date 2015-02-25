@@ -18,7 +18,8 @@
 // Author: Pedro Fortuna  <pedro.fortuna@inescporto.pt> <pedro.fortuna@gmail.com>
 //
 
-#include <math.h>
+#include <cmath>
+
 #include "histogram.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
@@ -30,7 +31,7 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("Histogram");
- 
+
 // uint32_t 
 // Histogram::GetSize () const
 // {
@@ -78,7 +79,7 @@ Histogram::GetBinCount (uint32_t index)
 void 
 Histogram::AddValue (double value)
 {
-  uint32_t index = (uint32_t)floor (value/m_binWidth);
+  uint32_t index = (uint32_t)std::floor (value/m_binWidth);
 
   //check if we need to resize the vector
   NS_LOG_DEBUG ("AddValue: index=" << index << ", m_histogram.size()=" << m_histogram.size ());

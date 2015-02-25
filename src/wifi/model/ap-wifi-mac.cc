@@ -38,9 +38,9 @@
 #include "amsdu-subframe-header.h"
 #include "msdu-aggregator.h"
 
-NS_LOG_COMPONENT_DEFINE ("ApWifiMac");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("ApWifiMac");
 
 NS_OBJECT_ENSURE_REGISTERED (ApWifiMac);
 
@@ -55,6 +55,14 @@ ApWifiMac::GetTypeId (void)
                    MakeTimeAccessor (&ApWifiMac::GetBeaconInterval,
                                      &ApWifiMac::SetBeaconInterval),
                    MakeTimeChecker ())
+    .AddAttribute ("BeaconJitter", "A uniform random variable to cause the initial beacon starting time (after simulation time 0) to be distributed between 0 and the BeaconInterval.",
+                   StringValue ("ns3::UniformRandomVariable"),
+                   MakePointerAccessor (&ApWifiMac::m_beaconJitter),
+                   MakePointerChecker<UniformRandomVariable> ())
+    .AddAttribute ("EnableBeaconJitter", "If beacons are enabled, whether to jitter the initial send event.",
+                   BooleanValue (false),
+                   MakeBooleanAccessor (&ApWifiMac::m_enableBeaconJitter),
+                   MakeBooleanChecker ())
     .AddAttribute ("BeaconGeneration", "Whether or not beacons are generated.",
                    BooleanValue (true),
                    MakeBooleanAccessor (&ApWifiMac::SetBeaconGeneration,
@@ -73,6 +81,7 @@ ApWifiMac::ApWifiMac ()
   m_beaconDca->SetMaxCw (0);
   m_beaconDca->SetLow (m_low);
   m_beaconDca->SetManager (m_dcfManager);
+  m_beaconDca->SetTxMiddle (m_txMiddle);
 
   // Let the lower layers know that we are acting as an AP.
   SetTypeOfStation (AP);
@@ -98,6 +107,7 @@ ApWifiMac::DoDispose ()
 void
 ApWifiMac::SetAddress (Mac48Address address)
 {
+  NS_LOG_FUNCTION (this << address);
   // As an AP, our MAC address is also the BSSID. Hence we are
   // overriding this function and setting both in our parent class.
   RegularWifiMac::SetAddress (address);
@@ -122,12 +132,14 @@ ApWifiMac::SetBeaconGeneration (bool enable)
 bool
 ApWifiMac::GetBeaconGeneration (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_enableBeaconGeneration;
 }
 
 Time
 ApWifiMac::GetBeaconInterval (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_beaconInterval;
 }
 
@@ -142,7 +154,7 @@ ApWifiMac::SetWifiRemoteStationManager (Ptr<WifiRemoteStationManager> stationMan
 void
 ApWifiMac::SetLinkUpCallback (Callback<void> linkUp)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << &linkUp);
   RegularWifiMac::SetLinkUpCallback (linkUp);
 
   // The approach taken here is that, from the point of view of an AP,
@@ -157,7 +169,7 @@ ApWifiMac::SetBeaconInterval (Time interval)
   NS_LOG_FUNCTION (this << interval);
   if ((interval.GetMicroSeconds () % 1024) != 0)
     {
-      NS_LOG_WARN ("beacon interval should be multiple of 1024us, see IEEE Std. 802.11-2007, section 11.1.1.1");
+      NS_LOG_WARN ("beacon interval should be multiple of 1024us (802.11 time unit), see IEEE Std. 802.11-2012");
     }
   m_beaconInterval = interval;
 }
@@ -169,10 +181,19 @@ ApWifiMac::StartBeaconing (void)
   SendOneBeacon ();
 }
 
+int64_t
+ApWifiMac::AssignStreams (int64_t stream)
+{
+  NS_LOG_FUNCTION (this << stream);
+  m_beaconJitter->SetStream (stream);
+  return 1;
+}
+
 void
 ApWifiMac::ForwardDown (Ptr<const Packet> packet, Mac48Address from,
                         Mac48Address to)
 {
+  NS_LOG_FUNCTION (this << packet << from << to);
   // If we are not a QoS AP then we definitely want to use AC_BE to
   // transmit the packet. A TID of zero will map to AC_BE (through \c
   // QosUtilsMapTidToAc()), so we use that as our default here.
@@ -198,7 +219,7 @@ void
 ApWifiMac::ForwardDown (Ptr<const Packet> packet, Mac48Address from,
                         Mac48Address to, uint8_t tid)
 {
-  NS_LOG_FUNCTION (this << packet << from << to);
+  NS_LOG_FUNCTION (this << packet << from << to << static_cast<uint32_t> (tid));
   WifiMacHeader hdr;
 
   // For now, an AP that supports QoS does not support non-QoS
@@ -223,6 +244,8 @@ ApWifiMac::ForwardDown (Ptr<const Packet> packet, Mac48Address from,
       hdr.SetTypeData ();
     }
 
+  if (m_htSupported)
+   hdr.SetNoOrder();
   hdr.SetAddr1 (to);
   hdr.SetAddr2 (GetAddress ());
   hdr.SetAddr3 (from);
@@ -254,6 +277,7 @@ ApWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to, Mac48Address from
 void
 ApWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
 {
+  NS_LOG_FUNCTION (this << packet << to);
   // We're sending this packet with a from address that is our own. We
   // get that address from the lower MAC and make use of the
   // from-spoofing Enqueue() method to avoid duplicated code.
@@ -263,15 +287,28 @@ ApWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
 bool
 ApWifiMac::SupportsSendFrom (void) const
 {
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
 SupportedRates
 ApWifiMac::GetSupportedRates (void) const
 {
+  NS_LOG_FUNCTION (this);
+  SupportedRates rates;
+  // If it is an HT-AP then add the BSSMembershipSelectorSet 
+  // which only includes 127 for HT now. The standard says that the BSSMembershipSelectorSet
+  // must have its MSB set to 1 (must be treated as a Basic Rate)
+  // Also the standard mentioned that at leat 1 element should be included in the SupportedRates the rest can be in the ExtendedSupportedRates
+  if (m_htSupported)
+    {
+      for (uint32_t i = 0; i < m_phy->GetNBssMembershipSelectors(); i++)
+        {
+          rates.SetBasicRate(m_phy->GetBssMembershipSelector(i));
+        }
+    }
   // send the set of supported rates and make sure that we indicate
   // the Basic Rate set in this set of supported rates.
-  SupportedRates rates;
   for (uint32_t i = 0; i < m_phy->GetNModes (); i++)
     {
       WifiMode mode = m_phy->GetMode (i);
@@ -283,9 +320,23 @@ ApWifiMac::GetSupportedRates (void) const
       WifiMode mode = m_stationManager->GetBasicMode (j);
       rates.SetBasicRate (mode.GetDataRate ());
     }
+  
   return rates;
 }
-
+HtCapabilities
+ApWifiMac::GetHtCapabilities (void) const
+{
+ HtCapabilities capabilities;
+ capabilities.SetHtSupported(1);
+ capabilities.SetLdpc (m_phy->GetLdpc());
+ capabilities.SetShortGuardInterval20 (m_phy->GetGuardInterval());
+ capabilities.SetGreenfield (m_phy->GetGreenfield());
+ for (uint8_t i =0 ; i < m_phy->GetNMcs();i++)
+  {
+     capabilities.SetRxMcsBitmask(m_phy->GetMcs(i));
+  }
+ return capabilities;
+}
 void
 ApWifiMac::SendProbeResp (Mac48Address to)
 {
@@ -302,6 +353,11 @@ ApWifiMac::SendProbeResp (Mac48Address to)
   probe.SetSsid (GetSsid ());
   probe.SetSupportedRates (GetSupportedRates ());
   probe.SetBeaconIntervalUs (m_beaconInterval.GetMicroSeconds ());
+if (m_htSupported)
+    {
+      probe.SetHtCapabilities (GetHtCapabilities());
+      hdr.SetNoOrder();
+    }
   packet->AddHeader (probe);
 
   // The standard is not clear on the correct queue for management
@@ -335,6 +391,12 @@ ApWifiMac::SendAssocResp (Mac48Address to, bool success)
     }
   assoc.SetSupportedRates (GetSupportedRates ());
   assoc.SetStatusCode (code);
+
+ if (m_htSupported)
+    {
+      assoc.SetHtCapabilities (GetHtCapabilities());
+      hdr.SetNoOrder();
+    }
   packet->AddHeader (assoc);
 
   // The standard is not clear on the correct queue for management
@@ -360,7 +422,11 @@ ApWifiMac::SendOneBeacon (void)
   beacon.SetSsid (GetSsid ());
   beacon.SetSupportedRates (GetSupportedRates ());
   beacon.SetBeaconIntervalUs (m_beaconInterval.GetMicroSeconds ());
-
+  if (m_htSupported)
+    {
+      beacon.SetHtCapabilities (GetHtCapabilities());
+      hdr.SetNoOrder();
+    }
   packet->AddHeader (beacon);
 
   // The beacon has it's own special queue, so we load it in there
@@ -499,6 +565,20 @@ ApWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
                       break;
                     }
                 }
+               if (m_htSupported)
+                    {//check that the STA supports all MCSs in Basic MCS Set
+                      HtCapabilities htcapabilities = assocReq.GetHtCapabilities ();
+                      for (uint32_t i = 0; i < m_stationManager->GetNBasicMcs (); i++)
+                        {
+                          uint8_t mcs = m_stationManager->GetBasicMcs (i);
+                          if (!htcapabilities.IsSupportedMcs (mcs))
+                            {
+                              problem = true;
+                              break;
+                            }
+                         }
+                      
+                     }
               if (problem)
                 {
                   // one of the Basic Rate set mode is not
@@ -518,6 +598,19 @@ ApWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
                           m_stationManager->AddSupportedMode (from, mode);
                         }
                     }
+                   if (m_htSupported)
+                    {
+                      HtCapabilities htcapabilities = assocReq.GetHtCapabilities ();
+                      m_stationManager->AddStationHtCapabilities (from,htcapabilities);
+                      for (uint32_t j = 0; j < m_phy->GetNMcs (); j++)
+                       {
+                         uint8_t mcs = m_phy->GetMcs (j);
+                         if (htcapabilities.IsSupportedMcs (mcs))
+                           {
+                             m_stationManager->AddSupportedMcs (from, mcs);
+                           }
+                        }
+                     }
                   m_stationManager->RecordWaitAssocTxOk (from);
                   // send assoc response with success status.
                   SendAssocResp (hdr->GetAddr2 (), true);
@@ -542,6 +635,7 @@ void
 ApWifiMac::DeaggregateAmsduAndForward (Ptr<Packet> aggregatedPacket,
                                        const WifiMacHeader *hdr)
 {
+  NS_LOG_FUNCTION (this << aggregatedPacket << hdr);
   MsduAggregator::DeaggregatedMsdus packets =
     MsduAggregator::Deaggregate (aggregatedPacket);
 
@@ -564,15 +658,26 @@ ApWifiMac::DeaggregateAmsduAndForward (Ptr<Packet> aggregatedPacket,
 }
 
 void
-ApWifiMac::DoStart (void)
+ApWifiMac::DoInitialize (void)
 {
-  m_beaconDca->Start ();
+  NS_LOG_FUNCTION (this);
+  m_beaconDca->Initialize ();
   m_beaconEvent.Cancel ();
   if (m_enableBeaconGeneration)
     {
-      m_beaconEvent = Simulator::ScheduleNow (&ApWifiMac::SendOneBeacon, this);
+      if (m_enableBeaconJitter)
+        {
+          int64_t jitter = m_beaconJitter->GetValue (0, m_beaconInterval.GetMicroSeconds ());
+          NS_LOG_DEBUG ("Scheduling initial beacon for access point " << GetAddress() << " at time " << jitter << " microseconds");
+          m_beaconEvent = Simulator::Schedule (MicroSeconds (jitter), &ApWifiMac::SendOneBeacon, this);
+        }
+      else
+        {
+          NS_LOG_DEBUG ("Scheduling initial beacon for access point " << GetAddress() << " at time 0");
+          m_beaconEvent = Simulator::ScheduleNow (&ApWifiMac::SendOneBeacon, this);
+        }
     }
-  RegularWifiMac::DoStart ();
+  RegularWifiMac::DoInitialize ();
 }
 
 } // namespace ns3

@@ -428,6 +428,7 @@ RrepAckHeader::RrepAckHeader () :
 }
 
 NS_OBJECT_ENSURE_REGISTERED (RrepAckHeader);
+  
 TypeId
 RrepAckHeader::GetTypeId ()
 {

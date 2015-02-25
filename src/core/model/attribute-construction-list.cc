@@ -20,18 +20,28 @@
 #include "attribute-construction-list.h"
 #include "log.h"
 
+/**
+ * \file
+ * \ingroup object
+ * ns3::AttributeConstructionList implementation.
+ */
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("AttributeConstructionList");
 
 AttributeConstructionList::AttributeConstructionList ()
-{}
+{
+  NS_LOG_FUNCTION (this);
+}
 
 void 
 AttributeConstructionList::Add (std::string name, Ptr<const AttributeChecker> checker, Ptr<AttributeValue> value)
 {
   // get rid of any previous value stored in this
   // vector of values.
+  NS_LOG_FUNCTION (this << name << checker << value);
+
   for (std::list<struct Item>::iterator k = m_list.begin (); k != m_list.end (); k++)
     {
       if (k->checker == checker)
@@ -51,7 +61,7 @@ AttributeConstructionList::Add (std::string name, Ptr<const AttributeChecker> ch
 Ptr<AttributeValue> 
 AttributeConstructionList::Find (Ptr<const AttributeChecker> checker) const
 {
-  NS_LOG_FUNCTION (checker);
+  NS_LOG_FUNCTION (this << checker);
   for (CIterator k = m_list.begin (); k != m_list.end (); k++)
     {
       NS_LOG_DEBUG ("Found " << k->name << " " << k->checker << " " << k->value);
@@ -66,11 +76,13 @@ AttributeConstructionList::Find (Ptr<const AttributeChecker> checker) const
 AttributeConstructionList::CIterator 
 AttributeConstructionList::Begin (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_list.begin();
 }
 AttributeConstructionList::CIterator
 AttributeConstructionList::End (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_list.end();
 }
 

@@ -24,6 +24,17 @@
 #include <iostream>
 #include "rng-stream.h"
 #include "fatal-error.h"
+#include "log.h"
+
+namespace ns3 {
+  
+// Note:  Logging in this file is largely avoided due to the
+// number of calls that are made to these functions and the possibility
+// of causing recursions leading to stack overflow
+NS_LOG_COMPONENT_DEFINE ("RngStream");
+
+} // namespace ns3
+
 
 namespace
 {
@@ -38,19 +49,6 @@ const double a21  =       527612.0;
 const double a23n =       1370589.0;
 const double two17 =      131072.0;
 const double two53 =      9007199254740992.0;
-const double fact =       5.9604644775390625e-8;     /* 1 / 2^24  */
-
-const Matrix InvA1 = {          // Inverse of A1p0
-  { 184888585.0,   0.0,  1945170933.0 },
-  {         1.0,   0.0,           0.0 },
-  {         0.0,   1.0,           0.0 }
-};
-
-const Matrix InvA2 = {          // Inverse of A2p0
-  {      0.0,  360363334.0,  4225571728.0 },
-  {      1.0,          0.0,           0.0 },
-  {      0.0,          1.0,           0.0 }
-};
 
 const Matrix A1p0 = {
   {       0.0,        1.0,       0.0 },
@@ -180,12 +178,14 @@ void MatTwoPowModM (const Matrix src, Matrix dst, double m, int32_t e)
 //-------------------------------------------------------------------------
 // Compute the matrix B = (A^n Mod m);  works even if A = B.
 //
+/*
 void MatPowModM (const double A[3][3], double B[3][3], double m, int32_t n)
 {
+  NS_LOG_FUNCTION (A << B << m << n);
   int i, j;
   double W[3][3];
 
-  /* initialize: W = A; B = I */
+  // initialize: W = A; B = I
   for (i = 0; i < 3; ++i)
     {
       for (j = 0; j < 3; ++j)
@@ -199,7 +199,7 @@ void MatPowModM (const double A[3][3], double B[3][3], double m, int32_t n)
       B[j][j] = 1.0;
     }
 
-  /* Compute B = A^n mod m using the binary decomposition of n */
+  // Compute B = A^n mod m using the binary decomposition of n
   while (n > 0)
     {
       if (n % 2)
@@ -210,6 +210,7 @@ void MatPowModM (const double A[3][3], double B[3][3], double m, int32_t n)
       n /= 2;
     }
 }
+*/
 
 // The following are the transition matrices of the two MRG components
 // (in matrix form), raised to all powers of 2 from 1 to 191

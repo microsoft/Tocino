@@ -19,41 +19,56 @@
  */
 #include "enum.h"
 #include "fatal-error.h"
+#include "log.h"
 #include <sstream>
+
+/**
+ * \file
+ * \ingroup attribute_Enum
+ * Enum attribute value implementations.
+ */
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("Enum");
+
 EnumValue::EnumValue ()
-  : m_v ()
+  : m_value ()
 {
+  NS_LOG_FUNCTION (this);
 }
-EnumValue::EnumValue (int v)
-  : m_v (v)
+EnumValue::EnumValue (int value)
+  : m_value (value)
 {
+  NS_LOG_FUNCTION (this << value);
 }
 void
-EnumValue::Set (int v)
+EnumValue::Set (int value)
 {
-  m_v = v;
+  NS_LOG_FUNCTION (this << value);
+  m_value = value;
 }
 int
 EnumValue::Get (void) const
 {
-  return m_v;
+  NS_LOG_FUNCTION (this);
+  return m_value;
 }
 Ptr<AttributeValue>
 EnumValue::Copy (void) const
 {
+  NS_LOG_FUNCTION (this);
   return ns3::Create<EnumValue> (*this);
 }
 std::string 
 EnumValue::SerializeToString (Ptr<const AttributeChecker> checker) const
 {
+  NS_LOG_FUNCTION (this << checker);
   const EnumChecker *p = dynamic_cast<const EnumChecker *> (PeekPointer (checker));
   NS_ASSERT (p != 0);
   for (EnumChecker::ValueSet::const_iterator i = p->m_valueSet.begin (); i != p->m_valueSet.end (); i++)
     {
-      if (i->first == m_v)
+      if (i->first == m_value)
         {
           return i->second;
         }
@@ -66,13 +81,14 @@ EnumValue::SerializeToString (Ptr<const AttributeChecker> checker) const
 bool 
 EnumValue::DeserializeFromString (std::string value, Ptr<const AttributeChecker> checker)
 {
+  NS_LOG_FUNCTION (this << value << checker);
   const EnumChecker *p = dynamic_cast<const EnumChecker *> (PeekPointer (checker));
   NS_ASSERT (p != 0);
   for (EnumChecker::ValueSet::const_iterator i = p->m_valueSet.begin (); i != p->m_valueSet.end (); i++)
     {
       if (i->second == value)
         {
-          m_v = i->first;
+          m_value = i->first;
           return true;
         }
     }
@@ -81,21 +97,25 @@ EnumValue::DeserializeFromString (std::string value, Ptr<const AttributeChecker>
 
 EnumChecker::EnumChecker ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
-EnumChecker::AddDefault (int v, std::string name)
+EnumChecker::AddDefault (int value, std::string name)
 {
-  m_valueSet.push_front (std::make_pair (v, name));
+  NS_LOG_FUNCTION (this << value << name);
+  m_valueSet.push_front (std::make_pair (value, name));
 }
 void
-EnumChecker::Add (int v, std::string name)
+EnumChecker::Add (int value, std::string name)
 {
-  m_valueSet.push_back (std::make_pair (v, name));
+  NS_LOG_FUNCTION (this << value << name);
+  m_valueSet.push_back (std::make_pair (value, name));
 }
 bool
 EnumChecker::Check (const AttributeValue &value) const
 {
+  NS_LOG_FUNCTION (this << &value);
   const EnumValue *p = dynamic_cast<const EnumValue *> (&value);
   if (p == 0)
     {
@@ -113,16 +133,19 @@ EnumChecker::Check (const AttributeValue &value) const
 std::string 
 EnumChecker::GetValueTypeName (void) const
 {
+  NS_LOG_FUNCTION (this);
   return "ns3::EnumValue";
 }
 bool 
 EnumChecker::HasUnderlyingTypeInformation (void) const
 {
+  NS_LOG_FUNCTION (this);
   return true;
 }
 std::string 
 EnumChecker::GetUnderlyingTypeInformation (void) const
 {
+  NS_LOG_FUNCTION (this);
   std::ostringstream oss;
   for (ValueSet::const_iterator i = m_valueSet.begin (); i != m_valueSet.end ();)
     {
@@ -138,12 +161,14 @@ EnumChecker::GetUnderlyingTypeInformation (void) const
 Ptr<AttributeValue>
 EnumChecker::Create (void) const
 {
+  NS_LOG_FUNCTION (this);
   return ns3::Create<EnumValue> ();
 }
 
 bool 
 EnumChecker::Copy (const AttributeValue &source, AttributeValue &destination) const
 {
+  NS_LOG_FUNCTION (this << &source << &destination);
   const EnumValue *src = dynamic_cast<const EnumValue *> (&source);
   EnumValue *dst = dynamic_cast<EnumValue *> (&destination);
   if (src == 0 || dst == 0)
@@ -179,6 +204,11 @@ MakeEnumChecker (int v1, std::string n1,
                  int v21, std::string n21,
                  int v22, std::string n22)
 {
+  NS_LOG_FUNCTION (v1 << n1 << v2 << n2 << v3 << n3 << v4 << n4 << v5 << n5 <<
+                   v6 << n6 << v7 << n7 << v8 << n8 << v9 << n9 << v10 << n10 <<
+                   v11 << n11 << v12 << n12 << v13 << n13 << v14 << n14 <<
+                   v15 << n15 << v16 << n16 << v17 << n17 << v18 << n18 <<
+                   v19 << n19 << v20 << n20 << v21 << n21 << v22 << n22);
   Ptr<EnumChecker> checker = Create<EnumChecker> ();
   checker->AddDefault (v1, n1);
   if (n2 == "")

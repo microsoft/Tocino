@@ -25,9 +25,9 @@
 #include "ipv6-list-routing.h"
 #include "ns3/simulator.h"
 
-NS_LOG_COMPONENT_DEFINE ("Ipv6ListRouting");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Ipv6ListRouting");
 
 NS_OBJECT_ENSURE_REGISTERED (Ipv6ListRouting);
 
@@ -129,7 +129,7 @@ Ipv6ListRouting::RouteInput (Ptr<const Packet> p, const Ipv6Header &header, Ptr<
         }
 
       /* do not forward link-local multicast address */
-      if (dst == Ipv6Address::GetAllNodesMulticast () || dst == Ipv6Address::GetAllRoutersMulticast () || dst == Ipv6Address::GetAllHostsMulticast ())
+      if (dst.IsLinkLocalMulticast ())
         {
           return retVal;
         }
@@ -147,7 +147,7 @@ Ipv6ListRouting::RouteInput (Ptr<const Packet> p, const Ipv6Header &header, Ptr<
       return retVal;
     }
 
-  // TODO:  Configurable option to enable RFC 1222 Strong End System Model
+  /// \todo  Configurable option to enable \RFC{1222} Strong End System Model
   // Right now, we will be permissive and allow a source to send us
   // a packet to one of our other interface addresses; that is, the
   // destination unicast address does not match one of the iif addresses,

@@ -27,9 +27,9 @@
 
 #include <cmath>
 
-NS_LOG_COMPONENT_DEFINE ("LiIonEnergySource");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("LiIonEnergySource");
 
 NS_OBJECT_ENSURE_REGISTERED (LiIonEnergySource);
 
@@ -44,6 +44,11 @@ LiIonEnergySource::GetTypeId (void)
                    DoubleValue (31752.0),  // in Joules
                    MakeDoubleAccessor (&LiIonEnergySource::SetInitialEnergy,
                                        &LiIonEnergySource::GetInitialEnergy),
+                   MakeDoubleChecker<double> ())
+    .AddAttribute ("LiIonEnergyLowBatteryThreshold",
+                   "Low battery threshold for LiIon energy source.",
+                   DoubleValue (0.10), // as a fraction of the initial energy
+                   MakeDoubleAccessor (&LiIonEnergySource::m_lowBatteryTh),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("InitialCellVoltage",
                    "Initial (maximum) voltage of the cell (fully charged).",
@@ -99,7 +104,8 @@ LiIonEnergySource::GetTypeId (void)
                    MakeTimeChecker ())
     .AddTraceSource ("RemainingEnergy",
                      "Remaining energy at BasicEnergySource.",
-                     MakeTraceSourceAccessor (&LiIonEnergySource::m_remainingEnergyJ))
+                     MakeTraceSourceAccessor (&LiIonEnergySource::m_remainingEnergyJ),
+                     "ns3::TracedValue::DoubleCallback")
   ;
   return tid;
 }
@@ -108,10 +114,12 @@ LiIonEnergySource::LiIonEnergySource ()
   : m_drainedCapacity (0.0),
     m_lastUpdateTime (Seconds (0.0))
 {
+  NS_LOG_FUNCTION (this);
 }
 
 LiIonEnergySource::~LiIonEnergySource ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
@@ -134,6 +142,7 @@ LiIonEnergySource::GetInitialEnergy (void) const
 void
 LiIonEnergySource::SetInitialSupplyVoltage (double supplyVoltageV)
 {
+  NS_LOG_FUNCTION (this << supplyVoltageV);
   m_eFull = supplyVoltageV;
   m_supplyVoltageV = supplyVoltageV;
 }
@@ -148,7 +157,7 @@ LiIonEnergySource::GetSupplyVoltage (void) const
 void
 LiIonEnergySource::SetEnergyUpdateInterval (Time interval)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << interval);
   m_energyUpdateInterval = interval;
 }
 
@@ -216,13 +225,13 @@ LiIonEnergySource::UpdateEnergySource (void)
 
   CalculateRemainingEnergy ();
 
-  if (m_remainingEnergyJ <= 0)
+  m_lastUpdateTime = Simulator::Now ();
+
+  if (m_remainingEnergyJ <= m_lowBatteryTh * m_initialEnergyJ)
     {
       HandleEnergyDrainedEvent ();
       return; // stop periodic update
     }
-
-  m_lastUpdateTime = Simulator::Now ();
 
   m_energyUpdateEvent = Simulator::Schedule (m_energyUpdateInterval,
                                              &LiIonEnergySource::UpdateEnergySource,
@@ -233,7 +242,7 @@ LiIonEnergySource::UpdateEnergySource (void)
  * Private functions start here.
  */
 void
-LiIonEnergySource::DoStart (void)
+LiIonEnergySource::DoInitialize (void)
 {
   NS_LOG_FUNCTION (this);
   UpdateEnergySource ();  // start periodic update
@@ -256,7 +265,10 @@ LiIonEnergySource::HandleEnergyDrainedEvent (void)
   NS_LOG_DEBUG ("LiIonEnergySource:Energy depleted at node #" <<
                 GetNode ()->GetId ());
   NotifyEnergyDrained (); // notify DeviceEnergyModel objects
-  m_remainingEnergyJ = 0; // energy never goes below 0
+  if (m_remainingEnergyJ <= 0)
+    {
+      m_remainingEnergyJ = 0; // energy never goes below 0
+    }
 }
 
 
@@ -289,12 +301,12 @@ LiIonEnergySource::GetVoltage (double i) const
   double B = 3 / m_qExp;
 
   // slope of the polarization curve
-  double K = std::abs ( (m_eFull - m_eNom + A * (exp (-B * m_qNom) - 1)) * (m_qRated - m_qNom) / m_qNom);
+  double K = std::abs ( (m_eFull - m_eNom + A * (std::exp (-B * m_qNom) - 1)) * (m_qRated - m_qNom) / m_qNom);
 
   // constant voltage
   double E0 = m_eFull + K + m_internalResistance * m_typCurrent - A;
 
-  double E = E0 - K * m_qRated / (m_qRated - it) + A * exp (-B * it);
+  double E = E0 - K * m_qRated / (m_qRated - it) + A * std::exp (-B * it);
 
   // cell voltage
   double V = E - m_internalResistance * i;

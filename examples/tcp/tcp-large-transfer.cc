@@ -29,12 +29,9 @@
 // numbers respectively
 //  Usage (e.g.): ./waf --run tcp-large-transfer
 
-
-#include <ctype.h>
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cassert>
 
 #include "ns3/core-module.h"
 #include "ns3/applications-module.h"
@@ -46,7 +43,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("TcpLargeTransfer");
-
 
 // The number of bytes to send in this simulation.
 static const uint32_t totalTxBytes = 2000000;

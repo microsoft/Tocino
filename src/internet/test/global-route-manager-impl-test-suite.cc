@@ -26,9 +26,9 @@
 #include "ns3/global-route-manager-impl.h"
 #include "ns3/candidate-queue.h"
 #include "ns3/simulator.h"
-#include <stdlib.h> // for rand()
+#include <cstdlib> // for rand()
 
-namespace ns3 {
+using namespace ns3;
 
 class GlobalRouteManagerImplTestCase : public TestCase
 {
@@ -49,7 +49,7 @@ GlobalRouteManagerImplTestCase::DoRun (void)
   for (int i = 0; i < 100; ++i)
     {
       SPFVertex *v = new SPFVertex;
-      v->SetDistanceFromRoot (rand () % 100);
+      v->SetDistanceFromRoot (std::rand () % 100);
       candidate.Push (v);
     }
 
@@ -200,7 +200,7 @@ GlobalRouteManagerImplTestCase::DoRun (void)
 
   Simulator::Run ();
 
-// XXX here we should do some verification of the routes built
+/// \todo here we should do some verification of the routes built
 
   Simulator::Destroy ();
 
@@ -208,7 +208,7 @@ GlobalRouteManagerImplTestCase::DoRun (void)
   // all of the LSAs, which each destroys the attached LinkRecords.
   delete srm;
 
-  // XXX
+  /// \todo Testing
   // No testing has actually been done other than making sure that this code
   // does not crash
 }
@@ -220,8 +220,6 @@ public:
   GlobalRouteManagerImplTestSuite()
     : TestSuite ("global-route-manager-impl", UNIT)
   {
-    AddTestCase (new GlobalRouteManagerImplTestCase ());
+    AddTestCase (new GlobalRouteManagerImplTestCase (), TestCase::QUICK);
   }
 } g_globalRoutingManagerImplTestSuite;
-
-} // namespace ns3

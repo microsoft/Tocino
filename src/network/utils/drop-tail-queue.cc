@@ -21,9 +21,9 @@
 #include "ns3/uinteger.h"
 #include "drop-tail-queue.h"
 
-NS_LOG_COMPONENT_DEFINE ("DropTailQueue");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("DropTailQueue");
 
 NS_OBJECT_ENSURE_REGISTERED (DropTailQueue);
 
@@ -58,25 +58,25 @@ DropTailQueue::DropTailQueue () :
   m_packets (),
   m_bytesInQueue (0)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 DropTailQueue::~DropTailQueue ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 void
 DropTailQueue::SetMode (DropTailQueue::QueueMode mode)
 {
-  NS_LOG_FUNCTION (mode);
+  NS_LOG_FUNCTION (this << mode);
   m_mode = mode;
 }
 
 DropTailQueue::QueueMode
 DropTailQueue::GetMode (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_mode;
 }
 

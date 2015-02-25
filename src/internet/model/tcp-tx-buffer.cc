@@ -20,15 +20,19 @@
 
 #include <iostream>
 #include <algorithm>
-#include <string.h>
+#include <cstring>
+
 #include "ns3/packet.h"
 #include "ns3/fatal-error.h"
 #include "ns3/log.h"
+
 #include "tcp-tx-buffer.h"
+
+namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("TcpTxBuffer");
 
-namespace ns3 {
+NS_OBJECT_ENSURE_REGISTERED (TcpTxBuffer);
 
 TypeId
 TcpTxBuffer::GetTypeId (void)
@@ -38,7 +42,8 @@ TcpTxBuffer::GetTypeId (void)
     .AddConstructor<TcpTxBuffer> ()
     .AddTraceSource ("UnackSequence",
                      "First unacknowledged sequence number (SND.UNA)",
-                     MakeTraceSourceAccessor (&TcpTxBuffer::m_firstByteSeq))
+                     MakeTraceSourceAccessor (&TcpTxBuffer::m_firstByteSeq),
+                     "ns3::SequenceNumber32TracedValueCallback")
   ;
   return tid;
 }

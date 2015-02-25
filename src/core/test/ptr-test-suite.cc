@@ -21,22 +21,22 @@
 #include "ns3/test.h"
 #include "ns3/ptr.h"
 
-namespace ns3 {
+using namespace ns3;
 
 class PtrTestCase;
 
-class Base
+class PtrTestBase
 {
 public:
-  Base ();
-  virtual ~Base ();
+  PtrTestBase ();
+  virtual ~PtrTestBase ();
   void Ref (void) const;
   void Unref (void) const;
 private:
   mutable uint32_t m_count;
 };
 
-class NoCount : public Base
+class NoCount : public PtrTestBase
 {
 public:
   NoCount (PtrTestCase *test);
@@ -60,20 +60,20 @@ private:
 };
 
 
-Base::Base ()
+PtrTestBase::PtrTestBase ()
   : m_count (1)
 {
 }
-Base::~Base ()
+PtrTestBase::~PtrTestBase ()
 {
 }
 void
-Base::Ref (void) const
+PtrTestBase::Ref (void) const
 {
   m_count++;
 }
 void
-Base::Unref (void) const
+PtrTestBase::Unref (void) const
 {
   m_count--;
   if (m_count == 0)
@@ -125,7 +125,7 @@ PtrTestCase::DoRun (void)
   {
     Ptr<NoCount> p = Create<NoCount> (this);
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "001");
 
   m_nDestroyed = 0;
   {
@@ -133,7 +133,7 @@ PtrTestCase::DoRun (void)
     p = Create<NoCount> (this);
     p = p;
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "002");
 
   m_nDestroyed = 0;
   {
@@ -141,7 +141,7 @@ PtrTestCase::DoRun (void)
     p1 = Create<NoCount> (this);
     Ptr<NoCount> p2 = p1;
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "003");
 
   m_nDestroyed = 0;
   {
@@ -150,7 +150,7 @@ PtrTestCase::DoRun (void)
     Ptr<NoCount> p2;
     p2 = p1;
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "004");
 
   m_nDestroyed = 0;
   {
@@ -159,7 +159,7 @@ PtrTestCase::DoRun (void)
     Ptr<NoCount> p2 = Create<NoCount> (this);
     p2 = p1;
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "005");
 
   m_nDestroyed = 0;
   {
@@ -169,7 +169,7 @@ PtrTestCase::DoRun (void)
     p2 = Create<NoCount> (this);
     p2 = p1;
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "006");
 
   m_nDestroyed = 0;
   {
@@ -177,7 +177,7 @@ PtrTestCase::DoRun (void)
     p1 = Create<NoCount> (this);
     p1 = Create<NoCount> (this);
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "007");
 
   m_nDestroyed = 0;
   {
@@ -188,9 +188,9 @@ PtrTestCase::DoRun (void)
       p2 = Create<NoCount> (this);
       p2 = p1;
     }
-    NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+    NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "008");
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "009");
 
   m_nDestroyed = 0;
   {
@@ -201,9 +201,9 @@ PtrTestCase::DoRun (void)
       p2 = Create<NoCount> (this);
       p2 = CallTest (p1);
     }
-    NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+    NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "010");
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 2, "011");
 
   {
     Ptr<NoCount> p1;
@@ -241,7 +241,7 @@ PtrTestCase::DoRun (void)
       raw = GetPointer (p);
       p = 0;
     }
-    NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 0, "XXX");
+    NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 0, "012");
     delete raw;
   }
 
@@ -253,10 +253,10 @@ PtrTestCase::DoRun (void)
     v1->Nothing ();
     v2->Nothing ();
   }
-  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "XXX");
+  NS_TEST_EXPECT_MSG_EQ (m_nDestroyed, 1, "013");
 
   {
-    Ptr<Base> p0 = Create<NoCount> (this);
+    Ptr<PtrTestBase> p0 = Create<NoCount> (this);
     Ptr<NoCount> p1 = Create<NoCount> (this);
     NS_TEST_EXPECT_MSG_EQ ((p0 == p1), false, "operator == failed");
     NS_TEST_EXPECT_MSG_EQ ((p0 != p1), true, "operator != failed");
@@ -269,8 +269,6 @@ public:
   PtrTestSuite ()
     : TestSuite ("ptr", UNIT)
   {
-    AddTestCase (new PtrTestCase ());
+    AddTestCase (new PtrTestCase (), TestCase::QUICK);
   }
 } g_ptrTestSuite;
-
-} // namespace ns3

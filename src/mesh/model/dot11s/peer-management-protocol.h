@@ -137,7 +137,8 @@ public:
   std::vector < Ptr<PeerLink> > GetPeerLinks () const;
   /// Get list of active peers of my given interface
   std::vector<Mac48Address> GetPeers (uint32_t interface) const;
-  /// Get mesh point address. TODO this used by plugins only. Now MAC plugins can ask MP addrress directly from main MAC
+  /// Get mesh point address.
+  /// \todo this used by plugins only. Now MAC plugins can ask MP addrress directly from main MAC
   Mac48Address GetAddress ();
   uint8_t GetNumberOfLinks ();
   void SetMeshId (std::string s);
@@ -147,6 +148,8 @@ public:
   bool GetBeaconCollisionAvoidance () const;
   /// Notify about beacon send event, needed to schedule BCA
   void NotifyBeaconSent (uint32_t interface, Time beaconInterval);
+  // \}
+  
   ///\brief: Report statistics
   void Report (std::ostream &) const;
   void ResetStats ();
@@ -160,12 +163,20 @@ public:
    */
   int64_t AssignStreams (int64_t stream);
 
-private:
-  virtual void DoStart ();
   /**
-   * \name Private structures
-   * \{
+   * TracedCallback signature for link open/close events.
+   *
+   * \param [in] myIface MAC address of my interface.
+   * \param [in] peerIface MAC address of peer interface.
    */
+  typedef void (* LinkOpenCloseTracedCallback)
+    (const Mac48Address myIface, const Mac48Address peerIface);
+   
+
+private:
+  virtual void DoInitialize ();
+  
+  // Private structures
   /// Keeps information about beacon of peer station: beacon interval, association ID, last time we have received a beacon
   struct BeaconInfo
   {
@@ -184,7 +195,7 @@ private:
   typedef std::map<uint32_t, BeaconsOnInterface> BeaconInfoMap;
   ///\brief this vector keeps pointers to MAC-plugins
   typedef std::map<uint32_t, Ptr<PeerManagementProtocolMac> > PeerManagementProtocolMacMap;
-  // \}
+
 private:
   PeerManagementProtocol& operator= (const PeerManagementProtocol &);
   PeerManagementProtocol (const PeerManagementProtocol &);

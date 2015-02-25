@@ -17,15 +17,18 @@
  */
 
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sstream>
 #include <cstring>
 
+#include "ns3/log.h"
 #include "ns3/test.h"
 #include "ns3/pcap-file.h"
 
 using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("pcap-file-test-suite");
 
 // ===========================================================================
 // Some utility functions for the tests.
@@ -46,13 +49,13 @@ Swap (uint32_t val)
 static bool
 CheckFileExists (std::string filename)
 {
-  FILE * p = fopen (filename.c_str (), "rb");
+  FILE * p = std::fopen (filename.c_str (), "rb");
   if (p == 0)
     {
       return false;
     }
 
-  fclose (p);
+  std::fclose (p);
   return true;
 }
 
@@ -60,16 +63,16 @@ CheckFileExists (std::string filename)
 static bool
 CheckFileLength (std::string filename, uint64_t sizeExpected)
 {
-  FILE * p = fopen (filename.c_str (), "rb");
+  FILE * p = std::fopen (filename.c_str (), "rb");
   if (p == 0)
     {
       return false;
     }
 
-  fseek (p, 0, SEEK_END);
+  std::fseek (p, 0, SEEK_END);
 
-  uint64_t sizeActual = ftell (p);
-  fclose (p);
+  uint64_t sizeActual = std::ftell (p);
+  std::fclose (p);
 
   return sizeActual == sizeExpected;
 }
@@ -113,7 +116,10 @@ WriteModeCreateTestCase::DoSetup (void)
 void
 WriteModeCreateTestCase::DoTeardown (void)
 {
-  remove (m_testFilename.c_str ());
+  if (remove (m_testFilename.c_str ()))
+    {
+      NS_LOG_ERROR ("Failed to delete file " << m_testFilename);
+    }
 }
 
 void
@@ -225,7 +231,10 @@ ReadModeCreateTestCase::DoSetup (void)
 void
 ReadModeCreateTestCase::DoTeardown (void)
 {
-  remove (m_testFilename.c_str ());
+  if (remove (m_testFilename.c_str ()))
+    {
+      NS_LOG_ERROR ("Failed to delete file " << m_testFilename);
+    }
 }
 
 void
@@ -331,7 +340,10 @@ AppendModeCreateTestCase::DoSetup (void)
 void
 AppendModeCreateTestCase::DoTeardown (void)
 {
-  remove (m_testFilename.c_str ());
+  if (remove (m_testFilename.c_str ()))
+    {
+      NS_LOG_ERROR ("Failed to delete file " << m_testFilename);
+    }
 }
 
 void
@@ -437,7 +449,10 @@ FileHeaderTestCase::DoSetup (void)
 void
 FileHeaderTestCase::DoTeardown (void)
 {
-  remove (m_testFilename.c_str ());
+  if (remove (m_testFilename.c_str ()))
+    {
+      NS_LOG_ERROR ("Failed to delete file " << m_testFilename);
+    }
 }
 
 void
@@ -463,7 +478,7 @@ FileHeaderTestCase::DoRun (void)
   //
   // Take a look and see what was done to the file
   //
-  FILE *p = fopen (m_testFilename.c_str (), "r+b");
+  FILE *p = std::fopen (m_testFilename.c_str (), "r+b");
   NS_TEST_ASSERT_MSG_NE (p, 0, "fopen(" << m_testFilename << ") should have been able to open a correctly created pcap file");
 
   uint32_t val32;
@@ -494,42 +509,42 @@ FileHeaderTestCase::DoRun (void)
   u.a = 1;
   bool bigEndian = u.b[3];
 
-  size_t result = fread (&val32, sizeof(val32), 1, p);
+  size_t result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() magic number");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 0xa1b2c3d4, "Magic number written incorrectly");
 
-  result = fread (&val16, sizeof(val16), 1, p);
+  result = std::fread (&val16, sizeof(val16), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() version major");
   if (bigEndian) val16 = Swap (val16);
   NS_TEST_ASSERT_MSG_EQ (val16, 2, "Version major written incorrectly");
 
-  result = fread (&val16, sizeof(val16), 1, p);
+  result = std::fread (&val16, sizeof(val16), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() version minor");
   if (bigEndian) val16 = Swap (val16);
   NS_TEST_ASSERT_MSG_EQ (val16, 4, "Version minor written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() time zone correction");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 7, "Version minor written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() sig figs");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 0, "Sig figs written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() snap length");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 5678, "Snap length written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() data link type");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 1234, "Data length type written incorrectly");
 
-  fclose (p);
+  std::fclose (p);
   p = 0;
 
   //
@@ -577,38 +592,38 @@ FileHeaderTestCase::DoRun (void)
   // Take a look and see what was done to the file.  Everything should now
   // appear byte-swapped.
   //
-  p = fopen (m_testFilename.c_str (), "r+b");
+  p = std::fopen (m_testFilename.c_str (), "r+b");
   NS_TEST_ASSERT_MSG_NE (p, 0, "fopen(" << m_testFilename << ") should have been able to open a correctly created pcap file");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() magic number");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (0xa1b2c3d4)), "Magic number written incorrectly");
 
-  result = fread (&val16, sizeof(val16), 1, p);
+  result = std::fread (&val16, sizeof(val16), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() version major");
   NS_TEST_ASSERT_MSG_EQ (val16, Swap (uint16_t (2)), "Version major written incorrectly");
 
-  result = fread (&val16, sizeof(val16), 1, p);
+  result = std::fread (&val16, sizeof(val16), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() version minor");
   NS_TEST_ASSERT_MSG_EQ (val16, Swap (uint16_t (4)), "Version minor written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() time zone correction");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (7)), "Version minor written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() sig figs");
   NS_TEST_ASSERT_MSG_EQ (val32, 0, "Sig figs written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() snap length");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (5678)), "Snap length written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() data link type");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (1234)), "Data length type written incorrectly");
 
-  fclose (p);
+  std::fclose (p);
   p = 0;
 
   //
@@ -674,7 +689,10 @@ RecordHeaderTestCase::DoSetup (void)
 void
 RecordHeaderTestCase::DoTeardown (void)
 {
-  remove (m_testFilename.c_str ());
+  if (remove (m_testFilename.c_str ()))
+    {
+      NS_LOG_ERROR ("Failed to delete file " << m_testFilename);
+    }
 }
 
 void
@@ -717,7 +735,7 @@ RecordHeaderTestCase::DoRun (void)
   // Let's peek into the file and see what actually went out for that
   // packet.
   //
-  FILE *p = fopen (m_testFilename.c_str (), "r+b");
+  FILE *p = std::fopen (m_testFilename.c_str (), "r+b");
   NS_TEST_ASSERT_MSG_NE (p, 0, "fopen() should have been able to open a correctly created pcap file");
 
   //
@@ -725,8 +743,8 @@ RecordHeaderTestCase::DoRun (void)
   // and we wrote in 43 bytes, so the file must be 83 bytes long.  Let's just
   // double check that this is exactly what happened.
   //
-  fseek (p, 0, SEEK_END);
-  uint64_t size = ftell (p);
+  std::fseek (p, 0, SEEK_END);
+  uint64_t size = std::ftell (p);
   NS_TEST_ASSERT_MSG_EQ (size, 83, "Pcap file with one 43 byte packet is incorrect size");
 
   //
@@ -734,7 +752,7 @@ RecordHeaderTestCase::DoRun (void)
   // starting there in the file.  We've tested this all before so we just assume
   // it's all right and just seek to just past that point..
   //
-  fseek (p, 24, SEEK_SET);
+  std::fseek (p, 24, SEEK_SET);
 
   uint32_t val32;
 
@@ -763,22 +781,22 @@ RecordHeaderTestCase::DoRun (void)
   u.a = 1;
   bool bigEndian = u.b[3];
 
-  size_t result = fread (&val32, sizeof(val32), 1, p);
+  size_t result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() seconds timestamp");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 1234, "Seconds timestamp written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() microseconds timestamp");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 5678, "Microseconds timestamp written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() included length");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 43, "Included length written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() actual length");
   if (bigEndian) val32 = Swap (val32);
   NS_TEST_ASSERT_MSG_EQ (val32, 128, "Actual length written incorrectly");
@@ -789,7 +807,7 @@ RecordHeaderTestCase::DoRun (void)
   //
   uint8_t bufferIn[128];
 
-  result = fread (bufferIn, 1, 43, p);
+  result = std::fread (bufferIn, 1, 43, p);
   NS_TEST_ASSERT_MSG_EQ (result, 43, "Unable to fread() packet data of expected length");
 
   for (uint32_t i = 0; i < 43; ++i)
@@ -797,7 +815,7 @@ RecordHeaderTestCase::DoRun (void)
       NS_TEST_ASSERT_MSG_EQ (bufferIn[i], bufferOut[i], "Incorrect packet data written");
     }
 
-  fclose (p);
+  std::fclose (p);
   p = 0;
 
   //
@@ -859,7 +877,7 @@ RecordHeaderTestCase::DoRun (void)
   // Let's peek into the file and see what actually went out for that
   // packet.
   //
-  p = fopen (m_testFilename.c_str (), "r+b");
+  p = std::fopen (m_testFilename.c_str (), "r+b");
   NS_TEST_ASSERT_MSG_NE (p, 0, "fopen() should have been able to open a correctly created pcap file");
 
   //
@@ -867,8 +885,8 @@ RecordHeaderTestCase::DoRun (void)
   // and we wrote in 43 bytes, so the file must be 83 bytes long.  Let's just
   // double check that this is exactly what happened.
   //
-  fseek (p, 0, SEEK_END);
-  size = ftell (p);
+  std::fseek (p, 0, SEEK_END);
+  size = std::ftell (p);
   NS_TEST_ASSERT_MSG_EQ (size, 83, "Pcap file with one 43 byte packet is incorrect size");
 
   //
@@ -876,21 +894,22 @@ RecordHeaderTestCase::DoRun (void)
   // starting there in the file.  We've tested this all before so we just assume
   // it's all right and just seek past it.
   //
-  fseek (p, 24, SEEK_SET);
+  result = std::fseek (p, 24, SEEK_SET);
+  NS_TEST_ASSERT_MSG_EQ (result, 0, "Failed seeking past pcap header");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() seconds timestamp");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (1234)), "Swapped seconds timestamp written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() microseconds timestamp");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (5678)), "Swapped microseconds timestamp written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() included length");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (43)), "Swapped included length written incorrectly");
 
-  result = fread (&val32, sizeof(val32), 1, p);
+  result = std::fread (&val32, sizeof(val32), 1, p);
   NS_TEST_ASSERT_MSG_EQ (result, 1, "Unable to fread() actual length");
   NS_TEST_ASSERT_MSG_EQ (val32, Swap (uint32_t (128)), "Swapped Actual length written incorrectly");
 
@@ -898,7 +917,7 @@ RecordHeaderTestCase::DoRun (void)
   // Take a look and see what went out into the file.  The packet data
   // should be unchanged (unswapped).
   //
-  result = fread (bufferIn, 1, 43, p);
+  result = std::fread (bufferIn, 1, 43, p);
   NS_TEST_ASSERT_MSG_EQ (result, 43, "Unable to fread() packet data of expected length");
 
   for (uint32_t i = 0; i < 43; ++i)
@@ -906,7 +925,7 @@ RecordHeaderTestCase::DoRun (void)
       NS_TEST_ASSERT_MSG_EQ (bufferIn[i], bufferOut[i], "Incorrect packet data written");
     }
 
-  fclose (p);
+  std::fclose (p);
   p = 0;
 
   //
@@ -974,8 +993,8 @@ ReadFileTestCase::DoTeardown (void)
 {
 }
 
-const uint32_t N_KNOWN_PACKETS = 6;
-const uint32_t N_PACKET_BYTES = 16;
+static const uint32_t N_KNOWN_PACKETS = 6;
+static const uint32_t N_PACKET_BYTES = 16;
 
 typedef struct PACKET_ENTRY {
   uint32_t tsSec;
@@ -985,7 +1004,7 @@ typedef struct PACKET_ENTRY {
   uint16_t data[N_PACKET_BYTES];
 } PacketEntry;
 
-PacketEntry knownPackets[] = {
+static const PacketEntry knownPackets[] = {
   { 2, 3696,   46,   46, { 0x0001, 0x0800, 0x0604, 0x0001, 0x0000, 0x0000, 0x0003, 0x0a01,
                            0x0201, 0xffff, 0xffff, 0xffff, 0x0a01, 0x0204, 0x0000, 0x0000}},
   { 2, 3707,   46,   46, { 0x0001, 0x0800, 0x0604, 0x0002, 0x0000, 0x0000, 0x0006, 0x0a01,
@@ -1024,16 +1043,16 @@ ReadFileTestCase::DoRun (void)
   uint8_t data[N_PACKET_BYTES];
   uint32_t tsSec, tsUsec, inclLen, origLen, readLen;
 
-  PacketEntry *p = knownPackets;
-
-  for (uint32_t i = 0; i < N_KNOWN_PACKETS; ++i, ++p)
+  for (uint32_t i = 0; i < N_KNOWN_PACKETS; ++i)
     {
+      PacketEntry const & p = knownPackets[i];
+
       f.Read (data, sizeof(data), tsSec, tsUsec, inclLen, origLen, readLen);
       NS_TEST_ASSERT_MSG_EQ (f.Fail (), false, "Read() of known good pcap file returns error");
-      NS_TEST_ASSERT_MSG_EQ (tsSec, p->tsSec, "Incorrectly read seconds timestap from known good pcap file");
-      NS_TEST_ASSERT_MSG_EQ (tsUsec, p->tsUsec, "Incorrectly read microseconds timestap from known good pcap file");
-      NS_TEST_ASSERT_MSG_EQ (inclLen, p->inclLen, "Incorrectly read included length from known good packet");
-      NS_TEST_ASSERT_MSG_EQ (origLen, p->origLen, "Incorrectly read original length from known good packet");
+      NS_TEST_ASSERT_MSG_EQ (tsSec, p.tsSec, "Incorrectly read seconds timestap from known good pcap file");
+      NS_TEST_ASSERT_MSG_EQ (tsUsec, p.tsUsec, "Incorrectly read microseconds timestap from known good pcap file");
+      NS_TEST_ASSERT_MSG_EQ (inclLen, p.inclLen, "Incorrectly read included length from known good packet");
+      NS_TEST_ASSERT_MSG_EQ (origLen, p.origLen, "Incorrectly read original length from known good packet");
       NS_TEST_ASSERT_MSG_EQ (readLen, N_PACKET_BYTES, "Incorrect actual read length from known good packet given buffer size");
     }
 
@@ -1111,13 +1130,13 @@ PcapFileTestSuite::PcapFileTestSuite ()
   : TestSuite ("pcap-file", UNIT)
 {
   SetDataDir (NS_TEST_SOURCEDIR);
-  AddTestCase (new WriteModeCreateTestCase);
-  AddTestCase (new ReadModeCreateTestCase);
-  //AddTestCase (new AppendModeCreateTestCase);
-  AddTestCase (new FileHeaderTestCase);
-  AddTestCase (new RecordHeaderTestCase);
-  AddTestCase (new ReadFileTestCase);
-  AddTestCase (new DiffTestCase);
+  AddTestCase (new WriteModeCreateTestCase, TestCase::QUICK);
+  AddTestCase (new ReadModeCreateTestCase, TestCase::QUICK);
+  //AddTestCase (new AppendModeCreateTestCase, TestCase::QUICK);
+  AddTestCase (new FileHeaderTestCase, TestCase::QUICK);
+  AddTestCase (new RecordHeaderTestCase, TestCase::QUICK);
+  AddTestCase (new ReadFileTestCase, TestCase::QUICK);
+  AddTestCase (new DiffTestCase, TestCase::QUICK);
 }
 
 static PcapFileTestSuite pcapFileTestSuite;

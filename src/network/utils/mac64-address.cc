@@ -20,11 +20,16 @@
 #include "mac64-address.h"
 #include "ns3/address.h"
 #include "ns3/assert.h"
+#include "ns3/log.h"
 #include <iomanip>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Mac64Address");
+
+ATTRIBUTE_HELPER_CPP (Mac64Address);
 
 #define ASCII_a (0x41)
 #define ASCII_z (0x5a)
@@ -33,9 +38,15 @@ namespace ns3 {
 #define ASCII_COLON (0x3a)
 #define ASCII_ZERO (0x30)
 
+/**
+ * Converts a char to lower case.
+ * \param c the char
+ * \returns the lower case
+ */
 static char
 AsciiToLowCase (char c)
 {
+  NS_LOG_FUNCTION (c);
   if (c >= ASCII_a && c <= ASCII_z) {
       return c;
     } else if (c >= ASCII_A && c <= ASCII_Z) {
@@ -48,10 +59,12 @@ AsciiToLowCase (char c)
 
 Mac64Address::Mac64Address ()
 {
-  memset (m_address, 0, 8);
+  NS_LOG_FUNCTION (this);
+  std::memset (m_address, 0, 8);
 }
 Mac64Address::Mac64Address (const char *str)
 {
+  NS_LOG_FUNCTION (this << str);
   int i = 0;
   while (*str != 0 && i < 8) 
     {
@@ -78,22 +91,25 @@ Mac64Address::Mac64Address (const char *str)
         }
       str++;
     }
-  NS_ASSERT (i == 6);
+  NS_ASSERT (i == 8);
 }
 void 
 Mac64Address::CopyFrom (const uint8_t buffer[8])
 {
-  memcpy (m_address, buffer, 8);
+  NS_LOG_FUNCTION (this << &buffer);
+  std::memcpy (m_address, buffer, 8);
 }
 void 
 Mac64Address::CopyTo (uint8_t buffer[8]) const
 {
-  memcpy (buffer, m_address, 8);
+  NS_LOG_FUNCTION (this << &buffer);
+  std::memcpy (buffer, m_address, 8);
 }
 
 bool 
 Mac64Address::IsMatchingType (const Address &address)
 {
+  NS_LOG_FUNCTION (&address);
   return address.CheckCompatible (GetType (), 8);
 }
 Mac64Address::operator Address () const
@@ -103,20 +119,24 @@ Mac64Address::operator Address () const
 Mac64Address 
 Mac64Address::ConvertFrom (const Address &address)
 {
+  NS_LOG_FUNCTION (address);
   NS_ASSERT (address.CheckCompatible (GetType (), 8));
   Mac64Address retval;
   address.CopyTo (retval.m_address);
   return retval;
 }
+
 Address
 Mac64Address::ConvertTo (void) const
 {
+  NS_LOG_FUNCTION (this);
   return Address (GetType (), m_address, 8);
 }
 
 Mac64Address 
 Mac64Address::Allocate (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   static uint64_t id = 0;
   id++;
   Mac64Address address;
@@ -133,21 +153,9 @@ Mac64Address::Allocate (void)
 uint8_t 
 Mac64Address::GetType (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   static uint8_t type = Address::Register ();
   return type;
-}
-
-bool operator == (const Mac64Address &a, const Mac64Address &b)
-{
-  uint8_t ada[8];
-  uint8_t adb[8];
-  a.CopyTo (ada);
-  b.CopyTo (adb);
-  return memcmp (ada, adb, 8) == 0;
-}
-bool operator != (const Mac64Address &a, const Mac64Address &b)
-{
-  return !(a == b);
 }
 
 std::ostream& operator<< (std::ostream& os, const Mac64Address & address)
@@ -168,5 +176,31 @@ std::ostream& operator<< (std::ostream& os, const Mac64Address & address)
   return os;
 }
 
+std::istream& operator>> (std::istream& is, Mac64Address & address)
+{
+  std::string v;
+  is >> v;
+
+  std::string::size_type col = 0;
+  for (uint8_t i = 0; i < 8; ++i)
+    {
+      std::string tmp;
+      std::string::size_type next;
+      next = v.find (":", col);
+      if (next == std::string::npos)
+        {
+          tmp = v.substr (col, v.size ()-col);
+          address.m_address[i] = strtoul (tmp.c_str(), 0, 16);
+          break;
+        }
+      else
+        {
+          tmp = v.substr (col, next-col);
+          address.m_address[i] = strtoul (tmp.c_str(), 0, 16);
+          col = next + 1;
+        }
+    }
+  return is;
+}
 
 } // namespace ns3

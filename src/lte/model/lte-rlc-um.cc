@@ -26,14 +26,14 @@
 #include "ns3/lte-rlc-sdu-status-tag.h"
 #include "ns3/lte-rlc-tag.h"
 
-NS_LOG_COMPONENT_DEFINE ("LteRlcUm");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("LteRlcUm");
 
 NS_OBJECT_ENSURE_REGISTERED (LteRlcUm);
 
 LteRlcUm::LteRlcUm ()
-  : m_maxTxBufferSize (2 * 1024 * 1024),
+  : m_maxTxBufferSize (10 * 1024),
     m_txBufferSize (0),
     m_sequenceNumber (0),
     m_vrUr (0),
@@ -44,12 +44,11 @@ LteRlcUm::LteRlcUm ()
 {
   NS_LOG_FUNCTION (this);
   m_reassemblingState = WAITING_S0_FULL;
-
-  Simulator::ScheduleNow (&LteRlcUm::Start, this);
 }
 
 LteRlcUm::~LteRlcUm ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 TypeId
@@ -60,13 +59,22 @@ LteRlcUm::GetTypeId (void)
     .AddConstructor<LteRlcUm> ()
     .AddAttribute ("MaxTxBufferSize",
                    "Maximum Size of the Transmission Buffer (in Bytes)",
-                   UintegerValue (2 * 1024 * 1024),
+                   UintegerValue (10 * 1024),
                    MakeUintegerAccessor (&LteRlcUm::m_maxTxBufferSize),
                    MakeUintegerChecker<uint32_t> ())
     ;
   return tid;
 }
 
+void
+LteRlcUm::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+  m_reorderingTimer.Cancel ();
+  m_rbsTimer.Cancel ();
+
+  LteRlc::DoDispose ();
+}
 
 /**
  * RLC SAP
@@ -115,7 +123,7 @@ LteRlcUm::DoTransmitPdcpPdu (Ptr<Packet> p)
  */
 
 void
-LteRlcUm::DoNotifyTxOpportunity (uint32_t bytes, uint8_t layer)
+LteRlcUm::DoNotifyTxOpportunity (uint32_t bytes, uint8_t layer, uint8_t harqId)
 {
   NS_LOG_FUNCTION (this << m_rnti << (uint32_t) m_lcid << bytes);
 
@@ -372,6 +380,7 @@ LteRlcUm::DoNotifyTxOpportunity (uint32_t bytes, uint8_t layer)
   params.rnti = m_rnti;
   params.lcid = m_lcid;
   params.layer = layer;
+  params.harqProcessId = harqId;
 
   m_macSapProvider->TransmitPdu (params);
 
@@ -548,15 +557,6 @@ LteRlcUm::DoReceivePdu (Ptr<Packet> p)
         }
     }
 
-}
-
-
-void
-LteRlcUm::Start ()
-{
-  NS_LOG_FUNCTION (this);
-
-  DoReportBufferStatus ();
 }
 
 

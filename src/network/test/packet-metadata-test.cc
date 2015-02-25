@@ -17,7 +17,7 @@
  *
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
-#include <stdarg.h>
+#include <cstdarg>
 #include <iostream>
 #include <sstream>
 #include "ns3/test.h"
@@ -249,8 +249,6 @@ HistoryTrailer<N>::Deserialize (Buffer::Iterator start)
 }
 
 }
-
-namespace ns3 {
 
 class PacketMetadataTest : public TestCase {
 public:
@@ -698,7 +696,8 @@ PacketMetadataTest::DoRun (void)
   p = Create<Packet> (16384);
 
 
-  // bug 179.
+  /// \internal
+  /// See \bugid{179}
   p = Create<Packet> (40);
   p2 = p->CreateFragment (5, 5);
   p3 = p->CreateFragment (10, 30);
@@ -770,7 +769,8 @@ PacketMetadataTest::DoRun (void)
   p->RemoveAtStart (10);
   CHECK_HISTORY (p, 1, 490);
 
-  // bug 1072
+  /// \internal
+  /// See \bugid{1072}
   p = Create<Packet> (500);
   ADD_HEADER (p, 10);
   ADD_HEADER (p, 20);
@@ -780,7 +780,8 @@ PacketMetadataTest::DoRun (void)
   p2 = p->CreateFragment (6,535-6);
   p1->AddAtEnd (p2);
 
-  // bug 1072#2
+  /// \internal
+  /// See \bugid{1072}
   p = Create<Packet> (reinterpret_cast<const uint8_t*> ("hello world"), 11);
   ADD_HEADER (p, 2);
   CHECK_HISTORY (p, 2, 2, 11);
@@ -831,8 +832,7 @@ public:
 PacketMetadataTestSuite::PacketMetadataTestSuite ()
   : TestSuite ("packet-metadata", UNIT)
 {
-  AddTestCase (new PacketMetadataTest);
+  AddTestCase (new PacketMetadataTest, TestCase::QUICK);
 }
 
 PacketMetadataTestSuite g_packetMetadataTest;
-} // namespace ns3

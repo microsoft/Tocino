@@ -21,13 +21,21 @@
 #include "wifi-phy.h"
 #include "ns3/assert.h"
 #include "ns3/double.h"
-#include <math.h>
+#include <cmath>
+
+#define Min(a,b) ((a < b) ? a : b)
 
 namespace ns3 {
 
+/**
+ * \brief hold per-remote-station state for Ideal Wifi manager.
+ *
+ * This struct extends from WifiRemoteStation struct to hold additional
+ * information required by the Ideal Wifi manager
+ */
 struct IdealWifiRemoteStation : public WifiRemoteStation
 {
-  double m_lastSnr;
+  double m_lastSnr;  //!< SNR of last packet sent to the remote station
 };
 
 NS_OBJECT_ENSURE_REGISTERED (IdealWifiManager);
@@ -132,8 +140,8 @@ IdealWifiManager::DoReportFinalDataFailed (WifiRemoteStation *station)
 {
 }
 
-WifiMode
-IdealWifiManager::DoGetDataMode (WifiRemoteStation *st, uint32_t size)
+WifiTxVector
+IdealWifiManager::DoGetDataTxVector (WifiRemoteStation *st, uint32_t size)
 {
   IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
   // We search within the Supported rate set the mode with the
@@ -152,10 +160,10 @@ IdealWifiManager::DoGetDataMode (WifiRemoteStation *st, uint32_t size)
           maxMode = mode;
         }
     }
-  return maxMode;
+  return WifiTxVector (maxMode, GetDefaultTxPowerLevel (), GetLongRetryCount (station), GetShortGuardInterval (station), Min (GetNumberOfReceiveAntennas (station),GetNumberOfTransmitAntennas()), GetNess (station), GetStbc (station));
 }
-WifiMode
-IdealWifiManager::DoGetRtsMode (WifiRemoteStation *st)
+WifiTxVector
+IdealWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
 {
   IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
   // We search within the Basic rate set the mode with the highest
@@ -174,7 +182,7 @@ IdealWifiManager::DoGetRtsMode (WifiRemoteStation *st)
           maxMode = mode;
         }
     }
-  return maxMode;
+  return WifiTxVector (maxMode, GetDefaultTxPowerLevel (), GetShortRetryCount (station), GetShortGuardInterval (station), Min (GetNumberOfReceiveAntennas (station),GetNumberOfTransmitAntennas()), GetNess (station), GetStbc (station));
 }
 
 bool

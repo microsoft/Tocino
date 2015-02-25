@@ -24,11 +24,11 @@
 #include "ns3/double.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/simulator.h"
-#include <math.h>
-
-NS_LOG_COMPONENT_DEFINE ("RvBatteryModel");
+#include <cmath>
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("RvBatteryModel");
 
 NS_OBJECT_ENSURE_REGISTERED (RvBatteryModel);
 
@@ -44,6 +44,11 @@ RvBatteryModel::GetTypeId (void)
                    MakeTimeAccessor (&RvBatteryModel::SetSamplingInterval,
                                      &RvBatteryModel::GetSamplingInterval),
                    MakeTimeChecker ())
+    .AddAttribute ("RvBatteryModelLowBatteryThreshold",
+                   "Low battery threshold.",
+                   DoubleValue (0.10), // as a fraction of the initial energy
+                   MakeDoubleAccessor (&RvBatteryModel::m_lowBatteryTh),
+                   MakeDoubleChecker<double> ())
     .AddAttribute ("RvBatteryModelOpenCircuitVoltage",
                    "RV battery model open circuit voltage.",
                    DoubleValue (4.1),
@@ -76,16 +81,19 @@ RvBatteryModel::GetTypeId (void)
                    MakeIntegerChecker<int> ())
     .AddTraceSource ("RvBatteryModelBatteryLevel",
                      "RV battery model battery level.",
-                     MakeTraceSourceAccessor (&RvBatteryModel::m_batteryLevel))
+                     MakeTraceSourceAccessor (&RvBatteryModel::m_batteryLevel),
+                     "ns3::TracedValue::DoubleCallback")
     .AddTraceSource ("RvBatteryModelBatteryLifetime",
                      "RV battery model battery lifetime.",
-                     MakeTraceSourceAccessor (&RvBatteryModel::m_lifetime))
+                     MakeTraceSourceAccessor (&RvBatteryModel::m_lifetime),
+                     "ns3::Time::TracedValueCallback")
   ;
   return tid;
 }
 
 RvBatteryModel::RvBatteryModel ()
 {
+  NS_LOG_FUNCTION (this);
   m_lastSampleTime = Seconds (0.0);
   m_previousLoad = 0.0;
   m_batteryLevel = 1; // fully charged
@@ -94,17 +102,20 @@ RvBatteryModel::RvBatteryModel ()
 
 RvBatteryModel::~RvBatteryModel ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 double
 RvBatteryModel::GetInitialEnergy (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_alpha * GetSupplyVoltage ();
 }
 
 double
 RvBatteryModel::GetSupplyVoltage (void) const
 {
+  NS_LOG_FUNCTION (this);
   // average of Voc and Vcutoff
   return (m_openCircuitVoltage - m_cutoffVoltage) / 2 + m_cutoffVoltage;
 }
@@ -120,6 +131,7 @@ RvBatteryModel::GetRemainingEnergy (void)
 double
 RvBatteryModel::GetEnergyFraction (void)
 {
+  NS_LOG_FUNCTION (this);
   return GetBatteryLevel ();
 }
 
@@ -159,7 +171,7 @@ RvBatteryModel::UpdateEnergySource (void)
     }
 
   // check if battery is dead.
-  if (calculatedAlpha >= m_alpha)
+  if (m_batteryLevel <= m_lowBatteryTh)
     {
       m_lifetime = Simulator::Now ();
       NS_LOG_DEBUG ("RvBatteryModel:Battery is dead!");
@@ -184,6 +196,7 @@ RvBatteryModel::SetSamplingInterval (Time interval)
 Time
 RvBatteryModel::GetSamplingInterval (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_samplingInterval;
 }
 
@@ -198,6 +211,7 @@ RvBatteryModel::SetOpenCircuitVoltage (double voltage)
 double
 RvBatteryModel::GetOpenCircuitVoltage (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_openCircuitVoltage;
 }
 
@@ -212,6 +226,7 @@ RvBatteryModel::SetCutoffVoltage (double voltage)
 double
 RvBatteryModel::GetCutoffVoltage (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_cutoffVoltage;
 }
 
@@ -226,6 +241,7 @@ RvBatteryModel::SetAlpha (double alpha)
 double
 RvBatteryModel::GetAlpha (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_alpha;
 }
 
@@ -240,6 +256,7 @@ RvBatteryModel::SetBeta (double beta)
 double
 RvBatteryModel::GetBeta (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_beta;
 }
 
@@ -254,6 +271,7 @@ RvBatteryModel::GetBatteryLevel (void)
 Time
 RvBatteryModel::GetLifetime (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_lifetime;
 }
 
@@ -267,6 +285,7 @@ RvBatteryModel::SetNumOfTerms (int num)
 int
 RvBatteryModel::GetNumOfTerms (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_numOfTerms;
 }
 
@@ -275,8 +294,9 @@ RvBatteryModel::GetNumOfTerms (void) const
  */
 
 void
-RvBatteryModel::DoStart (void)
+RvBatteryModel::DoInitialize (void)
 {
+  NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("RvBatteryModel:Starting battery level update!");
   UpdateEnergySource ();  // start periodic sampling of load (total current)
 }
@@ -284,6 +304,7 @@ RvBatteryModel::DoStart (void)
 void
 RvBatteryModel::DoDispose (void)
 {
+  NS_LOG_FUNCTION (this);
   BreakDeviceEnergyModelRefCycle ();  // break reference cycle
 }
 
@@ -359,7 +380,7 @@ RvBatteryModel::RvModelAFunction (Time t, Time sk, Time sk_1, double beta)
   for (int m = 1; m <= m_numOfTerms; m++)
     {
       double square = beta * beta * m * m;
-      sum += (exp (-square * (firstDelta)) - exp (-square * (secondDelta))) / square;
+      sum += (std::exp (-square * (firstDelta)) - std::exp (-square * (secondDelta))) / square;
     }
   return delta + 2 * sum;
 }

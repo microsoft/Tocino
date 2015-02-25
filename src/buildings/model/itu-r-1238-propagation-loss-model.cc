@@ -26,11 +26,11 @@
 #include <cmath>
 
 #include "itu-r-1238-propagation-loss-model.h"
-#include "buildings-mobility-model.h"
-
-NS_LOG_COMPONENT_DEFINE ("ItuR1238PropagationLossModel");
+#include <ns3/mobility-building-info.h>
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("ItuR1238PropagationLossModel");
 
 NS_OBJECT_ENSURE_REGISTERED (ItuR1238PropagationLossModel);
 
@@ -55,12 +55,12 @@ double
 ItuR1238PropagationLossModel::GetLoss (Ptr<MobilityModel> a1, Ptr<MobilityModel> b1) const
 {
   NS_LOG_FUNCTION (this << a1 << b1);
-  Ptr<BuildingsMobilityModel> a = DynamicCast<BuildingsMobilityModel> (a1);
-  Ptr<BuildingsMobilityModel> b = DynamicCast<BuildingsMobilityModel> (b1);
-  NS_ASSERT_MSG ((a != 0) && (b != 0), "ItuR1238PropagationLossModel only works with BuildingsMobilityModel");
+  Ptr<MobilityBuildingInfo> a = a1->GetObject<MobilityBuildingInfo> ();
+  Ptr<MobilityBuildingInfo> b = b1->GetObject<MobilityBuildingInfo> ();
+  NS_ASSERT_MSG ((a != 0) && (b != 0), "ItuR1238PropagationLossModel only works with MobilityBuildingInfo");
   NS_ASSERT_MSG (a->GetBuilding ()->GetId () == b->GetBuilding ()->GetId (), "ITU-R 1238 applies only to nodes that are in the same building");
   double N = 0.0;
-  int n = abs (a->GetFloorNumber () - b->GetFloorNumber ());
+  int n = std::abs (a->GetFloorNumber () - b->GetFloorNumber ());
   NS_LOG_LOGIC (this << " A floor " << (uint16_t)a->GetFloorNumber () << " B floor " << (uint16_t)b->GetFloorNumber () << " n " << n);
   double Lf = 0.0;
   Ptr<Building> aBuilding = a->GetBuilding ();
@@ -95,8 +95,8 @@ ItuR1238PropagationLossModel::GetLoss (Ptr<MobilityModel> a1, Ptr<MobilityModel>
     {
       NS_LOG_ERROR (this << " Unkwnon Wall Type");
     }
-  double loss = 20 * log10 (m_frequency / 1e6 /*MHz*/) + N*log10 (a->GetDistanceFrom (b)) + Lf - 28.0;
-  NS_LOG_INFO (this << " Node " << a->GetPosition () << " <-> " << b->GetPosition () << " loss = " << loss << " dB");
+  double loss = 20 * std::log10 (m_frequency / 1e6 /*MHz*/) + N * std::log10 (a1->GetDistanceFrom (b1)) + Lf - 28.0;
+  NS_LOG_INFO (this << " Node " << a1->GetPosition () << " <-> " << b1->GetPosition () << " loss = " << loss << " dB");
 
   return loss;
 }

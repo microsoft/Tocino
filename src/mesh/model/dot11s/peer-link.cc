@@ -26,9 +26,10 @@
 #include "ns3/simulator.h"
 #include "ns3/traced-value.h"
 
-NS_LOG_COMPONENT_DEFINE ("Dot11sPeerManagementProtocol");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Dot11sPeerManagementProtocol");
+  
 namespace dot11s {
 
 NS_OBJECT_ENSURE_REGISTERED ( PeerLink);
@@ -578,6 +579,7 @@ PeerLink::StateMachine (PeerEvent event, PmpReasonCode reasoncode)
         {
         case CLS_ACPT:
           ClearHoldingTimer ();
+          // fall through:
         case TOH:
           m_state = IDLE;
           m_linkStatusCallback (m_interface, m_peerAddress, m_peerMeshPointAddress, HOLDING, IDLE);

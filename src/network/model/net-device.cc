@@ -23,9 +23,9 @@
 #include "ns3/uinteger.h"
 #include "net-device.h"
 
-NS_LOG_COMPONENT_DEFINE ("NetDevice");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("NetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED (NetDevice);
 
@@ -39,7 +39,7 @@ TypeId NetDevice::GetTypeId (void)
 
 NetDevice::~NetDevice ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 } // namespace ns3

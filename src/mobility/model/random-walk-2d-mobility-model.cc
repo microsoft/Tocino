@@ -26,9 +26,9 @@
 #include "ns3/log.h"
 #include <cmath>
 
-NS_LOG_COMPONENT_DEFINE ("RandomWalk2d");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("RandomWalk2d");
 
 NS_OBJECT_ENSURE_REGISTERED (RandomWalk2dMobilityModel);
 
@@ -41,7 +41,7 @@ RandomWalk2dMobilityModel::GetTypeId (void)
     .AddConstructor<RandomWalk2dMobilityModel> ()
     .AddAttribute ("Bounds",
                    "Bounds of the area to cruise.",
-                   RectangleValue (Rectangle (0.0, 0.0, 100.0, 100.0)),
+                   RectangleValue (Rectangle (0.0, 100.0, 0.0, 100.0)),
                    MakeRectangleAccessor (&RandomWalk2dMobilityModel::m_bounds),
                    MakeRectangleChecker ())
     .AddAttribute ("Time",
@@ -62,7 +62,7 @@ RandomWalk2dMobilityModel::GetTypeId (void)
                    MakeEnumChecker (RandomWalk2dMobilityModel::MODE_DISTANCE, "Distance",
                                     RandomWalk2dMobilityModel::MODE_TIME, "Time"))
     .AddAttribute ("Direction",
-                   "A random variable used to pick the direction (gradients).",
+                   "A random variable used to pick the direction (radians).",
                    StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=6.283184]"),
                    MakePointerAccessor (&RandomWalk2dMobilityModel::m_direction),
                    MakePointerChecker<RandomVariableStream> ())
@@ -75,14 +75,14 @@ RandomWalk2dMobilityModel::GetTypeId (void)
 }
 
 void
-RandomWalk2dMobilityModel::DoStart (void)
+RandomWalk2dMobilityModel::DoInitialize (void)
 {
-  DoStartPrivate ();
-  MobilityModel::DoStart ();
+  DoInitializePrivate ();
+  MobilityModel::DoInitialize ();
 }
 
 void
-RandomWalk2dMobilityModel::DoStartPrivate (void)
+RandomWalk2dMobilityModel::DoInitializePrivate (void)
 {
   m_helper.Update ();
   double speed = m_speed->GetValue ();
@@ -116,7 +116,7 @@ RandomWalk2dMobilityModel::DoWalk (Time delayLeft)
   m_event.Cancel ();
   if (m_bounds.IsInside (nextPosition))
     {
-      m_event = Simulator::Schedule (delayLeft, &RandomWalk2dMobilityModel::DoStartPrivate, this);
+      m_event = Simulator::Schedule (delayLeft, &RandomWalk2dMobilityModel::DoInitializePrivate, this);
     }
   else
     {
@@ -168,7 +168,7 @@ RandomWalk2dMobilityModel::DoSetPosition (const Vector &position)
   NS_ASSERT (m_bounds.IsInside (position));
   m_helper.SetPosition (position);
   Simulator::Remove (m_event);
-  m_event = Simulator::ScheduleNow (&RandomWalk2dMobilityModel::DoStartPrivate, this);
+  m_event = Simulator::ScheduleNow (&RandomWalk2dMobilityModel::DoInitializePrivate, this);
 }
 Vector
 RandomWalk2dMobilityModel::DoGetVelocity (void) const

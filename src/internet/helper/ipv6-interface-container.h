@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2008-2009 Strasbourg University
+ *               2013 Universita' di Firenze
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -16,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
+ *         Tommaso Pecorella <tommaso.pecorella@unifi.it>
  */
 
 #ifndef IPV6_INTERFACE_CONTAINER_H
@@ -38,7 +40,12 @@ namespace ns3
 class Ipv6InterfaceContainer
 {
 public:
+
+  /**
+   * \brief Container Const Iterator for pairs of Ipv6 smart pointer / Interface Index.
+   */
   typedef std::vector<std::pair<Ptr<Ipv6>, uint32_t> >::const_iterator Iterator;
+
   /**
    * \brief Constructor.
    */
@@ -79,6 +86,20 @@ public:
    * \return IPv6 address
    */
   Ipv6Address GetAddress (uint32_t i, uint32_t j) const;
+
+  /**
+   * \brief Get the link-local address for the specified index.
+   * \param i index
+   * \return the link-local address, or "::" if the interface has no link local address.
+   */
+  Ipv6Address GetLinkLocalAddress (uint32_t i);
+
+  /**
+   * \brief Get the link-local address for the node with the specified global address.
+   * \param address the address to find.
+   * \return the link-local address, or "::" if the interface has no link local address.
+   */
+  Ipv6Address GetLinkLocalAddress (Ipv6Address address);
 
   /**
    * \brief Add a couple IPv6/interface.
@@ -145,11 +166,25 @@ public:
   void Add (std::string ipv6Name, uint32_t interface);
 
   /**
-   * \brief Set the state of the stack (act as a router or not) for the specified index.
+   * \brief Set the state of the stack (act as a router or as an host) for the specified index.
+   * This automatically sets all the node's interfaces to the same forwarding state.
    * \param i index
-   * \param router true : is a router, false : is an host
+   * \param state true : is a router, false : is an host
    */
-  void SetRouter (uint32_t i, bool router);
+  void SetForwarding (uint32_t i, bool state);
+
+  /**
+   * \brief Set the default route for all the devices (except the router itself).
+   * \param router the default router index
+   */
+  void SetDefaultRouteInAllNodes (uint32_t router);
+
+  /**
+   * \brief Set the default route for all the devices (except the router itself).
+   * Note that the route will be set to the link-local address of the node with the specified address.
+   * \param routerAddr the default router address
+   */
+  void SetDefaultRouteInAllNodes (Ipv6Address routerAddr);
 
   /**
    * \brief Set the default route for the specified index.
@@ -158,11 +193,21 @@ public:
    */
   void SetDefaultRoute (uint32_t i, uint32_t router);
 
+  /**
+   * \brief Set the default route for the specified index.
+   * Note that the route will be set to the link-local address of the node with the specified address.
+   * \param i index
+   * \param routerAddr the default router address
+   */
+  void SetDefaultRoute (uint32_t i, Ipv6Address routerAddr);
+
 private:
+  /**
+   * \brief Container for pairs of Ipv6 smart pointer / Interface Index.
+   */
   typedef std::vector<std::pair<Ptr<Ipv6>, uint32_t> > InterfaceVector;
 
   /**
-   * \internal
    * \brief List of IPv6 stack and interfaces index.
    */
   InterfaceVector m_interfaces;

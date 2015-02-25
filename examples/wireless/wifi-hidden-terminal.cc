@@ -82,10 +82,10 @@ void experiment (bool enableCtsRts)
 
   // uncomment the following to have athstats output
   // AthstatsHelper athstats;
-  // athstats.EnableAthstats(enableCtsRts ? "basic-athstats-node" : "rtscts-athstats-node", nodes);
+  // athstats.EnableAthstats(enableCtsRts ? "rtscts-athstats-node" : "basic-athstats-node" , nodes);
 
   // uncomment the following to have pcap output
-  //wifiPhy.EnablePcap (enableCtsRts ? "basic-pcap-node" : "rtscts-pcap-node", nodes);
+  // wifiPhy.EnablePcap (enableCtsRts ? "rtscts-pcap-node" : "basic-pcap-node" , nodes);
 
 
   // 6. Install TCP/IP stack & assign IP addresses
@@ -99,7 +99,7 @@ void experiment (bool enableCtsRts)
   ApplicationContainer cbrApps;
   uint16_t cbrPort = 12345;
   OnOffHelper onOffHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address ("10.0.0.2"), cbrPort));
-  onOffHelper.SetAttribute ("PacketSize", UintegerValue (200));
+  onOffHelper.SetAttribute ("PacketSize", UintegerValue (1400));
   onOffHelper.SetAttribute ("OnTime",  StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
   onOffHelper.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
 
@@ -109,19 +109,19 @@ void experiment (bool enableCtsRts)
   cbrApps.Add (onOffHelper.Install (nodes.Get (0))); 
 
   // flow 2:  node 2 -> node 1
-  // The slightly different start times and data rates are a workround
-  // for Bug 388 and Bug 912
-  // http://www.nsnam.org/bugzilla/show_bug.cgi?id=912
-  // http://www.nsnam.org/bugzilla/show_bug.cgi?id=388
+  /** \internal
+   * The slightly different start times and data rates are a workaround
+   * for \bugid{388} and \bugid{912}
+   */
   onOffHelper.SetAttribute ("DataRate", StringValue ("3001100bps"));
   onOffHelper.SetAttribute ("StartTime", TimeValue (Seconds (1.001)));
   cbrApps.Add (onOffHelper.Install (nodes.Get (2))); 
 
-  // we also use separate UDP applications that will send a single
-  // packet before the CBR flows start. 
-  // This is a workround for the lack of perfect ARP, see Bug 187
-  // http://www.nsnam.org/bugzilla/show_bug.cgi?id=187
-
+  /** \internal
+   * We also use separate UDP applications that will send a single
+   * packet before the CBR flows start. 
+   * This is a workaround for the lack of perfect ARP, see \bugid{187}
+   */
   uint16_t  echoPort = 9;
   UdpEchoClientHelper echoClientHelper (Ipv4Address ("10.0.0.2"), echoPort);
   echoClientHelper.SetAttribute ("MaxPackets", UintegerValue (1));
@@ -149,16 +149,25 @@ void experiment (bool enableCtsRts)
   // 10. Print per flow statistics
   monitor->CheckForLostPackets ();
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
-  std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats ();
+  FlowMonitor::FlowStatsContainer stats = monitor->GetFlowStats ();
   for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i)
     {
       // first 2 FlowIds are for ECHO apps, we don't want to display them
+      //
+      // Duration for throughput measurement is 9.0 seconds, since 
+      //   StartTime of the OnOffApplication is at about "second 1"
+      // and 
+      //   Simulator::Stops at "second 10".
       if (i->first > 2)
         {
           Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
-          std::cout << "Flow " << i->first - 2 << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";           std::cout << "  Tx Bytes:   " << i->second.txBytes << "\n";
+          std::cout << "Flow " << i->first - 2 << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+          std::cout << "  Tx Packets: " << i->second.txPackets << "\n";
+          std::cout << "  Tx Bytes:   " << i->second.txBytes << "\n";
+          std::cout << "  TxOffered:  " << i->second.txBytes * 8.0 / 9.0 / 1000 / 1000  << " Mbps\n";
+          std::cout << "  Rx Packets: " << i->second.rxPackets << "\n";
           std::cout << "  Rx Bytes:   " << i->second.rxBytes << "\n";
-          std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / 10.0 / 1024 / 1024  << " Mbps\n";
+          std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / 9.0 / 1000 / 1000  << " Mbps\n";
         }
     }
 

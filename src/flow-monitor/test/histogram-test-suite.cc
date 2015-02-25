@@ -21,7 +21,7 @@
 #include "ns3/histogram.h"
 #include "ns3/test.h"
 
-namespace ns3 {
+using namespace ns3;
 
 class HistogramTestCase : public ns3::TestCase {
 private:
@@ -75,10 +75,6 @@ public:
   HistogramTestSuite ()
     : TestSuite ("histogram", UNIT) 
   {
-    AddTestCase (new HistogramTestCase ());
+    AddTestCase (new HistogramTestCase (), TestCase::QUICK);
   }
 } g_HistogramTestSuite;
-
-} // namespace
-
-

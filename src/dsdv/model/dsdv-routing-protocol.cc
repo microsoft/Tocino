@@ -40,10 +40,12 @@
 #include "ns3/double.h"
 #include "ns3/uinteger.h"
 
-NS_LOG_COMPONENT_DEFINE ("DsdvRoutingProtocol");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("DsdvRoutingProtocol");
+  
 namespace dsdv {
+  
 NS_OBJECT_ENSURE_REGISTERED (RoutingProtocol);
 
 /// UDP Port for DSDV control traffic
@@ -691,7 +693,7 @@ RoutingProtocol::RecvDsdv (Ptr<Socket> socket)
                       /*Received update with same seq number but with same or greater hop count.
                        * Discard that update.
                        */
-                      if (not m_advRoutingTable.AnyRunningEvent (dsdvHeader.GetDst ()))
+                      if (!m_advRoutingTable.AnyRunningEvent (dsdvHeader.GetDst ()))
                         {
                           /*update the timer only if nexthop address matches thus discarding
                            * updates to that destination from other nodes.
@@ -711,7 +713,7 @@ RoutingProtocol::RecvDsdv (Ptr<Socket> socket)
               else
                 {
                   // Received update with an old sequence number. Discard the update
-                  if (not m_advRoutingTable.AnyRunningEvent (dsdvHeader.GetDst ()))
+                  if (!m_advRoutingTable.AnyRunningEvent (dsdvHeader.GetDst ()))
                     {
                       m_advRoutingTable.DeleteRoute (dsdvHeader.GetDst ());
                     }
@@ -743,7 +745,7 @@ RoutingProtocol::RecvDsdv (Ptr<Socket> socket)
                 }
               else
                 {
-                  if (not m_advRoutingTable.AnyRunningEvent (dsdvHeader.GetDst ()))
+                  if (!m_advRoutingTable.AnyRunningEvent (dsdvHeader.GetDst ()))
                     {
                       m_advRoutingTable.DeleteRoute (dsdvHeader.GetDst ());
                     }
@@ -786,7 +788,7 @@ RoutingProtocol::SendTriggeredUpdate ()
                                         << " SeqNo:" << i->second.GetSeqNo () << " HopCount:"
                                         << i->second.GetHop () + 1);
           RoutingTableEntry temp = i->second;
-          if ((i->second.GetEntriesChanged () == true) && (not m_advRoutingTable.AnyRunningEvent (temp.GetDestination ())))
+          if ((i->second.GetEntriesChanged () == true) && (!m_advRoutingTable.AnyRunningEvent (temp.GetDestination ())))
             {
               dsdvHeader.SetDst (i->second.GetDestination ());
               dsdvHeader.SetDstSeqno (i->second.GetSeqNo ());
@@ -955,8 +957,8 @@ RoutingProtocol::NotifyInterfaceUp (uint32_t i)
   Ptr<Socket> socket = Socket::CreateSocket (GetObject<Node> (),UdpSocketFactory::GetTypeId ());
   NS_ASSERT (socket != 0);
   socket->SetRecvCallback (MakeCallback (&RoutingProtocol::RecvDsdv,this));
-  socket->BindToNetDevice (l3->GetNetDevice (i));
   socket->Bind (InetSocketAddress (Ipv4Address::GetAny (), DSDV_PORT));
+  socket->BindToNetDevice (l3->GetNetDevice (i));
   socket->SetAllowBroadcast (true);
   socket->SetAttribute ("IpTtl",UintegerValue (1));
   m_socketAddresses.insert (std::make_pair (socket,iface));
@@ -1012,9 +1014,9 @@ RoutingProtocol::NotifyAddAddress (uint32_t i,
       Ptr<Socket> socket = Socket::CreateSocket (GetObject<Node> (),UdpSocketFactory::GetTypeId ());
       NS_ASSERT (socket != 0);
       socket->SetRecvCallback (MakeCallback (&RoutingProtocol::RecvDsdv,this));
-      socket->BindToNetDevice (l3->GetNetDevice (i));
       // Bind to any IP address so that broadcasts can be received
       socket->Bind (InetSocketAddress (Ipv4Address::GetAny (), DSDV_PORT));
+      socket->BindToNetDevice (l3->GetNetDevice (i));
       socket->SetAllowBroadcast (true);
       m_socketAddresses.insert (std::make_pair (socket,iface));
       Ptr<NetDevice> dev = m_ipv4->GetNetDevice (m_ipv4->GetInterfaceForAddress (iface.GetLocal ()));
@@ -1189,7 +1191,7 @@ RoutingProtocol::MergeTriggerPeriodicUpdates ()
       for (std::map<Ipv4Address, RoutingTableEntry>::const_iterator i = allRoutes.begin (); i != allRoutes.end (); ++i)
         {
           RoutingTableEntry advEntry = i->second;
-          if ((advEntry.GetEntriesChanged () == true) && (not m_advRoutingTable.AnyRunningEvent (advEntry.GetDestination ())))
+          if ((advEntry.GetEntriesChanged () == true) && (!m_advRoutingTable.AnyRunningEvent (advEntry.GetDestination ())))
             {
               if (!(advEntry.GetSeqNo () % 2))
                 {

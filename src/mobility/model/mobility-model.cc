@@ -18,7 +18,7 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "mobility-model.h"
 #include "ns3/trace-source-accessor.h"
@@ -45,7 +45,8 @@ MobilityModel::GetTypeId (void)
                    MakeVectorChecker ())
     .AddTraceSource ("CourseChange", 
                      "The value of the position and/or velocity vector changed",
-                     MakeTraceSourceAccessor (&MobilityModel::m_courseChangeTrace))
+                     MakeTraceSourceAccessor (&MobilityModel::m_courseChangeTrace),
+                     "ns3::MobilityModel::CourseChangeTracedCallback")
   ;
   return tid;
 }

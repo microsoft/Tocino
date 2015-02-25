@@ -1,5 +1,5 @@
 .. include:: replace.txt
-
+.. highlight:: cpp
 
 Conceptual Overview
 -------------------
@@ -153,7 +153,7 @@ of |ns3| in a directory called ``repos`` under your home
 directory.  Change into that release directory, and you should find a 
 directory structure something like the following:
 
-::
+.. sourcecode:: bash
 
   AUTHORS       examples       scratch        utils      waf.bat*
   bindings      LICENSE        src            utils.py   waf-tools
@@ -250,16 +250,16 @@ load all of the public header files.
 Since you are, of course, following this tutorial religiously, you will 
 already have done a
 
-::
+.. sourcecode:: bash
 
-  ./waf -d debug --enable-examples --enable-tests configure
+  $ ./waf -d debug --enable-examples --enable-tests configure
 
 in order to configure the project to perform debug builds that include 
 examples and tests.  You will also have done a
 
-::
+.. sourcecode:: bash
 
-  ./waf
+  $ ./waf
 
 to build the project.  So now if you look in the directory 
 ``../../build/debug/ns3`` you will find the four module include files shown 
@@ -313,7 +313,7 @@ section, so go ahead and expand that documentation node.  Now, expand the
 ``Debugging`` book and then select the ``Logging`` page.
 
 You should now be looking at the Doxygen documentation for the Logging module.
-In the list of ``#define``s at the top of the page you will see the entry
+In the list of ``#define``'s at the top of the page you will see the entry
 for ``NS_LOG_COMPONENT_DEFINE``.  Before jumping in, it would probably be 
 good to look for the "Detailed Description" of the logging module to get a 
 feel for the overall operation.  You can either scroll down or select the
@@ -339,6 +339,21 @@ This is just the declaration of the main function of your program (script).
 Just as in any C++ program, you need to define a main function that will be 
 the first function run.  There is nothing at all special here.  Your 
 |ns3| script is just a C++ program.
+
+The next line sets the time resolution to one nanosecond, which happens
+to be the default value:
+
+::
+
+    Time::SetResolution (Time::NS);
+
+The resolution is the smallest time value that can be represented (as well as
+the smallest representable difference between two time values).
+You can change the resolution exactly once.  The mechanism enabling this
+flexibility is somewhat memory hungry, so once the resolution has been
+set explicitly we release the memory, preventing further updates.   (If
+you don't set the resolution explicitly, it will default to one nanosecond,
+and the memory will be released when the simulation starts.)
 
 The next two lines of the script are used to enable two logging components that
 are built into the Echo Client and Echo Server applications:
@@ -636,7 +651,7 @@ that is managed by an ``UdpEchoClientHelper``.
 
     UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
     echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
-    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.)));
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
     echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
     ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
@@ -728,6 +743,69 @@ took care of the hard part for you.  The remaining lines of our first
     return 0;
   }
 
+When the simulator will stop?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+|ns3| is a Discrete Event (DE) simulator. In such a simulator, each event is
+associated with its execution time, and the simulation proceeds by executing
+events in the temporal order of simulation time.  Events may cause future
+events to be scheduled (for example, a timer may reschedule itself to
+expire at the next interval).
+
+The initial events are usually triggered by each object, e.g., IPv6 will 
+schedule Router Advertisements, Neighbor Solicitations, etc., 
+an Application schedule the first packet sending event, etc.
+
+When an event is processed, it may generate zero, one or more events.
+As a simulation executes, events are consumed, but more events may (or may
+not) be generated.
+The simulation will stop automatically when no further events are in the 
+event queue, or when a special Stop event is found. The Stop event is 
+created through the 
+``Simulator::Stop (stopTime);`` function.
+
+There is a typical case where ``Simulator::Stop`` is absolutely necessary 
+to stop the simulation: when there is a self-sustaining event.
+Self-sustaining (or recurring) events are events that always reschedule 
+themselves. As a consequence, they always keep the event queue non-empty.
+
+There are many protocols and modules containing recurring events, e.g.:
+
+* FlowMonitor - periodic check for lost packets
+* RIPng - periodic broadcast of routing tables update
+* etc.
+
+In these cases, ``Simulator::Stop`` is necessary to gracefully stop the 
+simulation.  In addition, when |ns3| is in emulation mode, the 
+``RealtimeSimulator`` is used to keep the simulation clock aligned with 
+the machine clock, and ``Simulator::Stop`` is necessary to stop the 
+process.  
+
+Many of the simulation programs in the tutorial do not explicitly call
+``Simulator::Stop``, since the event queue will automatically run out
+of events.  However, these programs will also accept a call to 
+``Simulator::Stop``.  For example, the following additional statement
+in the first example program will schedule an explicit stop at 11 seconds: 
+
+::
+
+  +  Simulator::Stop (Seconds (11.0));
+     Simulator::Run ();
+     Simulator::Destroy ();
+     return 0;
+   }
+
+The above wil not actually change the behavior of this program, since
+this particular simulation naturally ends after 10 seconds.  But if you 
+were to change the stop time in the above statement from 11 seconds to 1 
+second, you would notice that the simulation stops before any output is 
+printed to the screen (since the output occurs around time 2 seconds of 
+simulation time).
+
+It is important to call ``Simulator::Stop`` *before* calling 
+``Simulator::Run``; otherwise, ``Simulator::Run`` may never return control
+to the main program to execute the stop!
+
 Building Your Script
 ++++++++++++++++++++
 We have made it trivial to build your simple scripts.  All you have to do is 
@@ -735,21 +813,21 @@ to drop your script into the scratch directory and it will automatically be
 built if you run Waf.  Let's try it.  Copy ``examples/tutorial/first.cc`` into 
 the ``scratch`` directory after changing back into the top level directory.
 
-::
+.. sourcecode:: bash
 
-  cd ../..
-  cp examples/tutorial/first.cc scratch/myfirst.cc
+  $ cd ../..
+  $ cp examples/tutorial/first.cc scratch/myfirst.cc
 
 Now build your first example script using waf:
 
-::
+.. sourcecode:: bash
 
-  ./waf
+  $ ./waf
 
 You should see messages reporting that your ``myfirst`` example was built
 successfully.
 
-::
+.. sourcecode:: bash
 
   Waf: Entering directory `/home/craigdo/repos/ns-3-allinone/ns-3-dev/build'
   [614/708] cxx: scratch/myfirst.cc -> build/debug/scratch/myfirst_3.o
@@ -760,13 +838,13 @@ successfully.
 You can now run the example (note that if you build your program in the scratch
 directory you must run it out of the scratch directory):
 
-::
+.. sourcecode:: bash
 
-  ./waf --run scratch/myfirst
+  $ ./waf --run scratch/myfirst
 
 You should see some output:
 
-::
+.. sourcecode:: bash
 
   Waf: Entering directory `/home/craigdo/repos/ns-3-allinone/ns-3-dev/build'
   Waf: Leaving directory `/home/craigdo/repos/ns-3-allinone/ns-3-dev/build'
@@ -794,14 +872,14 @@ summary page for our |ns3| development tree.
 
 At the top of the page, you will see a number of links,
 
-::
+.. sourcecode:: text
 
   summary | shortlog | changelog | graph | tags | files 
 
 Go ahead and select the ``files`` link.  This is what the top-level of
 most of our *repositories* will look:
 
-::
+.. sourcecode:: text
 
   drwxr-xr-x                               [up]     
   drwxr-xr-x                               bindings python  files

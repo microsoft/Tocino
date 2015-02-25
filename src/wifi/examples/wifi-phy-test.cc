@@ -33,6 +33,7 @@
 #include "ns3/nstime.h"
 #include "ns3/command-line.h"
 #include "ns3/flow-id-tag.h"
+#include "ns3/wifi-tx-vector.h"
 
 using namespace ns3;
 
@@ -69,7 +70,10 @@ PsrExperiment::Send (void)
 {
   Ptr<Packet> p = Create<Packet> (m_input.packetSize);
   WifiMode mode = WifiMode (m_input.txMode);
-  m_tx->SendPacket (p, mode, WIFI_PREAMBLE_SHORT, m_input.txPowerLevel);
+  WifiTxVector txVector;
+  txVector.SetTxPowerLevel (m_input.txPowerLevel);
+  txVector.SetMode (mode);
+  m_tx->SendPacket (p, txVector, WIFI_PREAMBLE_SHORT, 0);
 }
 
 void
@@ -124,6 +128,7 @@ PsrExperiment::Run (struct PsrExperiment::Input input)
     }
   m_tx = tx;
   Simulator::Run ();
+  Simulator::Destroy();
   return m_output;
 }
 
@@ -170,8 +175,10 @@ CollisionExperiment::SendA (void) const
 {
   Ptr<Packet> p = Create<Packet> (m_input.packetSizeA);
   p->AddByteTag (FlowIdTag (m_flowIdA));
-  m_txA->SendPacket (p, WifiMode (m_input.txModeA),
-                     WIFI_PREAMBLE_SHORT, m_input.txPowerLevelA);
+  WifiTxVector txVector;
+  txVector.SetTxPowerLevel (m_input.txPowerLevelA);
+  txVector.SetMode (WifiMode (m_input.txModeA));
+  m_txA->SendPacket (p, txVector, WIFI_PREAMBLE_SHORT, 0);
 }
 
 void
@@ -179,22 +186,26 @@ CollisionExperiment::SendB (void) const
 {
   Ptr<Packet> p = Create<Packet> (m_input.packetSizeB);
   p->AddByteTag (FlowIdTag (m_flowIdB));
-  m_txB->SendPacket (p, WifiMode (m_input.txModeB),
-                     WIFI_PREAMBLE_SHORT, m_input.txPowerLevelB);
+  WifiTxVector txVector;
+  txVector.SetTxPowerLevel (m_input.txPowerLevelB);
+  txVector.SetMode (WifiMode (m_input.txModeB));
+  m_txB->SendPacket (p, txVector, WIFI_PREAMBLE_SHORT, 0);
 }
 
 void
 CollisionExperiment::Receive (Ptr<Packet> p, double snr, WifiMode mode, enum WifiPreamble preamble)
 {
   FlowIdTag tag;
-  p->FindFirstMatchingByteTag (tag);
-  if (tag.GetFlowId () == m_flowIdA)
+  if (p->FindFirstMatchingByteTag (tag))
     {
-      m_output.receivedA++;
-    }
-  else if (tag.GetFlowId () == m_flowIdB)
-    {
-      m_output.receivedB++;
+      if (tag.GetFlowId () == m_flowIdA)
+        {
+          m_output.receivedA++;
+        }
+      else if (tag.GetFlowId () == m_flowIdB)
+        {
+          m_output.receivedB++;
+        }
     }
 }
 
@@ -266,6 +277,7 @@ CollisionExperiment::Run (struct CollisionExperiment::Input input)
   m_txA = txA;
   m_txB = txB;
   Simulator::Run ();
+  Simulator::Destroy();
   return m_output;
 }
 
@@ -428,7 +440,7 @@ int main (int argc, char *argv[])
                 << "PsrVsDistance "
                 << "PsrVsCollisionInterval "
                 << std::endl;
-      return -1;
+      return 0;
     }
   std::string type = argv[1];
   argc--;

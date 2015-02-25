@@ -18,20 +18,23 @@
  * Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt>
  */
 
+#include <cmath>
+
 #include "ns3/assert.h"
+#include "ns3/log.h"
 
 #include "olsr-header.h"
-#include "ns3/log.h"
 
 #define IPV4_ADDRESS_SIZE 4
 #define OLSR_MSG_HEADER_SIZE 12
 #define OLSR_PKT_HEADER_SIZE 4
 
 namespace ns3 {
+  
+NS_LOG_COMPONENT_DEFINE ("OlsrHeader");
+
 namespace olsr {
 
-
-NS_LOG_COMPONENT_DEFINE ("OlsrHeader");
 
 /// Scaling factor used in RFC 3626.
 #define OLSR_C 0.0625
@@ -58,7 +61,7 @@ SecondsToEmf (double seconds)
   double tmp = 16*(seconds/(OLSR_C*(1<<b))-1);
 
   // round it up.  This results in the value for 'a'
-  a = (int) ceil (tmp);
+  a = (int) std::ceil (tmp);
 
   // if 'a' is equal to 16: increment 'b' by one, and set 'a' to 0
   if (a == 16)
@@ -128,7 +131,7 @@ PacketHeader::GetSerializedSize (void) const
 void 
 PacketHeader::Print (std::ostream &os) const
 {
-  // TODO
+  /// \todo
 }
 
 void
@@ -205,7 +208,7 @@ MessageHeader::GetSerializedSize (void) const
 void 
 MessageHeader::Print (std::ostream &os) const
 {
-  // TODO
+  /// \todo
 }
 
 void
@@ -286,7 +289,7 @@ MessageHeader::Mid::GetSerializedSize (void) const
 void 
 MessageHeader::Mid::Print (std::ostream &os) const
 {
-  // TODO
+  /// \todo
 }
 
 void
@@ -338,7 +341,7 @@ MessageHeader::Hello::GetSerializedSize (void) const
 void 
 MessageHeader::Hello::Print (std::ostream &os) const
 {
-  // TODO
+  /// \todo
 }
 
 void
@@ -421,7 +424,7 @@ MessageHeader::Tc::GetSerializedSize (void) const
 void 
 MessageHeader::Tc::Print (std::ostream &os) const
 {
-  // TODO
+  /// \todo
 }
 
 void
@@ -471,7 +474,7 @@ MessageHeader::Hna::GetSerializedSize (void) const
 void 
 MessageHeader::Hna::Print (std::ostream &os) const
 {
-  // TODO
+  /// \todo
 }
 
 void

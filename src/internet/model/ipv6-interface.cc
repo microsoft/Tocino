@@ -25,6 +25,8 @@
 #include "ipv6-interface.h"
 #include "ns3/net-device.h"
 #include "loopback-net-device.h"
+#include "ns3/mac16-address.h"
+#include "ns3/mac64-address.h"
 #include "ipv6-l3-protocol.h"
 #include "icmpv6-l4-protocol.h"
 #include "ndisc-cache.h"
@@ -87,9 +89,19 @@ void Ipv6Interface::DoSetup ()
     {
       Address addr = GetDevice ()->GetAddress ();
 
-      if (Mac48Address::IsMatchingType (addr))
+      if (Mac64Address::IsMatchingType (addr))
+        {
+          Ipv6InterfaceAddress ifaddr = Ipv6InterfaceAddress (Ipv6Address::MakeAutoconfiguredLinkLocalAddress (Mac64Address::ConvertFrom (addr)), Ipv6Prefix (64));
+          AddAddress (ifaddr);
+        }
+      else if (Mac48Address::IsMatchingType (addr))
         {
           Ipv6InterfaceAddress ifaddr = Ipv6InterfaceAddress (Ipv6Address::MakeAutoconfiguredLinkLocalAddress (Mac48Address::ConvertFrom (addr)), Ipv6Prefix (64));
+          AddAddress (ifaddr);
+        }
+      else if (Mac16Address::IsMatchingType (addr))
+        {
+          Ipv6InterfaceAddress ifaddr = Ipv6InterfaceAddress (Ipv6Address::MakeAutoconfiguredLinkLocalAddress (Mac16Address::ConvertFrom (addr)), Ipv6Prefix (64));
           AddAddress (ifaddr);
         }
       else
@@ -102,8 +114,16 @@ void Ipv6Interface::DoSetup ()
       return; /* no NDISC cache for ip6-localhost */
     }
 
-  Ptr<Icmpv6L4Protocol> icmpv6 = m_node->GetObject<Ipv6L3Protocol> ()->GetIcmpv6 ();
-  m_ndCache = icmpv6->CreateCache (m_device, this);
+  Ptr<IpL4Protocol> proto = m_node->GetObject<Ipv6> ()->GetProtocol (Icmpv6L4Protocol::GetStaticProtocolNumber ());
+  Ptr<Icmpv6L4Protocol> icmpv6;
+  if (proto)
+    {
+      icmpv6 = proto->GetObject <Icmpv6L4Protocol> ();
+    }
+  if (icmpv6)
+    {
+      m_ndCache = icmpv6->CreateCache (m_device, this);
+    }
 }
 
 void Ipv6Interface::SetNode (Ptr<Node> node)
@@ -166,6 +186,7 @@ void Ipv6Interface::SetDown ()
   NS_LOG_FUNCTION_NOARGS ();
   m_ifup = false;
   m_addresses.clear ();
+  m_ndCache->Flush ();
 }
 
 bool Ipv6Interface::IsForwarding () const
@@ -201,7 +222,12 @@ bool Ipv6Interface::AddAddress (Ipv6InterfaceAddress iface)
       if (!addr.IsAny () || !addr.IsLocalhost ())
         {
           /* DAD handling */
-          Ptr<Icmpv6L4Protocol> icmpv6 = m_node->GetObject<Ipv6L3Protocol> ()->GetIcmpv6 ();
+          Ptr<IpL4Protocol> proto = m_node->GetObject<Ipv6> ()->GetProtocol (Icmpv6L4Protocol::GetStaticProtocolNumber ());
+          Ptr<Icmpv6L4Protocol> icmpv6;
+          if (proto)
+            {
+              icmpv6 = proto->GetObject <Icmpv6L4Protocol> ();
+            }
 
           if (icmpv6 && icmpv6->IsAlwaysDad ())
             {
@@ -288,6 +314,29 @@ Ipv6InterfaceAddress Ipv6Interface::RemoveAddress (uint32_t index)
   return addr;  /* quiet compiler */
 }
 
+Ipv6InterfaceAddress 
+Ipv6Interface::RemoveAddress(Ipv6Address address)
+{
+  NS_LOG_FUNCTION(this << address);
+
+  if (address == address.GetLoopback())
+    {
+      NS_LOG_WARN ("Cannot remove loopback address.");
+      return Ipv6InterfaceAddress();
+    }
+
+  for (Ipv6InterfaceAddressListI it = m_addresses.begin (); it != m_addresses.end (); ++it)
+    {
+      if((*it).GetAddress() == address)
+        {
+          Ipv6InterfaceAddress iface = (*it);
+          m_addresses.erase(it);
+          return iface;
+        }
+    }
+  return Ipv6InterfaceAddress();
+}
+
 Ipv6InterfaceAddress Ipv6Interface::GetAddressMatchingDestination (Ipv6Address dst)
 {
   NS_LOG_FUNCTION (this << dst);
@@ -320,7 +369,7 @@ void Ipv6Interface::Send (Ptr<Packet> p, Ipv6Address dest)
   /* check if destination is localhost (::1) */
   if (DynamicCast<LoopbackNetDevice> (m_device))
     {
-      /* XXX additional checks needed here (such as whether multicast
+      /** \todo additional checks needed here (such as whether multicast
        * goes to loopback)?
        */
       m_device->Send (p, m_device->GetBroadcast (), Ipv6L3Protocol::PROT_NUMBER);
@@ -454,6 +503,12 @@ void Ipv6Interface::SetNsDadUid (Ipv6Address address, uint32_t uid)
         }
     }
   /* not found, maybe address has expired */
+}
+
+Ptr<NdiscCache> Ipv6Interface::GetNdiscCache () const
+{
+  NS_LOG_FUNCTION (this);
+  return m_ndCache;
 }
 
 } /* namespace ns3 */

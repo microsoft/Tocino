@@ -40,11 +40,13 @@ enum
   SUBTYPE_CTL_BACKRESP = 9,
   SUBTYPE_CTL_RTS = 11,
   SUBTYPE_CTL_CTS = 12,
-  SUBTYPE_CTL_ACK = 13
+  SUBTYPE_CTL_ACK = 13,
+  SUBTYPE_CTL_CTLWRAPPER=7
+
 };
 
 WifiMacHeader::WifiMacHeader ()
-  : m_ctrlPwrMgt (0),
+  :
     m_ctrlMoreData (0),
     m_ctrlWep (0),
     m_ctrlOrder (1),
@@ -182,6 +184,10 @@ WifiMacHeader::SetType (enum WifiMacType type)
       m_ctrlType = TYPE_CTL;
       m_ctrlSubtype = SUBTYPE_CTL_ACK;
       break;
+    case WIFI_MAC_CTL_CTLWRAPPER: 
+      m_ctrlType = TYPE_CTL;
+      m_ctrlSubtype = SUBTYPE_CTL_CTLWRAPPER;
+      break;
     case WIFI_MAC_MGT_ASSOCIATION_REQUEST:
       m_ctrlType = TYPE_MGT;
       m_ctrlSubtype = 0;
@@ -221,12 +227,15 @@ WifiMacHeader::SetType (enum WifiMacType type)
     case WIFI_MAC_MGT_DEAUTHENTICATION:
       m_ctrlType = TYPE_MGT;
       m_ctrlSubtype = 12;
+      break;
     case WIFI_MAC_MGT_ACTION:
       m_ctrlType = TYPE_MGT;
       m_ctrlSubtype = 13;
+      break;
     case WIFI_MAC_MGT_ACTION_NO_ACK:
       m_ctrlType = TYPE_MGT;
       m_ctrlSubtype = 14;
+      break;
     case WIFI_MAC_MGT_MULTIHOP_ACTION:
       m_ctrlType = TYPE_MGT;
       m_ctrlSubtype = 15;
@@ -304,7 +313,7 @@ WifiMacHeader::SetRawDuration (uint16_t duration)
 void
 WifiMacHeader::SetDuration (Time duration)
 {
-  int64_t duration_us = duration.GetMicroSeconds ();
+  int64_t duration_us = ceil((double)duration.GetNanoSeconds ()/1000);
   NS_ASSERT (duration_us >= 0 && duration_us <= 0x7fff);
   m_duration = static_cast<uint16_t> (duration_us);
 }
@@ -328,6 +337,14 @@ void WifiMacHeader::SetNoMoreFragments (void)
 void WifiMacHeader::SetMoreFragments (void)
 {
   m_ctrlMoreFrag = 1;
+}
+void WifiMacHeader::SetOrder (void)
+{
+  m_ctrlOrder = 1;
+}
+void WifiMacHeader::SetNoOrder (void)
+{
+  m_ctrlOrder = 0;
 }
 void WifiMacHeader::SetRetry (void)
 {
@@ -862,6 +879,9 @@ WifiMacHeader::GetSize (void) const
         case SUBTYPE_CTL_BACKRESP:
           size = 2 + 2 + 6 + 6;
           break;
+        case SUBTYPE_CTL_CTLWRAPPER:
+          size = 2 +2 +6 +2 +4;
+          break;
         }
       break;
     case TYPE_DATA:
@@ -975,6 +995,8 @@ WifiMacHeader::Print (std::ostream &os) const
       break;
     case WIFI_MAC_CTL_BACKRESP:
       break;
+    case WIFI_MAC_CTL_CTLWRAPPER:
+      break;
 
     case WIFI_MAC_MGT_BEACON:
     case WIFI_MAC_MGT_ASSOCIATION_REQUEST:
@@ -998,10 +1020,12 @@ WifiMacHeader::Print (std::ostream &os) const
       os << " Duration/ID=" << m_duration << "us"
          << "DA=" << m_addr1 << ", SA=" << m_addr2 << ", BSSID=" << m_addr3
          << ", FragNumber=" << std::hex << (int) m_seqFrag << std::dec << ", SeqNumber=" << m_seqSeq;
+      break;
     case WIFI_MAC_MGT_MULTIHOP_ACTION:
       os << " Duration/ID=" << m_duration << "us"
          << "RA=" << m_addr1 << ", TA=" << m_addr2 << ", DA=" << m_addr3
          << ", FragNumber=" << std::hex << (int) m_seqFrag << std::dec << ", SeqNumber=" << m_seqSeq;
+      break;
     case WIFI_MAC_DATA:
       PrintFrameControl (os);
       os << " Duration/ID=" << m_duration << "us";

@@ -35,9 +35,10 @@
 #include "dsr-fs-header.h"
 
 namespace ns3 {
-namespace dsr {
 
 NS_LOG_COMPONENT_DEFINE ("DsrFsHeader");
+
+namespace dsr {
 
 NS_OBJECT_ENSURE_REGISTERED (DsrFsHeader);
 
@@ -122,7 +123,7 @@ uint16_t DsrFsHeader::GetDestId () const
 void DsrFsHeader::Print (std::ostream &os) const
 {
   os
-  << " nextHeader: " << (uint32_t)GetNextHeader () << " messageType: " << (uint32_t)GetMessageType ()
+  << "nextHeader: " << (uint32_t)GetNextHeader () << " messageType: " << (uint32_t)GetMessageType ()
   << " sourceId: " << (uint32_t)GetSourceId () << " destinationId: " << (uint32_t)GetDestId ()
   << " length: " << (uint32_t)GetPayloadLength ();
 }

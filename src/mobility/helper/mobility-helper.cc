@@ -179,6 +179,12 @@ MobilityHelper::InstallAll (void)
 {
   Install (NodeContainer::GetGlobal ());
 }
+/**
+ * Utility function that rounds |1e-4| < input value < |1e-3| up to +/- 1e-3
+ * and value <= |1e-4| to zero
+ * \param v value to round
+ * \return rounded value
+ */
 static double
 DoRound (double v)
 {
@@ -200,8 +206,9 @@ DoRound (double v)
     }
 }
 void
-MobilityHelper::CourseChanged (std::ostream *os, Ptr<const MobilityModel> mobility)
+MobilityHelper::CourseChanged (Ptr<OutputStreamWrapper> stream, Ptr<const MobilityModel> mobility)
 {
+  std::ostream* os = stream->GetStream ();
   Ptr<Node> node = mobility->GetObject<Node> ();
   *os << "now=" << Simulator::Now ()
       << " node=" << node->GetId ();
@@ -225,25 +232,25 @@ MobilityHelper::CourseChanged (std::ostream *os, Ptr<const MobilityModel> mobili
 }
 
 void 
-MobilityHelper::EnableAscii (std::ostream &os, uint32_t nodeid)
+MobilityHelper::EnableAscii (Ptr<OutputStreamWrapper> stream, uint32_t nodeid)
 {
   std::ostringstream oss;
   oss << "/NodeList/" << nodeid << "/$ns3::MobilityModel/CourseChange";
   Config::ConnectWithoutContext (oss.str (), 
-                                 MakeBoundCallback (&MobilityHelper::CourseChanged, &os));
+                                 MakeBoundCallback (&MobilityHelper::CourseChanged, stream));
 }
 void 
-MobilityHelper::EnableAscii (std::ostream &os, NodeContainer n)
+MobilityHelper::EnableAscii (Ptr<OutputStreamWrapper> stream, NodeContainer n)
 {
   for (NodeContainer::Iterator i = n.Begin (); i != n.End (); ++i)
     {
-      EnableAscii (os, (*i)->GetId ());
+      EnableAscii (stream, (*i)->GetId ());
     }
 }
 void 
-MobilityHelper::EnableAsciiAll (std::ostream &os)
+MobilityHelper::EnableAsciiAll (Ptr<OutputStreamWrapper> stream)
 {
-  EnableAscii (os, NodeContainer::GetGlobal ());
+  EnableAscii (stream, NodeContainer::GetGlobal ());
 }
 int64_t
 MobilityHelper::AssignStreams (NodeContainer c, int64_t stream)
@@ -261,6 +268,24 @@ MobilityHelper::AssignStreams (NodeContainer c, int64_t stream)
         }
     }
   return (currentStream - stream);
+}
+
+double
+MobilityHelper::GetDistanceSquaredBetween (Ptr<Node> n1, Ptr<Node> n2)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  double distSq = 0.0;
+
+  Ptr<MobilityModel> rxPosition = n1->GetObject<MobilityModel> ();
+  NS_ASSERT (rxPosition != 0);
+
+  Ptr<MobilityModel> txPosition = n2->GetObject<MobilityModel> ();
+  NS_ASSERT (txPosition != 0);
+
+  double dist = rxPosition -> GetDistanceFrom (txPosition);
+  distSq = dist * dist;
+
+  return distSq;
 }
 
 } // namespace ns3

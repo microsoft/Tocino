@@ -32,6 +32,7 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoClientApplication");
+
 NS_OBJECT_ENSURE_REGISTERED (UdpEchoClient);
 
 TypeId
@@ -66,14 +67,15 @@ UdpEchoClient::GetTypeId (void)
                                          &UdpEchoClient::GetDataSize),
                    MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
-                     MakeTraceSourceAccessor (&UdpEchoClient::m_txTrace))
+                     MakeTraceSourceAccessor (&UdpEchoClient::m_txTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
 
 UdpEchoClient::UdpEchoClient ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_sent = 0;
   m_socket = 0;
   m_sendEvent = EventId ();
@@ -83,7 +85,7 @@ UdpEchoClient::UdpEchoClient ()
 
 UdpEchoClient::~UdpEchoClient()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_socket = 0;
 
   delete [] m_data;
@@ -94,6 +96,7 @@ UdpEchoClient::~UdpEchoClient()
 void 
 UdpEchoClient::SetRemote (Address ip, uint16_t port)
 {
+  NS_LOG_FUNCTION (this << ip << port);
   m_peerAddress = ip;
   m_peerPort = port;
 }
@@ -101,6 +104,7 @@ UdpEchoClient::SetRemote (Address ip, uint16_t port)
 void 
 UdpEchoClient::SetRemote (Ipv4Address ip, uint16_t port)
 {
+  NS_LOG_FUNCTION (this << ip << port);
   m_peerAddress = Address (ip);
   m_peerPort = port;
 }
@@ -108,6 +112,7 @@ UdpEchoClient::SetRemote (Ipv4Address ip, uint16_t port)
 void 
 UdpEchoClient::SetRemote (Ipv6Address ip, uint16_t port)
 {
+  NS_LOG_FUNCTION (this << ip << port);
   m_peerAddress = Address (ip);
   m_peerPort = port;
 }
@@ -115,14 +120,14 @@ UdpEchoClient::SetRemote (Ipv6Address ip, uint16_t port)
 void
 UdpEchoClient::DoDispose (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   Application::DoDispose ();
 }
 
 void 
 UdpEchoClient::StartApplication (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   if (m_socket == 0)
     {
@@ -148,7 +153,7 @@ UdpEchoClient::StartApplication (void)
 void 
 UdpEchoClient::StopApplication ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   if (m_socket != 0) 
     {
@@ -163,7 +168,7 @@ UdpEchoClient::StopApplication ()
 void 
 UdpEchoClient::SetDataSize (uint32_t dataSize)
 {
-  NS_LOG_FUNCTION (dataSize);
+  NS_LOG_FUNCTION (this << dataSize);
 
   //
   // If the client is setting the echo packet data size this way, we infer
@@ -179,14 +184,14 @@ UdpEchoClient::SetDataSize (uint32_t dataSize)
 uint32_t 
 UdpEchoClient::GetDataSize (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_size;
 }
 
 void 
 UdpEchoClient::SetFill (std::string fill)
 {
-  NS_LOG_FUNCTION (fill);
+  NS_LOG_FUNCTION (this << fill);
 
   uint32_t dataSize = fill.size () + 1;
 
@@ -208,6 +213,7 @@ UdpEchoClient::SetFill (std::string fill)
 void 
 UdpEchoClient::SetFill (uint8_t fill, uint32_t dataSize)
 {
+  NS_LOG_FUNCTION (this << fill << dataSize);
   if (dataSize != m_dataSize)
     {
       delete [] m_data;
@@ -226,6 +232,7 @@ UdpEchoClient::SetFill (uint8_t fill, uint32_t dataSize)
 void 
 UdpEchoClient::SetFill (uint8_t *fill, uint32_t fillSize, uint32_t dataSize)
 {
+  NS_LOG_FUNCTION (this << fill << fillSize << dataSize);
   if (dataSize != m_dataSize)
     {
       delete [] m_data;
@@ -264,14 +271,14 @@ UdpEchoClient::SetFill (uint8_t *fill, uint32_t fillSize, uint32_t dataSize)
 void 
 UdpEchoClient::ScheduleTransmit (Time dt)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << dt);
   m_sendEvent = Simulator::Schedule (dt, &UdpEchoClient::Send, this);
 }
 
 void 
 UdpEchoClient::Send (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   NS_ASSERT (m_sendEvent.IsExpired ());
 
@@ -291,9 +298,9 @@ UdpEchoClient::Send (void)
   else
     {
       //
-      // If m_dataSize is zero, the client has indicated that she doesn't care 
+      // If m_dataSize is zero, the client has indicated that it doesn't care
       // about the data itself either by specifying the data size by setting
-      // the corresponding atribute or by not calling a SetFill function.  In 
+      // the corresponding attribute or by not calling a SetFill function.  In
       // this case, we don't worry about it either.  But we do allow m_size
       // to have a value different from the (zero) m_dataSize.
       //

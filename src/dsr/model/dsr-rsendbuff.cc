@@ -36,9 +36,10 @@
 #include "ns3/socket.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("DsrSendBuffer");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("DsrSendBuffer");
+  
 namespace dsr {
 
 uint32_t
@@ -55,8 +56,8 @@ SendBuffer::Enqueue (SendBuffEntry & entry)
   for (std::vector<SendBuffEntry>::const_iterator i = m_sendBuffer.begin (); i
        != m_sendBuffer.end (); ++i)
     {
-      NS_LOG_INFO ("packet id " << i->GetPacket ()->GetUid () << " " << entry.GetPacket ()->GetUid ()
-                                << " dst " << i->GetDestination () << " " << entry.GetDestination ());
+//      NS_LOG_DEBUG ("packet id " << i->GetPacket ()->GetUid () << " " << entry.GetPacket ()->GetUid ()
+//                                << " dst " << i->GetDestination () << " " << entry.GetDestination ());
 
       if ((i->GetPacket ()->GetUid () == entry.GetPacket ()->GetUid ())
           && (i->GetDestination () == entry.GetDestination ()))
@@ -111,7 +112,7 @@ SendBuffer::Dequeue (Ipv4Address dst, SendBuffEntry & entry)
       if (i->GetDestination () == dst)
         {
           entry = *i;
-          m_sendBuffer.erase (i);
+          i = m_sendBuffer.erase (i);
           NS_LOG_DEBUG ("Packet size while dequeuing " << entry.GetPacket ()->GetSize ());
           return true;
         }
@@ -153,7 +154,7 @@ SendBuffer::Purge ()
   /*
    * Purge the buffer to eliminate expired entries
    */
-  NS_LOG_DEBUG ("The send buffer size " << m_sendBuffer.size ());
+  NS_LOG_INFO ("The send buffer size " << m_sendBuffer.size ());
   IsExpired pred;
   for (std::vector<SendBuffEntry>::iterator i = m_sendBuffer.begin (); i
        != m_sendBuffer.end (); ++i)

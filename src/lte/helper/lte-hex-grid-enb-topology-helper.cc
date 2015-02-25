@@ -28,9 +28,9 @@
 #include <iostream>
 
 
-NS_LOG_COMPONENT_DEFINE ("LteHexGridEnbTopologyHelper");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("LteHexGridEnbTopologyHelper");
 
 NS_OBJECT_ENSURE_REGISTERED (LteHexGridEnbTopologyHelper);
 
@@ -103,7 +103,7 @@ LteHexGridEnbTopologyHelper::SetPositionAndInstallEnbDevice (NodeContainer c)
 {
   NS_LOG_FUNCTION (this);
   NetDeviceContainer enbDevs;
-  const double xydfactor = sqrt (0.75);
+  const double xydfactor = std::sqrt (0.75);
   double yd = xydfactor*m_d;
   for (uint32_t n = 0; n < c.GetN (); ++n)
     {
@@ -139,22 +139,24 @@ LteHexGridEnbTopologyHelper::SetPositionAndInstallEnbDevice (NodeContainer c)
 	case 0:
 	  antennaOrientation = 0;
 	  x += m_offset;
+	  m_lteHelper->SetFfrAlgorithmAttribute("FrCellTypeId", UintegerValue (1));
 	  break;
 	  
 	case 1:
 	  antennaOrientation = 120;
 	  x -= m_offset/2.0;
 	  y += m_offset*xydfactor;
+	  m_lteHelper->SetFfrAlgorithmAttribute("FrCellTypeId", UintegerValue (2));
 	  break;
 	  
 	case 2:
 	  antennaOrientation = -120;
 	  x -= m_offset/2.0;
 	  y -= m_offset*xydfactor;
+	  m_lteHelper->SetFfrAlgorithmAttribute("FrCellTypeId", UintegerValue (3));
 	  break;
 	
-	default:
-	  break;
+          // no default, n%3 = 0, 1, 2
 	}
       Ptr<Node> node = c.Get (n);
       Ptr<MobilityModel> mm = node->GetObject<MobilityModel> ();

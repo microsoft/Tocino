@@ -21,10 +21,9 @@
 #include "ns3/log.h"
 #include "lte-test-ue-phy.h"
 
-NS_LOG_COMPONENT_DEFINE ("LteTestUePhy");
-
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("LteTestUePhy");
  
 NS_OBJECT_ENSURE_REGISTERED (LteTestUePhy);
 
@@ -78,7 +77,7 @@ LteTestUePhy::CreateTxPowerSpectralDensity ()
 }
 
 void
-LteTestUePhy::GenerateCqiReport (const SpectrumValue& sinr)
+LteTestUePhy::GenerateCtrlCqiReport (const SpectrumValue& sinr)
 {
   NS_LOG_FUNCTION (this);
 
@@ -87,7 +86,30 @@ LteTestUePhy::GenerateCqiReport (const SpectrumValue& sinr)
 }
 
 void
-LteTestUePhy::ReceiveIdealControlMessage (Ptr<IdealControlMessage> msg)
+LteTestUePhy::GenerateDataCqiReport (const SpectrumValue& sinr)
+{
+  NS_LOG_FUNCTION (this);
+  
+  // Store calculated SINR, it will be retrieved at the end of the test
+  m_sinr = sinr;
+}
+
+void
+LteTestUePhy::ReportRsReceivedPower (const SpectrumValue& power)
+{
+  NS_LOG_FUNCTION (this);
+  // Not used by the LteTestUePhy
+}
+
+void
+LteTestUePhy::ReportInterference (const SpectrumValue& interf)
+{
+  NS_LOG_FUNCTION (this);
+  // Not used by the LteTestUePhy
+}
+
+void
+LteTestUePhy::ReceiveLteControlMessage (Ptr<LteControlMessage> msg)
 {
   NS_LOG_FUNCTION (this << msg);
 }

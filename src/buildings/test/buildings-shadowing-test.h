@@ -23,11 +23,9 @@
 
 #include "ns3/test.h"
 
-#include <ns3/buildings-mobility-model.h>
-#include <ns3/buildings-propagation-loss-model.h>
 
 
-namespace ns3 {
+using namespace ns3;
 
 /**
  * Test shadowing calculation
@@ -57,5 +55,3 @@ private:
 };
 
 #endif /*BUILDINGS_SHADOWING_TEST_H*/
-
-} // namespace ns3

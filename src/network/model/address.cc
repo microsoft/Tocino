@@ -19,33 +19,39 @@
  */
 
 #include "ns3/assert.h"
+#include "ns3/log.h"
 #include "address.h"
-#include <string.h>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Address");
 
 Address::Address ()
   : m_type (0),
     m_len (0)
 {
   // Buffer left uninitialized
+  NS_LOG_FUNCTION (this);
+
 }
 
 Address::Address (uint8_t type, const uint8_t *buffer, uint8_t len)
   : m_type (type),
     m_len (len)
 {
+  NS_LOG_FUNCTION (this << static_cast<uint32_t> (type) << &buffer << static_cast<uint32_t> (len));
   NS_ASSERT (m_len <= MAX_SIZE);
-  memcpy (m_data, buffer, m_len);
+  std::memcpy (m_data, buffer, m_len);
 }
 Address::Address (const Address & address)
   : m_type (address.m_type),
     m_len (address.m_len)
 {
   NS_ASSERT (m_len <= MAX_SIZE);
-  memcpy (m_data, address.m_data, m_len);
+  std::memcpy (m_data, address.m_data, m_len);
 }
 Address &
 Address::operator = (const Address &address)
@@ -54,73 +60,84 @@ Address::operator = (const Address &address)
   m_type = address.m_type;
   m_len = address.m_len;
   NS_ASSERT (m_len <= MAX_SIZE);
-  memcpy (m_data, address.m_data, m_len);
+  std::memcpy (m_data, address.m_data, m_len);
   return *this;
 }
 
 bool
 Address::IsInvalid (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_len == 0 && m_type == 0;
 }
 
 uint8_t 
 Address::GetLength (void) const
 {
+  NS_LOG_FUNCTION (this);
   NS_ASSERT (m_len <= MAX_SIZE);
   return m_len;
 }
 uint32_t
 Address::CopyTo (uint8_t buffer[MAX_SIZE]) const
 {
+  NS_LOG_FUNCTION (this << &buffer);
   NS_ASSERT (m_len <= MAX_SIZE);
-  memcpy (buffer, m_data, m_len);
+  std::memcpy (buffer, m_data, m_len);
   return m_len;
 }
 uint32_t
 Address::CopyAllTo (uint8_t *buffer, uint8_t len) const
 {
-  NS_ASSERT (len >= m_len + 2);
+  NS_LOG_FUNCTION (this << &buffer << static_cast<uint32_t> (len));
+  NS_ASSERT (len - m_len > 1);
   buffer[0] = m_type;
   buffer[1] = m_len;
-  memcpy (buffer + 2, m_data, m_len);
+  std::memcpy (buffer + 2, m_data, m_len);
   return m_len + 2;
 }
 
 uint32_t
 Address::CopyFrom (const uint8_t *buffer, uint8_t len)
 {
+  NS_LOG_FUNCTION (this << &buffer << static_cast<uint32_t> (len));
   NS_ASSERT (len <= MAX_SIZE);
-  memcpy (m_data, buffer, len);
+  std::memcpy (m_data, buffer, len);
   m_len = len;
   return m_len;
 }
 uint32_t
 Address::CopyAllFrom (const uint8_t *buffer, uint8_t len)
 {
+  NS_LOG_FUNCTION (this << &buffer << static_cast<uint32_t> (len));
   NS_ASSERT (len >= 2);
   m_type = buffer[0];
   m_len = buffer[1];
 
-  NS_ASSERT (len >= m_len + 2);
-  memcpy (m_data, buffer + 2, m_len);
+  NS_ASSERT (len - m_len > 1);
+  std::memcpy (m_data, buffer + 2, m_len);
   return m_len + 2;
 }
 bool 
 Address::CheckCompatible (uint8_t type, uint8_t len) const
 {
+  NS_LOG_FUNCTION (this << static_cast<uint32_t> (type) << static_cast<uint32_t> (len));
   NS_ASSERT (len <= MAX_SIZE);
-  return m_len == len && (m_type == type || m_type == 0);
+  /// \internal
+  /// Mac address type/length detection is discussed in \bugid{1568}
+  return (m_len == len && m_type == type) || (m_len >= len && m_type == 0);
 }
 bool 
 Address::IsMatchingType (uint8_t type) const
 {
+  NS_LOG_FUNCTION (this << static_cast<uint32_t> (type));
   return m_type == type;
 }
 
 uint8_t 
 Address::Register (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   static uint8_t type = 1;
   type++;
   return type;
@@ -129,12 +146,14 @@ Address::Register (void)
 uint32_t
 Address::GetSerializedSize (void) const
 {
+  NS_LOG_FUNCTION (this);
   return 1 + 1 + m_len;
 }
 
 void
 Address::Serialize (TagBuffer buffer) const
 {
+  NS_LOG_FUNCTION (this << &buffer);
   buffer.WriteU8 (m_type);
   buffer.WriteU8 (m_len);
   buffer.Write (m_data,  m_len);
@@ -143,6 +162,7 @@ Address::Serialize (TagBuffer buffer) const
 void
 Address::Deserialize (TagBuffer buffer)
 {
+  NS_LOG_FUNCTION (this << &buffer);
   m_type = buffer.ReadU8 ();
   m_len = buffer.ReadU8 ();
   NS_ASSERT (m_len <= MAX_SIZE);
@@ -173,7 +193,7 @@ bool operator == (const Address &a, const Address &b)
     {
       return false;
     }
-  return memcmp (a.m_data, b.m_data, a.m_len) == 0;
+  return std::memcmp (a.m_data, b.m_data, a.m_len) == 0;
 }
 bool operator != (const Address &a, const Address &b)
 {
@@ -228,16 +248,6 @@ std::ostream& operator<< (std::ostream& os, const Address & address)
   return os;
 }
 
-static uint8_t
-AsInt (std::string v)
-{
-  std::istringstream iss;
-  iss.str (v);
-  uint32_t retval;
-  iss >> std::hex >> retval >> std::dec;
-  return retval;
-}
-
 std::istream& operator>> (std::istream& is, Address & address)
 {
   std::string v;
@@ -248,8 +258,8 @@ std::istream& operator>> (std::istream& is, Address & address)
   std::string type = v.substr (0, firstDash-0);
   std::string len = v.substr (firstDash+1, secondDash-(firstDash+1));
 
-  address.m_type = AsInt (type);
-  address.m_len = AsInt (len);
+  address.m_type = strtoul (type.c_str(), 0, 16);
+  address.m_len = strtoul (len.c_str(), 0, 16);
   NS_ASSERT (address.m_len <= Address::MAX_SIZE);
 
   std::string::size_type col = secondDash + 1;
@@ -261,13 +271,13 @@ std::istream& operator>> (std::istream& is, Address & address)
       if (next == std::string::npos)
         {
           tmp = v.substr (col, v.size ()-col);
-          address.m_data[i] = AsInt (tmp);
+          address.m_data[i] = strtoul (tmp.c_str(), 0, 16);
           break;
         }
       else
         {
           tmp = v.substr (col, next-col);
-          address.m_data[i] = AsInt (tmp);
+          address.m_data[i] = strtoul (tmp.c_str(), 0, 16);
           col = next + 1;
         }
     }

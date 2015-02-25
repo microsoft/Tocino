@@ -257,7 +257,8 @@ TocinoChannel::FlitBuffersRequired() const
     
     // (The +1 here is to account for the non-repeating
     // part who's time we subtract out of the window.)
-    uint32_t flits = ceil( (((window-noRep)/rep)+1).GetDouble() );
+    uint32_t flits =
+        ceil( ( ( (window-noRep).GetDouble() / rep.GetDouble() ) + 1 ) );
 
     // Add one to account for possibility that receiver
     // may have put a flit on the wire *just* prior to

@@ -30,8 +30,9 @@
 namespace ns3 {
 
 /**
+ * \ingroup lte
+ *
  * Takes care of storing the information generated at MAC layer. Metrics saved are:
- *time\tframe\tsframe\tRNTI\tmcsTb1\tsizeTb1\tmcsTb2\tsizeTb2
  *   - Timestamp (in seconds)
  *   - Frame index
  *   - Subframe index
@@ -54,8 +55,10 @@ public:
    */
   virtual ~MacStatsCalculator ();
 
+  // Inherited from ns3::Object
   /**
-   * Inherited from ns3::Object
+   *  Register this type.
+   *  \return The object TypeId.
    */
   static TypeId GetTypeId (void);
 
@@ -68,6 +71,7 @@ public:
 
   /**
    * Get the name of the file where the uplink statistics will be stored.
+   * @return the name of the file where the uplink statistics will be stored
    */
   std::string GetUlOutputFilename (void);
 
@@ -80,6 +84,7 @@ public:
 
   /**
    * Get the name of the file where the downlink statistics will be stored.
+   * @return the name of the file where the downlink statistics will be stored
    */
   std::string GetDlOutputFilename (void);
 
@@ -109,11 +114,58 @@ public:
    * @param sizeTb Size of transport block
    */
   void UlScheduling (uint16_t cellId, uint64_t imsi,uint32_t frameNo, uint32_t subframeNo,
-                     uint16_t rnti, uint8_t mcs, uint16_t sizeTb);
+                     uint16_t rnti, uint8_t mcsTb, uint16_t sizeTb);
+
+  
+  /** 
+   * Trace sink for the ns3::LteEnbMac::DlScheduling trace source
+   * 
+   * \param macStats 
+   * \param path 
+   * \param frameNo 
+   * \param subframeNo 
+   * \param rnti 
+   * \param mcsTb1 
+   * \param sizeTb1 
+   * \param mcsTb2 
+   * \param sizeTb2 
+   */
+  static void DlSchedulingCallback (Ptr<MacStatsCalculator> macStats,
+                             std::string path, uint32_t frameNo, uint32_t subframeNo,
+                             uint16_t rnti, uint8_t mcsTb1, uint16_t sizeTb1,
+                             uint8_t mcsTb2, uint16_t sizeTb2);
+
+  /** 
+   * Trace sink for the ns3::LteEnbMac::UlScheduling trace source
+   * 
+   * \param macStats 
+   * \param path 
+   * \param frameNo 
+   * \param subframeNo 
+   * \param rnti 
+   * \param mcs 
+   * \param size 
+   */
+  static void UlSchedulingCallback (Ptr<MacStatsCalculator> macStats, std::string path,
+                             uint32_t frameNo, uint32_t subframeNo, uint16_t rnti,
+                             uint8_t mcs, uint16_t size);
+
 
 private:
-
+  /**
+   * When writing DL MAC statistics first time to file,
+   * columns description is added. Then next lines are
+   * appended to file. This value is true if output
+   * files have not been opened yet
+   */
   bool m_dlFirstWrite;
+
+  /**
+   * When writing UL MAC statistics first time to file,
+   * columns description is added. Then next lines are
+   * appended to file. This value is true if output
+   * files have not been opened yet
+   */
   bool m_ulFirstWrite;
 
 };

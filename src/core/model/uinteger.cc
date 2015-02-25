@@ -19,16 +19,35 @@
  */
 #include "uinteger.h"
 #include "fatal-error.h"
+#include "log.h"
 #include <sstream>
 
+/**
+ * \file
+ * \ingroup attribute_Uinteger
+ * Uinteger attribute value implementations.
+ */
+
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Uinteger");
 
 ATTRIBUTE_VALUE_IMPLEMENT_WITH_NAME (uint64_t,Uinteger);
 
 namespace internal {
 
+/**
+ * \ingroup attribute_Uinteger
+ * Make an Uinteger attribute checker with embedded numeric type name.
+ *
+ * \param min The minimum allowed value.
+ * \param max The maximum allowed value.
+ * \param name The original type name ("uint8_t", "uint16_t", _etc_.).
+ * \returns The AttributeChecker.
+ */
 Ptr<const AttributeChecker> MakeUintegerChecker (uint64_t min, uint64_t max, std::string name)
 {
+  NS_LOG_FUNCTION (min << max << name);
   struct Checker : public AttributeChecker
   {
     Checker (uint64_t minValue, uint64_t maxValue, std::string name)
@@ -36,6 +55,7 @@ Ptr<const AttributeChecker> MakeUintegerChecker (uint64_t min, uint64_t max, std
         m_maxValue (maxValue),
         m_name (name) {}
     virtual bool Check (const AttributeValue &value) const {
+      NS_LOG_FUNCTION (&value);
       const UintegerValue *v = dynamic_cast<const UintegerValue *> (&value);
       if (v == 0)
         {
@@ -44,20 +64,25 @@ Ptr<const AttributeChecker> MakeUintegerChecker (uint64_t min, uint64_t max, std
       return v->Get () >= m_minValue && v->Get () <= m_maxValue;
     }
     virtual std::string GetValueTypeName (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       return "ns3::UintegerValue";
     }
     virtual bool HasUnderlyingTypeInformation (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       return true;
     }
     virtual std::string GetUnderlyingTypeInformation (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       std::ostringstream oss;
       oss << m_name << " " << m_minValue << ":" << m_maxValue;
       return oss.str ();
     }
     virtual Ptr<AttributeValue> Create (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       return ns3::Create<UintegerValue> ();
     }
     virtual bool Copy (const AttributeValue &source, AttributeValue &destination) const {
+      NS_LOG_FUNCTION (&source << &destination);
       const UintegerValue *src = dynamic_cast<const UintegerValue *> (&source);
       UintegerValue *dst = dynamic_cast<UintegerValue *> (&destination);
       if (src == 0 || dst == 0)

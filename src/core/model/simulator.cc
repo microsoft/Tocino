@@ -31,32 +31,68 @@
 #include "assert.h"
 #include "log.h"
 
-#include <math.h>
+#include <cmath>
 #include <fstream>
 #include <list>
 #include <vector>
 #include <iostream>
 
-NS_LOG_COMPONENT_DEFINE ("Simulator");
+/**
+ * \file
+ * \ingroup simulator
+ * ns3::Simulator implementation, as well as implementation pointer,
+ * global scheduler implementation, and default ns3::NodePrinter
+ * and ns3::TimePrinter.
+ */
 
 namespace ns3 {
 
-GlobalValue g_simTypeImpl = GlobalValue ("SimulatorImplementationType", 
-                                         "The object class to use as the simulator implementation",
-                                         StringValue ("ns3::DefaultSimulatorImpl"),
-                                         MakeStringChecker ());
+// Note:  Logging in this file is largely avoided due to the
+// number of calls that are made to these functions and the possibility
+// of causing recursions leading to stack overflow
+NS_LOG_COMPONENT_DEFINE ("Simulator");
 
-GlobalValue g_schedTypeImpl = GlobalValue ("SchedulerType", 
-                                           "The object class to use as the scheduler implementation",
-                                           TypeIdValue (MapScheduler::GetTypeId ()),
-                                           MakeTypeIdChecker ());
+/**
+ * \ingroup simulator
+ * The specific simulator implementation to use.
+ *
+ * Must be derived from SimulatorImpl.
+ */
+static GlobalValue g_simTypeImpl = GlobalValue
+  ("SimulatorImplementationType",
+   "The object class to use as the simulator implementation",
+   StringValue ("ns3::DefaultSimulatorImpl"),
+   MakeStringChecker ());
 
+/**
+ * \ingroup scheduler
+ * The specific event scheduler implementation to use.
+ *
+ * Must be derived from Scheduler.
+ */
+static GlobalValue g_schedTypeImpl = GlobalValue ("SchedulerType",
+                                                  "The object class to use as the scheduler implementation",
+                                                  TypeIdValue (MapScheduler::GetTypeId ()),
+                                                  MakeTypeIdChecker ());
+
+/**
+ * \ingroup logging
+ * Default TimePrinter implementation.
+ *
+ * \param [in] os The output stream to print the time on.
+ */
 static void
 TimePrinter (std::ostream &os)
 {
   os << Simulator::Now ().GetSeconds () << "s";
 }
 
+/**
+ * \ingroup logging
+ * Default node id printer implementation.
+ * 
+ * \param [in] os The output stream to print the node id on.
+ */
 static void
 NodePrinter (std::ostream &os)
 {
@@ -70,12 +106,23 @@ NodePrinter (std::ostream &os)
     }
 }
 
+/**
+ * \ingroup simulator
+ * \brief Get the static SimulatorImpl instance.
+ * \return The SimulatorImpl instance pointer.
+ */
 static SimulatorImpl **PeekImpl (void)
 {
   static SimulatorImpl *impl = 0;
   return &impl;
 }
 
+/**
+ * \ingroup simulator
+ * \brief Get the SimulatorImpl singleton.
+ * \return The singleton pointer.
+ * \see Simulator::GetImplementation()
+ */
 static SimulatorImpl * GetImpl (void)
 {
   SimulatorImpl **pimpl = PeekImpl ();
@@ -153,12 +200,14 @@ void
 Simulator::Run (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  Time::ClearMarkedTimes ();
   GetImpl ()->Run ();
 }
 
 void 
 Simulator::Stop (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   NS_LOG_LOGIC ("stop");
   GetImpl ()->Stop ();
 }
@@ -189,14 +238,12 @@ Simulator::GetDelayLeft (const EventId &id)
 EventId
 Simulator::Schedule (Time const &time, const Ptr<EventImpl> &ev)
 {
-  NS_LOG_FUNCTION (time << ev);
   return DoSchedule (time, GetPointer (ev));
 }
 
 EventId
 Simulator::ScheduleNow (const Ptr<EventImpl> &ev)
 {
-  NS_LOG_FUNCTION (ev);
   return DoScheduleNow (GetPointer (ev));
 }
 void
@@ -207,7 +254,6 @@ Simulator::ScheduleWithContext (uint32_t context, const Time &time, EventImpl *i
 EventId
 Simulator::ScheduleDestroy (const Ptr<EventImpl> &ev)
 {
-  NS_LOG_FUNCTION (ev);
   return DoScheduleDestroy (GetPointer (ev));
 }
 EventId 
@@ -230,57 +276,50 @@ Simulator::DoScheduleDestroy (EventImpl *impl)
 EventId
 Simulator::Schedule (Time const &time, void (*f)(void))
 {
-  NS_LOG_FUNCTION (time << f);
   return DoSchedule (time, MakeEvent (f));
 }
 
 void
 Simulator::ScheduleWithContext (uint32_t context, Time const &time, void (*f)(void))
 {
-  NS_LOG_FUNCTION (time << context << f);
   return ScheduleWithContext (context, time, MakeEvent (f));
 }
 
 EventId
 Simulator::ScheduleNow (void (*f)(void))
 {
-  NS_LOG_FUNCTION (f);
   return DoScheduleNow (MakeEvent (f));
 }
 
 EventId
 Simulator::ScheduleDestroy (void (*f)(void))
 {
-  NS_LOG_FUNCTION (f);
   return DoScheduleDestroy (MakeEvent (f));
 }
 
 void
-Simulator::Remove (const EventId &ev)
+Simulator::Remove (const EventId &id)
 {
-  NS_LOG_FUNCTION (&ev);
   if (*PeekImpl () == 0)
     {
       return;
     }
-  return GetImpl ()->Remove (ev);
+  return GetImpl ()->Remove (id);
 }
 
 void
-Simulator::Cancel (const EventId &ev)
+Simulator::Cancel (const EventId &id)
 {
-  NS_LOG_FUNCTION (&ev);
   if (*PeekImpl () == 0)
     {
       return;
     }
-  return GetImpl ()->Cancel (ev);
+  return GetImpl ()->Cancel (id);
 }
 
 bool 
 Simulator::IsExpired (const EventId &id)
 {
-  NS_LOG_FUNCTION (&id);
   if (*PeekImpl () == 0)
     {
       return true;
@@ -290,7 +329,6 @@ Simulator::IsExpired (const EventId &id)
 
 Time Now (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
   return Time (Simulator::Now ());
 }
 
@@ -325,6 +363,7 @@ Simulator::GetSystemId (void)
 void
 Simulator::SetImplementation (Ptr<SimulatorImpl> impl)
 {
+  NS_LOG_FUNCTION (impl);
   if (*PeekImpl () != 0)
     {
       NS_FATAL_ERROR ("It is not possible to set the implementation after calling any Simulator:: function. Call Simulator::SetImplementation earlier or after Simulator::Destroy.");
@@ -346,9 +385,11 @@ Simulator::SetImplementation (Ptr<SimulatorImpl> impl)
   LogSetTimePrinter (&TimePrinter);
   LogSetNodePrinter (&NodePrinter);
 }
+
 Ptr<SimulatorImpl>
 Simulator::GetImplementation (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   return GetImpl ();
 }
 

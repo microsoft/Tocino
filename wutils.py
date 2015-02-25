@@ -1,16 +1,12 @@
 import os
 import os.path
+import re
 import sys
 import subprocess
 import shlex
 
 # WAF modules
-import Options
-import Utils
-import Logs
-import TaskGen
-import Build
-import re
+from waflib import Options, Utils, Logs, TaskGen, Build, Context
 from waflib.Errors import WafError
 
 # these are set from the main wscript file
@@ -47,7 +43,7 @@ else:
             return os.path.curdir
         return os.path.join(*rel_list)
 
-from waflib import Context
+
 def find_program(program_name, env):
     launch_dir = os.path.abspath(Context.launch_dir)
     #top_dir = os.path.abspath(Options.cwd_launch)
@@ -231,4 +227,11 @@ def run_python_program(program_string, env, visualize=False):
         execvec.append("--SimulatorImplementationType=ns3::VisualSimulatorImpl")
     return run_argv([env['PYTHON'][0]] + execvec, env, cwd=cwd)
 
+
+def uniquify_list(seq):
+    """Remove duplicates while preserving order
+       From Dave Kirby http://www.peterbe.com/plog/uniqifiers-benchmark
+    """
+    seen = set()
+    return [ x for x in seq if x not in seen and not seen.add(x)]
 

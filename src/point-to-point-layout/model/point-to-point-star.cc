@@ -14,6 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <cmath>
 #include <iostream>
 #include <sstream>
 
@@ -27,9 +28,9 @@
 #include "ns3/vector.h"
 #include "ns3/ipv6-address-generator.h"
 
-NS_LOG_COMPONENT_DEFINE ("PointToPointStarHelper");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("PointToPointStarHelper");
 
 PointToPointStarHelper::PointToPointStarHelper (uint32_t numSpokes,
                                                 PointToPointHelper p2pHelper)
@@ -184,8 +185,8 @@ PointToPointStarHelper::BoundingBox (double ulx, double uly,
           spokeLoc = CreateObject<ConstantPositionMobilityModel> ();
           spokeNode->AggregateObject (spokeLoc);
         }
-      Vector spokeVec (hubVec.x + cos (theta*i) * spokeDist,
-                       hubVec.y + sin (theta*i) * spokeDist,
+      Vector spokeVec (hubVec.x + std::cos (theta*i) * spokeDist,
+                       hubVec.y + std::sin (theta*i) * spokeDist,
                        0);
       spokeLoc->SetPosition (spokeVec);
     }

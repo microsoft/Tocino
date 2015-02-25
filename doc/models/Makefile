@@ -24,6 +24,7 @@ SOURCES = \
 	$(SRC)/aodv/doc/aodv.rst \
 	$(SRC)/applications/doc/applications.rst \
 	$(SRC)/bridge/doc/bridge.rst \
+	$(SRC)/brite/doc/brite.rst \
 	$(SRC)/buildings/doc/source/buildings.rst \
 	$(SRC)/buildings/doc/source/buildings-design.rst \
 	$(SRC)/buildings/doc/source/buildings-user.rst \
@@ -35,7 +36,7 @@ SOURCES = \
 	$(SRC)/dsr/doc/dsr.rst \
 	$(SRC)/mpi/doc/distributed.rst \
 	$(SRC)/energy/doc/energy.rst \
-	$(SRC)/emu/doc/emu.rst \
+	$(SRC)/fd-net-device/doc/fd-net-device.rst \
 	$(SRC)/tap-bridge/doc/tap.rst \
 	$(SRC)/mesh/doc/mesh.rst \
 	$(SRC)/lte/doc/source/lte.rst \
@@ -47,6 +48,7 @@ SOURCES = \
 	$(SRC)/propagation/doc/propagation.rst \
 	$(SRC)/network/doc/network-overview.rst \
 	$(SRC)/network/doc/packets.rst \
+	$(SRC)/network/doc/error-model.rst \
 	$(SRC)/network/doc/sockets-api.rst \
 	$(SRC)/network/doc/simple.rst \
 	$(SRC)/network/doc/queue.rst \
@@ -55,6 +57,7 @@ SOURCES = \
 	$(SRC)/internet/doc/ipv6.rst \
 	$(SRC)/internet/doc/routing-overview.rst \
 	$(SRC)/internet/doc/tcp.rst \
+	$(SRC)/internet/doc/codel.rst \
 	$(SRC)/mobility/doc/mobility.rst \
 	$(SRC)/olsr/doc/olsr.rst \
 	$(SRC)/openflow/doc/openflow-switch.rst \
@@ -63,9 +66,20 @@ SOURCES = \
 	$(SRC)/wimax/doc/wimax.rst \
 	$(SRC)/uan/doc/uan.rst \
 	$(SRC)/topology-read/doc/topology.rst \
-	$(SRC)/stats/doc/statistics.rst \
+	$(SRC)/spectrum/doc/spectrum.rst \
+	$(SRC)/stats/doc/adaptor.rst \
+	$(SRC)/stats/doc/aggregator.rst \
+	$(SRC)/stats/doc/collector.rst \
+	$(SRC)/stats/doc/data-collection-helpers.rst \
+	$(SRC)/stats/doc/data-collection-overview.rst \
+	$(SRC)/stats/doc/data-collection.rst \
+	$(SRC)/stats/doc/probe.rst \
+	$(SRC)/stats/doc/scope-and-limitations.rst \
 	$(SRC)/netanim/doc/animation.rst \
 	$(SRC)/flow-monitor/doc/flow-monitor.rst \
+	$(SRC)/wave/doc/wave.rst \
+	$(SRC)/sixlowpan/doc/sixlowpan.rst \
+	$(SRC)/lr-wpan/doc/lr-wpan.rst \
 
 # list all model library figure files that need to be copied to 
 # $SOURCETEMP/figures.  For each figure to be included in all
@@ -88,20 +102,35 @@ SOURCEFIGS = \
 	$(SRC)/wifi/doc/WifiArchitecture.dia \
 	$(SRC)/wifi/doc/snir.dia \
 	$(SRC)/wimax/doc/WimaxArchitecture.dia \
-	$(SRC)/lte/doc/source/figures/ff-mac-saps.dia \
-	$(SRC)/lte/doc/source/figures/ff-example.dia \
-	$(SRC)/lte/doc/source/figures/lte-enb-architecture.dia \
-	$(SRC)/lte/doc/source/figures/lte-ue-architecture.dia \
-	$(SRC)/lte/doc/source/figures/epc-profiling-scenario.dia \
-	$(SRC)/lte/doc/source/figures/eutran-profiling-scenario.dia \
-	$(SRC)/lte/doc/source/figures/lte-interference-test-scenario.dia \
-	$(SRC)/lte/doc/source/figures/epc-topology.dia \
+	$(SRC)/lte/doc/source/figures/epc-ctrl-arch.dia \
 	$(SRC)/lte/doc/source/figures/epc-data-flow-dl.dia \
 	$(SRC)/lte/doc/source/figures/epc-data-flow-ul.dia \
-	$(SRC)/lte/doc/source/figures/lte-arch-data-rrc-pdcp-rlc.dia \
+	$(SRC)/lte/doc/source/figures/epc-profiling-scenario.dia \
+	$(SRC)/lte/doc/source/figures/epc-topology.dia \
+	$(SRC)/lte/doc/source/figures/epc-topology-x2-enhanced.dia \
+	$(SRC)/lte/doc/source/figures/eutran-profiling-scenario.dia \
+	$(SRC)/lte/doc/source/figures/ff-example.dia \
+	$(SRC)/lte/doc/source/figures/ff-mac-saps.dia \
+	$(SRC)/lte/doc/source/figures/lte-arch-enb-data.dia \
+	$(SRC)/lte/doc/source/figures/lte-arch-enb-ctrl.dia \
+	$(SRC)/lte/doc/source/figures/lte-arch-ue-data.dia \
+	$(SRC)/lte/doc/source/figures/lte-arch-ue-ctrl.dia \
+	$(SRC)/lte/doc/source/figures/lte-enb-phy.dia \
+	$(SRC)/lte/doc/source/figures/lte-ue-phy.dia \
+	$(SRC)/lte/doc/source/figures/lte-epc-x2-handover-seq-diagram.dia \
 	$(SRC)/lte/doc/source/figures/lte-epc-e2e-data-protocol-stack.dia \
-	$(SRC)/lte/doc/source/figures/MCS_2_test.eps \
-	$(SRC)/lte/doc/source/figures/MCS_12_test.eps \
+	$(SRC)/lte/doc/source/figures/lte-interference-test-scenario.dia \
+	$(SRC)/lte/doc/source/figures/lte-subframe-structure.dia \
+	$(SRC)/lte/doc/source/figures/lte-epc-x2-interface.dia \
+	$(SRC)/lte/doc/source/figures/lte-harq-architecture.dia \
+	$(SRC)/lte/doc/source/figures/lte-harq-processes-scheme.dia \
+	$(SRC)/lte/doc/source/figures/ue-meas-consumer.dia \
+	$(SRC)/lte/doc/source/figures/ue-meas-piecewise-motion.dia \
+	$(SRC)/lte/doc/source/figures/ue-meas-piecewise-a1.dia \
+	$(SRC)/lte/doc/source/figures/ue-meas-piecewise-a1-hys.dia \
+	$(SRC)/lte/doc/source/figures/lte-cell-selection-timeline.dia \
+	$(SRC)/lte/doc/source/figures/lte-cell-selection-scenario.dia \
+	$(SRC)/lte/doc/source/figures/lte-handover-target-scenario.dia \
 	$(SRC)/lte/doc/source/figures/lena-dual-stripe.eps \
 	$(SRC)/lte/doc/source/figures/lte-mcs-index.eps \
 	$(SRC)/lte/doc/source/figures/lenaThrTestCase1.eps \
@@ -113,17 +142,57 @@ SOURCEFIGS = \
 	$(SRC)/lte/doc/source/figures/epcSimulationTime.eps \
 	$(SRC)/lte/doc/source/figures/epcEutranRunningTime.eps \
 	$(SRC)/lte/doc/source/figures/profiling-memory.eps \
-	$(SRC)/lte/doc/source/figures/lte-rlc-implementation-model.eps \
-	$(SRC)/lte/doc/source/figures/lte-rlc-data-txon-dl.eps \
-	$(SRC)/lte/doc/source/figures/lte-rlc-data-retx-dl.eps \
-	$(SRC)/lte/doc/source/figures/lte-rlc-data-txon-ul.eps \
-	$(SRC)/lte/doc/source/figures/lte-rlc-data-retx-ul.eps \
-	$(SRC)/lte/doc/source/figures/fading_pedestrian.png \
-	$(SRC)/lte/doc/source/figures/fading_vehicular.png \
-	$(SRC)/lte/doc/source/figures/fading_urban_3kmph.png \
+	$(SRC)/lte/doc/source/figures/lte-rlc-implementation-model.dia \
+	$(SRC)/lte/doc/source/figures/lte-rlc-data-txon-dl.dia \
+	$(SRC)/lte/doc/source/figures/lte-rlc-data-retx-dl.dia \
+	$(SRC)/lte/doc/source/figures/lte-rlc-data-txon-ul.dia \
+	$(SRC)/lte/doc/source/figures/lte-rlc-data-retx-ul.dia \
+	$(SRC)/lte/doc/source/figures/lte-epc-x2-entity-saps.dia \
+	$(SRC)/lte/doc/source/figures/lte-strongest-cell-handover-algorithm.eps \
+	$(SRC)/lte/doc/source/figures/lte-phy-interference.pdf \
+	$(SRC)/lte/doc/source/figures/lte-phy-interference.png \
+	$(SRC)/lte/doc/source/figures/helpers.pdf \
+	$(SRC)/lte/doc/source/figures/helpers.png \
+	$(SRC)/lte/doc/source/figures/mac-random-access-contention.pdf \
+	$(SRC)/lte/doc/source/figures/mac-random-access-contention.png \
+	$(SRC)/lte/doc/source/figures/mac-random-access-noncontention.pdf \
+	$(SRC)/lte/doc/source/figures/mac-random-access-noncontention.png \
+	$(SRC)/lte/doc/source/figures/rrc-connection-establishment.pdf \
+	$(SRC)/lte/doc/source/figures/rrc-connection-establishment.png \
+	$(SRC)/lte/doc/source/figures/rrc-connection-reconfiguration.pdf \
+	$(SRC)/lte/doc/source/figures/rrc-connection-reconfiguration.png \
+	$(SRC)/lte/doc/source/figures/rrc-connection-reconfiguration-handover.pdf \
+	$(SRC)/lte/doc/source/figures/rrc-connection-reconfiguration-handover.png \
+	$(SRC)/lte/doc/source/figures/nas-attach.pdf \
+	$(SRC)/lte/doc/source/figures/nas-attach.png \
+	$(SRC)/lte/doc/source/figures/lte-enb-rrc-states.pdf \
+	$(SRC)/lte/doc/source/figures/lte-enb-rrc-states.png \
+	$(SRC)/lte/doc/source/figures/lte-ue-rrc-states.pdf \
+	$(SRC)/lte/doc/source/figures/lte-ue-rrc-states.png \
 	$(SRC)/lte/doc/source/figures/fading_pedestrian.pdf \
+	$(SRC)/lte/doc/source/figures/fading_pedestrian.png \
 	$(SRC)/lte/doc/source/figures/fading_vehicular.pdf \
+	$(SRC)/lte/doc/source/figures/fading_vehicular.png \
 	$(SRC)/lte/doc/source/figures/fading_urban_3kmph.pdf \
+	$(SRC)/lte/doc/source/figures/fading_urban_3kmph.png \
+	$(SRC)/lte/doc/source/figures/fr-enhanced-fractional-frequency-reuse-scheme.dia \
+	$(SRC)/lte/doc/source/figures/fr-full-frequency-reuse-scheme.dia \
+	$(SRC)/lte/doc/source/figures/fr-hard-frequency-reuse-scheme.dia \
+	$(SRC)/lte/doc/source/figures/fr-soft-fractional-frequency-reuse-scheme.dia \
+	$(SRC)/lte/doc/source/figures/fr-soft-frequency-reuse-scheme-v1.dia \
+	$(SRC)/lte/doc/source/figures/fr-soft-frequency-reuse-scheme-v2.dia \
+	$(SRC)/lte/doc/source/figures/fr-strict-frequency-reuse-scheme.dia \
+	$(SRC)/lte/doc/source/figures/ffr-distributed-scheme.dia \
+	$(SRC)/lte/doc/source/figures/lte-fr-soft-1-rem.png \
+	$(SRC)/lte/doc/source/figures/lte-fr-soft-1-rem.pdf \
+	$(SRC)/lte/doc/source/figures/lte-ffr-soft-2-spectrum-trace.png \
+	$(SRC)/lte/doc/source/figures/lte-ffr-soft-2-spectrum-trace.pdf \
+	$(SRC)/lte/doc/source/figures/lte-fr-hard-1-rem.png \
+	$(SRC)/lte/doc/source/figures/lte-fr-hard-1-rem.pdf \
+	$(SRC)/lte/doc/source/figures/lte-fr-hard-2-rem.png \
+	$(SRC)/lte/doc/source/figures/lte-fr-hard-2-rem.pdf \
+	$(SRC)/lte/doc/source/figures/lte-fr-hard-3-rem.png \
+	$(SRC)/lte/doc/source/figures/lte-fr-hard-3-rem.pdf \
 	$(SRC)/lte/doc/source/figures/MCS_1_4.pdf \
 	$(SRC)/lte/doc/source/figures/MCS_1_4.png \
 	$(SRC)/lte/doc/source/figures/MCS_5_8.pdf \
@@ -146,48 +215,58 @@ SOURCEFIGS = \
 	$(SRC)/lte/doc/source/figures/MCS_12_test.pdf \
 	$(SRC)/lte/doc/source/figures/MCS_16_test.png \
 	$(SRC)/lte/doc/source/figures/MCS_16_test.pdf \
-	$(SRC)/lte/doc/source/figures/lte-phy-interference.png \
-	$(SRC)/lte/doc/source/figures/lte-phy-interference.pdf \
-	$(SRC)/lte/doc/source/figures/helpers.png \
-	$(SRC)/lte/doc/source/figures/helpers.pdf \
 	$(SRC)/lte/doc/source/figures/miesm_scheme.pdf \
 	$(SRC)/lte/doc/source/figures/miesm_scheme.png \
+	$(SRC)/lte/doc/source/figures/lte-dl-power-control.dia \
+	$(SRC)/lte/doc/source/figures/lte-ffr-scheduling.dia \
+	$(SRC)/lte/doc/source/figures/lte-handover-campaign-rem.pdf \
+	$(SRC)/lte/doc/source/figures/lte-handover-campaign-rem.png \
+	$(SRC)/lte/doc/source/figures/lte-legacy-handover-algorithm.pdf \
+	$(SRC)/lte/doc/source/figures/lte-legacy-handover-algorithm.png \
 	$(SRC)/uan/doc/auvmobility-classes.dia \
 	$(SRC)/stats/doc/Stat-framework-arch.png \
 	$(SRC)/stats/doc/Wifi-default.png \
-	$(SRC)/netanim/doc/figures/Dumbbell.png \
-	$(SRC)/netanim/doc/figures/Dumbbell.pdf \
+	$(SRC)/stats/doc/dcf-overview.dia \
+	$(SRC)/stats/doc/dcf-overview-with-aggregation.dia \
+	$(SRC)/stats/doc/file-example.png \
+	$(SRC)/stats/doc/gnuplot-aggregator.png \
+	$(SRC)/stats/doc/gnuplot-example.png \
+	$(SRC)/stats/doc/gnuplot-helper-example.png \
+	$(SRC)/stats/doc/seventh-packet-byte-count.png \
 	$(SRC)/netanim/doc/figures/PacketStatistics.png \
 	$(SRC)/netanim/doc/figures/PacketStatistics.pdf \
-	$(SRC)/netanim/doc/figures/FastForward.png \
-	$(SRC)/netanim/doc/figures/FastForward.pdf \
-	$(SRC)/netanim/doc/figures/Wireless.png \
-	$(SRC)/netanim/doc/figures/Wireless.pdf \
-	$(SRC)/netanim/doc/figures/Precision.png \
-	$(SRC)/netanim/doc/figures/Precision.pdf \
-	$(SRC)/netanim/doc/figures/Persist.png \
-	$(SRC)/netanim/doc/figures/Persist.pdf \
-	$(SRC)/netanim/doc/figures/SimTime.png \
-	$(SRC)/netanim/doc/figures/SimTime.pdf \
+	$(SRC)/netanim/doc/figures/NetAnim_3_105.png \
+	$(SRC)/netanim/doc/figures/NetAnim_3_105.pdf \
 	$(SRC)/netanim/doc/figures/Trajectory.png \
 	$(SRC)/netanim/doc/figures/Trajectory.pdf \
-	$(SRC)/netanim/doc/figures/UpdateRateInterval.png \
-	$(SRC)/netanim/doc/figures/UpdateRateInterval.pdf \
-	$(SRC)/netanim/doc/figures/WithoutPrecision.png \
-	$(SRC)/netanim/doc/figures/WithoutPrecision.pdf \
-	$(SRC)/netanim/doc/figures/WithPrecision.png \
-	$(SRC)/netanim/doc/figures/WithPrecision.pdf \
+	$(SRC)/netanim/doc/figures/NodeCountersChart.png \
+	$(SRC)/netanim/doc/figures/NodeCountersChart.pdf \
+	$(SRC)/netanim/doc/figures/NodeCountersTable.png \
+	$(SRC)/netanim/doc/figures/NodeCountersTable.pdf \
+	$(SRC)/netanim/doc/figures/RoutingTables.png \
+	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
+	$(SRC)/netanim/doc/figures/PacketTimeline.png \
+	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
+	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
+	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
+	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
+	$(SRC)/lr-wpan/doc/lr-wpan-arch.dia \
+	$(SRC)/lr-wpan/doc/lr-wpan-data-example.dia \
+	$(SRC)/lr-wpan/doc/lr-wpan-primitives.dia \
+	$(SRC)/lr-wpan/doc/802-15-4-ber.eps \
+	$(SRC)/lr-wpan/doc/802-15-4-per-sens.eps \
+	$(SRC)/lr-wpan/doc/802-15-4-psr-distance.eps
 
 # specify figures from which .png and .pdf figures need to be
 # generated (all dia and eps figures)
 IMAGES_EPS = \
 	$(FIGURES)/testbed.eps \
 	$(FIGURES)/emulated-channel.eps \
+	$(FIGURES)/antenna-coordinate-system.eps \
 	$(FIGURES)/packet.eps \
 	$(FIGURES)/node.eps \
 	$(FIGURES)/buffer.eps \
 	$(FIGURES)/sockets-overview.eps \
-	$(FIGURES)/antenna-coordinate-system.eps \
 	$(FIGURES)/internet-node-send.eps \
 	$(FIGURES)/internet-node-recv.eps \
 	$(FIGURES)/routing.eps \
@@ -195,20 +274,46 @@ IMAGES_EPS = \
 	$(FIGURES)/WifiArchitecture.eps \
 	$(FIGURES)/snir.eps \
 	$(FIGURES)/WimaxArchitecture.eps \
-	$(FIGURES)/ff-mac-saps.eps \
-	$(FIGURES)/ff-example.eps \
-	$(FIGURES)/lte-enb-architecture.eps \
-	$(FIGURES)/lte-ue-architecture.eps \
-	$(FIGURES)/epc-profiling-scenario.eps \
-	$(FIGURES)/eutran-profiling-scenario.eps \
-	$(FIGURES)/lte-interference-test-scenario.eps \
-	$(FIGURES)/epc-topology.eps \
+	$(FIGURES)/dcf-overview.eps \
+	$(FIGURES)/dcf-overview-with-aggregation.eps \
+	$(FIGURES)/epc-ctrl-arch.eps \
 	$(FIGURES)/epc-data-flow-dl.eps \
 	$(FIGURES)/epc-data-flow-ul.eps \
-	$(FIGURES)/lte-arch-data-rrc-pdcp-rlc.eps \
+	$(FIGURES)/epc-profiling-scenario.eps \
+	$(FIGURES)/epc-topology.eps \
+	$(FIGURES)/epc-topology-x2-enhanced.eps \
+	$(FIGURES)/eutran-profiling-scenario.eps \
+	$(FIGURES)/ff-example.eps \
+	$(FIGURES)/ff-mac-saps.eps \
+	$(FIGURES)/lte-dl-power-control.eps \
+	$(FIGURES)/lte-ffr-scheduling.eps \
+	$(FIGURES)/fr-enhanced-fractional-frequency-reuse-scheme.eps \
+	$(FIGURES)/fr-full-frequency-reuse-scheme.eps \
+	$(FIGURES)/fr-hard-frequency-reuse-scheme.eps \
+	$(FIGURES)/fr-soft-fractional-frequency-reuse-scheme.eps \
+	$(FIGURES)/fr-soft-frequency-reuse-scheme-v1.eps \
+	$(FIGURES)/fr-soft-frequency-reuse-scheme-v2.eps \
+	$(FIGURES)/fr-strict-frequency-reuse-scheme.eps \
+	$(FIGURES)/ffr-distributed-scheme.eps \
+	$(FIGURES)/lte-arch-enb-data.eps \
+	$(FIGURES)/lte-arch-enb-ctrl.eps \
+	$(FIGURES)/lte-arch-ue-data.eps \
+	$(FIGURES)/lte-arch-ue-ctrl.eps \
+	$(FIGURES)/lte-enb-phy.eps \
+	$(FIGURES)/lte-ue-phy.eps \
 	$(FIGURES)/lte-epc-e2e-data-protocol-stack.eps \
-	$(FIGURES)/MCS_2_test.eps \
-	$(FIGURES)/MCS_12_test.eps \
+	$(FIGURES)/lte-interference-test-scenario.eps \
+	$(FIGURES)/lte-subframe-structure.eps \
+	$(FIGURES)/lte-epc-x2-interface.eps \
+	$(FIGURES)/lte-harq-architecture.eps \
+	$(FIGURES)/lte-harq-processes-scheme.eps \
+	$(FIGURES)/ue-meas-consumer.eps \
+	$(FIGURES)/ue-meas-piecewise-motion.eps \
+	$(FIGURES)/ue-meas-piecewise-a1.eps \
+	$(FIGURES)/ue-meas-piecewise-a1-hys.eps \
+	$(FIGURES)/lte-cell-selection-timeline.eps \
+	$(FIGURES)/lte-cell-selection-scenario.eps \
+	$(FIGURES)/lte-handover-target-scenario.eps \
 	$(FIGURES)/lena-dual-stripe.eps \
 	$(FIGURES)/lte-mcs-index.eps \
 	$(FIGURES)/lenaThrTestCase1.eps \
@@ -225,7 +330,17 @@ IMAGES_EPS = \
 	$(FIGURES)/lte-rlc-data-retx-dl.eps \
 	$(FIGURES)/lte-rlc-data-txon-ul.eps \
 	$(FIGURES)/lte-rlc-data-retx-ul.eps \
-        $(FIGURES)/auvmobility-classes.eps \
+	$(FIGURES)/lte-epc-x2-handover-seq-diagram.eps \
+	$(FIGURES)/lte-epc-x2-entity-saps.eps \
+	$(FIGURES)/lte-strongest-cell-handover-algorithm.eps \
+	$(FIGURES)/auvmobility-classes.eps \
+	$(FIGURES)/spectrum-analyzer-example.eps \
+	$(FIGURES)/lr-wpan-primitives.eps \
+	$(FIGURES)/lr-wpan-data-example.eps \
+	$(FIGURES)/lr-wpan-arch.eps \
+	$(FIGURES)/802-15-4-ber.eps \
+	$(FIGURES)/802-15-4-per-sens.eps \
+	$(FIGURES)/802-15-4-psr-distance.eps 
 
 # rescale pdf figures as necessary
 $(FIGURES)/testbed.pdf_width = 5in
@@ -241,29 +356,66 @@ $(FIGURES)/routing.pdf_width = 6in
 $(FIGURES)/routing-specialization.pdf_width = 5in
 $(FIGURES)/snir.pdf_width = 3in
 $(FIGURES)/lte-interference-test-scenario.pdf_width = 3in
+$(FIGURES)/epc-ctrl-arch.pdf_width = 8cm
 $(FIGURES)/epc-topology.pdf_width = 4in
+$(FIGURES)/epc-topology-x2-enhanced.pdf_width = 14cm
 $(FIGURES)/lte-arch-data-rrc-pdcp-rlc.pdf_width = 3in
 $(FIGURES)/lte-epc-e2e-data-protocol-stack.pdf_width = 15cm
 $(FIGURES)/ff-mac-saps.pdf_width = 5in
 $(FIGURES)/ff-example.pdf_width = 5in
+$(FIGURES)/lte-dl-power-control.pdf_width = 8cm
+$(FIGURES)/lte-ffr-scheduling.pdf_width = 8cm
+$(FIGURES)/fr-enhanced-fractional-frequency-reuse-scheme.pdf_width = 8cm
+$(FIGURES)/fr-full-frequency-reuse-scheme.pdf_width = 8cm
+$(FIGURES)/fr-hard-frequency-reuse-scheme.pdf_width = 8cm
+$(FIGURES)/fr-soft-fractional-frequency-reuse-scheme.pdf_width = 8cm
+$(FIGURES)/fr-soft-frequency-reuse-scheme-v1.pdf_width = 8cm
+$(FIGURES)/fr-soft-frequency-reuse-scheme-v2.pdf_width = 8cm
+$(FIGURES)/fr-strict-frequency-reuse-scheme.pdf_width = 8cm
+$(FIGURES)/ffr-distributed-scheme.pdf_width = 8cm
+$(FIGURES)/lte-arch-enb-data.pdf_width = 6cm 
+$(FIGURES)/lte-arch-enb-ctrl.pdf_width = 10cm
+$(FIGURES)/lte-arch-ue-data.pdf_width = 6cm
+$(FIGURES)/lte-arch-ue-ctrl.pdf_width = 10cm
 $(FIGURES)/lte-rlc-implementation-model.pdf_width = 20in
 $(FIGURES)/lte-rlc-data-txon-dl.pdf_width = 10cm
 $(FIGURES)/lte-rlc-data-txon-ul.pdf_width = 10cm
+$(FIGURES)/lte-rlc-data-retx-dl.pdf_width = 10cm
 $(FIGURES)/lte-rlc-data-retx-ul.pdf_width = 10cm
+$(FIGURES)/lte-epc-x2-entity-saps.pdf_width = 12cm
 $(FIGURES)/lte-phy-interference.pdf_width = 12cm
+$(FIGURES)/lte-subframe-structure.pdf_width = 2in
+$(FIGURES)/mac-random-access-contention.pdf_width = 10cm
+$(FIGURES)/mac-random-access-noncontention.pdf_width = 15cm
+$(FIGURES)/helpers.pdf_width = 8cm
 $(FIGURES)/auvmobility-classes.pdf_width = 10cm
+$(FIGURES)/spectrum-analyzer-example.pdf_width = 15cm
+$(FIGURES)/lr-wpan-primitives.pdf_width = 3in
+$(FIGURES)/lr-wpan-arch.pdf_width = 2in
 
 IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
 IMAGES_PDF = ${IMAGES_EPS:.eps=.pdf}
 
 IMAGES = $(IMAGES_EPS) $(IMAGES_PNG) $(IMAGES_PDF)
 
-%.eps : %.dia; $(DIA) -t eps $< -e $@
-%.png : %.dia; $(DIA) -t png $< -e $@
-%.png : %.eps; $(CONVERT) $< $@
+RESCALE = ../../utils/rescale-pdf.sh
+
+%.eps : %.dia
+	@echo dia $(notdir $<)
+	@$(DIA) -t eps $< -e $@ >/dev/null
+
+%.png : %.dia
+	@echo dia $(notdir $<)
+	@$(DIA) -t png $< -e $@ >/dev/null
+
+%.png : %.eps
+	@echo convert $(notdir $<)
+	@$(CONVERT) $< $@ >/dev/null
+
 %.pdf : %.eps
-	$(EPSTOPDF) $< -o=$@
-	if test x$($@_width) != x; then ./rescale-pdf.sh $($@_width) $@ ; fi
+	@echo epstopdf $(notdir $<)
+	@$(EPSTOPDF) $< -o=$@ >/dev/null
+	@if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
@@ -277,6 +429,8 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCETEMP) 
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
+
+.NOTPARALLEL:
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -298,11 +452,10 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 copy-sources:  $(SOURCES)
-	@rm -rf $(SOURCETEMP)
 	@mkdir -p $(SOURCETEMP) 
 	@mkdir -p $(FIGURES) 
-	@cp -r $(SOURCES) $(SOURCETEMP)
-	@cp -r $(SOURCEFIGS) $(FIGURES)
+	@cp -r -p $(SOURCES) $(SOURCETEMP)
+	@cp -r -p $(SOURCEFIGS) $(FIGURES)
 
 clean:
 	-rm -rf $(BUILDDIR)/*

@@ -21,7 +21,7 @@
 # to force us into the public case.)
 #
 # The approach to identify cases 1 & 2 is to test:
-# a.  We're on nsnam.org (actually, nsnam.ece.gatech.edu), and
+# a.  We're on nsnam.org (actually, nsnam-www.coe-hosted.gatech.edu), and
 # b.  We're in the tmp build directory, /tmp/daily-nsnam/
 #     (This is the directory used by the update-* scripts
 #     run by cron jobs.)
@@ -71,6 +71,7 @@ EOF
 
 # script arguments
 say
+say using doxygen: $(which doxygen) $(doxygen --version)
 public=0
 nsnam=0
 daily=0
@@ -91,9 +92,9 @@ while getopts :pndth option ; do
     esac
 done
 
-# Hostname, fully qualified, e.g. nsnam.ece.gatech.edu
+# Hostname, fully qualified, e.g. nsnam-www.coe-hosted.gatech.edu
 HOST=`hostname`
-NSNAM="nsnam.ece.gatech.edu"
+NSNAM="nsnam-www.coe-hosted.gatech.edu"
 
 # Build directory
 DAILY="^/tmp/daily-nsnam/"
@@ -110,7 +111,7 @@ if [ $daily -eq 1 ] ; then
 fi
 
 if [ $tag -eq 1 ]; then
-    version="ns-3.15"
+    version="ns-3.14"
     say "-t forcing tagged version = $version"
 fi
 
@@ -201,8 +202,9 @@ fi
 # by Sphinx when rebuilding
 cd doc 2>&1 >/dev/null
 for d in {manual,models,tutorial{,-pt-br}}/build/{single,}html/_static/ ; do
-    # expect the copy to fail if the destination dir
-    # hasn't been created by a prior doc build
+    if [ ! -d $d ]; then
+	mkdir -p $d
+    fi
     cp ns3_html_theme/static/ns3_version.js $d
 done
 cd - 2>&1 >/dev/null

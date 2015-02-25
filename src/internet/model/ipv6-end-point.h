@@ -25,6 +25,9 @@
 
 #include "ns3/ipv6-address.h"
 #include "ns3/callback.h"
+#include "ns3/ipv6-header.h"
+#include "ns3/net-device.h"
+#include "ns3/ipv6-interface.h"
 
 namespace ns3
 {
@@ -33,8 +36,14 @@ class Header;
 class Packet;
 
 /**
- * \class Ipv6EndPoint
- * \brief An IPv6 end point, four tuples identification.
+ * \brief A representation of an internet IPv6 endpoint/connection
+ *
+ * This class provides an internet four-tuple (source and destination ports
+ * and addresses).  These are used in the ns3::Ipv6EndPointDemux as targets
+ * of lookups.  The class also has a callback for notification to higher
+ * layers that a packet from a lower layer was received.  In the ns3
+ * internet-stack, these notifications are automatically registered to be
+ * received by the corresponding socket.
  */
 class Ipv6EndPoint
 {
@@ -46,9 +55,6 @@ public:
    */
   Ipv6EndPoint (Ipv6Address addr, uint16_t port);
 
-  /**
-   * \brief Destructor.
-   */
   ~Ipv6EndPoint ();
 
   /**
@@ -95,10 +101,41 @@ public:
   void SetPeer (Ipv6Address addr, uint16_t port);
 
   /**
+   * \brief Bind a socket to specific device.
+   *
+   * This method corresponds to using setsockopt() SO_BINDTODEVICE
+   * of real network or BSD sockets.   If set on a socket, this option will
+   * force packets to leave the bound device regardless of the device that
+   * IP routing would naturally choose.  In the receive direction, only
+   * packets received from the bound interface will be delivered.
+   *
+   * This option has no particular relationship to binding sockets to
+   * an address via Socket::Bind ().  It is possible to bind sockets to a
+   * specific IP address on the bound interface by calling both
+   * Socket::Bind (address) and Socket::BindToNetDevice (device), but it
+   * is also possible to bind to mismatching device and address, even if
+   * the socket can not receive any packets as a result.
+   *
+   * \param netdevice Pointer to Netdevice of desired interface
+   */
+  void BindToNetDevice (Ptr<NetDevice> netdevice);
+
+  /**
+   * \brief Returns socket's bound netdevice, if any.
+   *
+   * This method corresponds to using getsockopt() SO_BINDTODEVICE
+   * of real network or BSD sockets.
+   *
+   *
+   * \returns Pointer to interface.
+   */
+  Ptr<NetDevice> GetBoundNetDevice (void);
+
+  /**
    * \brief Set the reception callback.
    * \param callback callback function
    */
-  void SetRxCallback (Callback<void, Ptr<Packet>, Ipv6Address, Ipv6Address, uint16_t> callback);
+  void SetRxCallback (Callback<void, Ptr<Packet>, Ipv6Header, uint16_t, Ptr<Ipv6Interface> > callback);
 
   /**
    * \brief Set the ICMP callback.
@@ -114,16 +151,23 @@ public:
 
   /**
    * \brief Forward the packet to the upper level.
+   *
+   * Called from an L4Protocol implementation to notify an endpoint of a
+   * packet reception.
+   *
    * \param p the packet
-   * \param srcAddr source address
-   * \param dstAddr source address
+   * \param header the packet header
    * \param port source port
+   * \param incomingInterface incoming interface
    */
-  void ForwardUp (Ptr<Packet> p, Ipv6Address srcAddr, Ipv6Address dstAddr, uint16_t port);
+  void ForwardUp (Ptr<Packet> p, Ipv6Header header, uint16_t port, Ptr<Ipv6Interface> incomingInterface);
 
   /**
-   * \brief Function called from an L4Protocol implementation
-   * to notify an endpoint of an icmp message reception.
+   * \brief Forward the ICMP packet to the upper level.
+   *
+   * Called from an L4Protocol implementation to notify an endpoint of
+   * an icmp message reception.
+   *
    * \param src source IPv6 address
    * \param ttl time-to-live
    * \param type ICMPv6 type
@@ -137,11 +181,11 @@ private:
   /**
    * \brief ForwardUp wrapper.
    * \param p packet
-   * \param saddr source IPv6 address
-   * \param daddr dest IPv6 address
+   * \param header the packet header
    * \param sport source port
+   * \param incomingInterface incoming interface
    */
-  void DoForwardUp (Ptr<Packet> p, Ipv6Address saddr, Ipv6Address daddr, uint16_t sport);
+  void DoForwardUp (Ptr<Packet> p, Ipv6Header header, uint16_t sport, Ptr<Ipv6Interface> incomingInterface);
 
   /**
    * \brief ForwardIcmp wrapper.
@@ -175,9 +219,14 @@ private:
   uint16_t m_peerPort;
 
   /**
+   * \brief The NetDevice the EndPoint is bound to (if any).
+   */
+  Ptr<NetDevice> m_boundnetdevice;
+
+  /**
    * \brief The RX callback.
    */
-  Callback<void, Ptr<Packet>, Ipv6Address, Ipv6Address, uint16_t> m_rxCallback;
+  Callback<void, Ptr<Packet>, Ipv6Header, uint16_t, Ptr<Ipv6Interface> > m_rxCallback;
 
   /**
    * \brief The ICMPv6 callback.

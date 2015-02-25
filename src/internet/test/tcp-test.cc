@@ -49,9 +49,9 @@
 
 #include <string>
 
-NS_LOG_COMPONENT_DEFINE ("TcpTestSuite");
+using namespace ns3;
 
-namespace ns3 {
+NS_LOG_COMPONENT_DEFINE ("TcpTestSuite");
 
 class TcpTestCase : public TestCase
 {
@@ -108,14 +108,12 @@ static std::string Name (std::string str, uint32_t totalStreamSize,
   return oss.str ();
 }
 
-#ifdef NS3_LOG_ENABLE
-static std::string GetString (Ptr<Packet> p)
+static inline std::string GetString (Ptr<Packet> p)
 {
   std::ostringstream oss;
   p->CopyData (&oss, p->GetSize ());
   return oss.str ();
 }
-#endif /* NS3_LOG_ENABLE */
 
 TcpTestCase::TcpTestCase (uint32_t totalStreamSize,
                           uint32_t sourceWriteSize,
@@ -435,15 +433,13 @@ public:
     // 2) source write size, 3) source read size
     // 4) server write size, and 5) server read size
     // with units of bytes
-    AddTestCase (new TcpTestCase (13, 200, 200, 200, 200, false));
-    AddTestCase (new TcpTestCase (13, 1, 1, 1, 1, false));
-    AddTestCase (new TcpTestCase (100000, 100, 50, 100, 20, false));
+    AddTestCase (new TcpTestCase (13, 200, 200, 200, 200, false), TestCase::QUICK);
+    AddTestCase (new TcpTestCase (13, 1, 1, 1, 1, false), TestCase::QUICK);
+    AddTestCase (new TcpTestCase (100000, 100, 50, 100, 20, false), TestCase::QUICK);
 
-    AddTestCase (new TcpTestCase (13, 200, 200, 200, 200, true));
-    AddTestCase (new TcpTestCase (13, 1, 1, 1, 1, true));
-    AddTestCase (new TcpTestCase (100000, 100, 50, 100, 20, true));
+    AddTestCase (new TcpTestCase (13, 200, 200, 200, 200, true), TestCase::QUICK);
+    AddTestCase (new TcpTestCase (13, 1, 1, 1, 1, true), TestCase::QUICK);
+    AddTestCase (new TcpTestCase (100000, 100, 50, 100, 20, true), TestCase::QUICK);
   }
 
 } g_tcpTestSuite;
-
-} // namespace ns3

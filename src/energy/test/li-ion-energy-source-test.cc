@@ -25,7 +25,7 @@
 #include "ns3/node.h"
 #include "ns3/simulator.h"
 
-namespace ns3 {
+using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("LiIonEnergySourceTestSuite");
 
@@ -87,10 +87,8 @@ public:
 LiIonEnergySourceTestSuite::LiIonEnergySourceTestSuite ()
   : TestSuite ("li-ion-energy-source", UNIT)
 {
-  AddTestCase (new LiIonEnergyTestCase);
+  AddTestCase (new LiIonEnergyTestCase, TestCase::QUICK);
 }
 
 // create an instance of the test suite
 static LiIonEnergySourceTestSuite g_liIonEnergySourceTestSuite;
-
-} // namespace ns3

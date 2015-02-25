@@ -31,9 +31,9 @@
 #include "ns3/tcp-socket-factory.h"
 #include "bulk-send-application.h"
 
-NS_LOG_COMPONENT_DEFINE ("BulkSendApplication");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("BulkSendApplication");
 
 NS_OBJECT_ENSURE_REGISTERED (BulkSendApplication);
 
@@ -64,7 +64,8 @@ BulkSendApplication::GetTypeId (void)
                    MakeTypeIdAccessor (&BulkSendApplication::m_tid),
                    MakeTypeIdChecker ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
-                     MakeTraceSourceAccessor (&BulkSendApplication::m_txTrace))
+                     MakeTraceSourceAccessor (&BulkSendApplication::m_txTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -126,7 +127,15 @@ void BulkSendApplication::StartApplication (void) // Called at time specified by
                           "In other words, use TCP instead of UDP.");
         }
 
-      m_socket->Bind ();
+      if (Inet6SocketAddress::IsMatchingType (m_peer))
+        {
+          m_socket->Bind6 ();
+        }
+      else if (InetSocketAddress::IsMatchingType (m_peer))
+        {
+          m_socket->Bind ();
+        }
+
       m_socket->Connect (m_peer);
       m_socket->ShutdownRecv ();
       m_socket->SetConnectCallback (

@@ -1,4 +1,3 @@
-
 # -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 # def options(opt):
@@ -50,8 +49,8 @@ def build(bld):
         'test/test-tocino-ring.cc',
         'test/tocino-test-suite.cc',
         ]
-    
-    headers = bld.new_task_gen(features=['ns3header'])
+
+    headers = bld(features='ns3header')
     headers.module = 'tocino'
     headers.source = [
         'helper/tocino-helper.h',
@@ -80,7 +79,7 @@ def build(bld):
         ]
 
     if bld.env.ENABLE_EXAMPLES:
-        bld.add_subdirs('examples')
+        bld.recurse('examples')
 
     # bld.ns3_python_bindings()
 

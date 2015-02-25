@@ -19,16 +19,17 @@
  *                              <amine.ismail@udcast.com>
  */
 
-#include <string.h>
+#include <cstring>
 #include "ns3/snr-to-block-error-rate-manager.h"
 #include "ns3/snr-to-block-error-rate-record.h"
 #include "default-traces.h"
 #include "ns3/log.h"
+#include "ns3/assert.h"
 #include <fstream>
 
-NS_LOG_COMPONENT_DEFINE ("SNRToBlockErrorRateManager");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("SNRToBlockErrorRateManager");
 
 SNRToBlockErrorRateManager::SNRToBlockErrorRateManager (void)
 {
@@ -38,7 +39,7 @@ SNRToBlockErrorRateManager::SNRToBlockErrorRateManager (void)
       m_recordModulation[i] = new std::vector<SNRToBlockErrorRateRecord*> ();
     }
   m_activateLoss = false;
-  strcpy (m_traceFilePath,"DefaultTraces");
+  std::strcpy (m_traceFilePath,"DefaultTraces");
 }
 
 SNRToBlockErrorRateManager::~SNRToBlockErrorRateManager (void)
@@ -273,7 +274,9 @@ SNRToBlockErrorRateManager::ReLoadTraces (void)
 void
 SNRToBlockErrorRateManager::SetTraceFilePath (char *traceFilePath)
 {
-  strcpy (m_traceFilePath, traceFilePath);
+  NS_ASSERT_MSG (std::strlen (traceFilePath) < TRACE_FILE_PATH_SIZE,
+                 "char * traceFilePath too long");
+  std::strcpy (m_traceFilePath, traceFilePath);
 }
 
 std::string

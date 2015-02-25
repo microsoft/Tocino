@@ -40,9 +40,9 @@
 #include "ipv6-option.h"
 #include "udp-header.h"
 
-NS_LOG_COMPONENT_DEFINE ("Ipv6Extension");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Ipv6Extension");
 
 NS_OBJECT_ENSURE_REGISTERED (Ipv6Extension);
 
@@ -54,8 +54,6 @@ TypeId Ipv6Extension::GetTypeId ()
                    UintegerValue (0),
                    MakeUintegerAccessor (&Ipv6Extension::GetExtensionNumber),
                    MakeUintegerChecker<uint8_t> ())
-    .AddTraceSource ("Drop", "Drop ipv6 packet",
-                     MakeTraceSourceAccessor (&Ipv6Extension::m_dropTrace))
   ;
   return tid;
 }
@@ -86,7 +84,15 @@ Ptr<Node> Ipv6Extension::GetNode () const
   return m_node;
 }
 
-uint8_t Ipv6Extension::ProcessOptions (Ptr<Packet>& packet, uint8_t offset, uint8_t length, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6Extension::ProcessOptions (Ptr<Packet>& packet,
+                                       uint8_t offset,
+                                       uint8_t length,
+                                       Ipv6Header const& ipv6Header,
+                                       Ipv6Address dst,
+                                       uint8_t *nextHeader,
+                                       bool& stopProcessing,
+                                       bool& isDropped,
+                                       Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << length << ipv6Header << dst << nextHeader << isDropped);
 
@@ -125,17 +131,19 @@ uint8_t Ipv6Extension::ProcessOptions (Ptr<Packet>& packet, uint8_t offset, uint
 
             case 1:
               NS_LOG_LOGIC ("Unknown Option. Drop!");
-              m_dropTrace (packet);
               optionLength = 0;
               isDropped = true;
+              stopProcessing = true;
+              dropReason = Ipv6L3Protocol::DROP_UNKNOWN_OPTION;
               break;
 
             case 2:
               NS_LOG_LOGIC ("Unknown Option. Drop!");
               icmpv6->SendErrorParameterError (malformedPacket, ipv6Header.GetSourceAddress (), Icmpv6Header::ICMPV6_UNKNOWN_OPTION, offset + processedSize);
-              m_dropTrace (packet);
               optionLength = 0;
               isDropped = true;
+              stopProcessing = true;
+              dropReason = Ipv6L3Protocol::DROP_UNKNOWN_OPTION;
               break;
 
             case 3:
@@ -144,15 +152,11 @@ uint8_t Ipv6Extension::ProcessOptions (Ptr<Packet>& packet, uint8_t offset, uint
               if (!ipv6Header.GetDestinationAddress ().IsMulticast ())
                 {
                   icmpv6->SendErrorParameterError (malformedPacket, ipv6Header.GetSourceAddress (), Icmpv6Header::ICMPV6_UNKNOWN_OPTION, offset + processedSize);
-                  m_dropTrace (packet);
-                  optionLength = 0;
-                  isDropped = true;
-                  break;
                 }
-
-              m_dropTrace (packet);
               optionLength = 0;
               isDropped = true;
+              stopProcessing = true;
+              dropReason = Ipv6L3Protocol::DROP_UNKNOWN_OPTION;
               break;
 
             default:
@@ -210,7 +214,14 @@ uint8_t Ipv6ExtensionHopByHop::GetExtensionNumber () const
   return EXT_NUMBER;
 }
 
-uint8_t Ipv6ExtensionHopByHop::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionHopByHop::Process (Ptr<Packet>& packet,
+                                        uint8_t offset,
+                                        Ipv6Header const& ipv6Header,
+                                        Ipv6Address dst,
+                                        uint8_t *nextHeader,
+                                        bool& stopProcessing,
+                                        bool& isDropped,
+                                        Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
@@ -228,7 +239,7 @@ uint8_t Ipv6ExtensionHopByHop::Process (Ptr<Packet>& packet, uint8_t offset, Ipv
   offset += processedSize;
   uint8_t length = hopbyhopHeader.GetLength () - hopbyhopHeader.GetOptionsOffset ();
 
-  processedSize += ProcessOptions (packet, offset, length, ipv6Header, dst, nextHeader, isDropped);
+  processedSize += ProcessOptions (packet, offset, length, ipv6Header, dst, nextHeader, stopProcessing, isDropped, dropReason);
 
   return processedSize;
 }
@@ -262,7 +273,14 @@ uint8_t Ipv6ExtensionDestination::GetExtensionNumber () const
   return EXT_NUMBER;
 }
 
-uint8_t Ipv6ExtensionDestination::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionDestination::Process (Ptr<Packet>& packet,
+                                           uint8_t offset,
+                                           Ipv6Header const& ipv6Header,
+                                           Ipv6Address dst,
+                                           uint8_t *nextHeader,
+                                           bool& stopProcessing,
+                                           bool& isDropped,
+                                           Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
@@ -280,7 +298,7 @@ uint8_t Ipv6ExtensionDestination::Process (Ptr<Packet>& packet, uint8_t offset, 
   offset += processedSize;
   uint8_t length = destinationHeader.GetLength () - destinationHeader.GetOptionsOffset ();
 
-  processedSize += ProcessOptions (packet, offset, length, ipv6Header, dst, nextHeader, isDropped);
+  processedSize += ProcessOptions (packet, offset, length, ipv6Header, dst, nextHeader, stopProcessing, isDropped, dropReason);
 
   return processedSize;
 }
@@ -327,7 +345,14 @@ uint8_t Ipv6ExtensionFragment::GetExtensionNumber () const
   return EXT_NUMBER;
 }
 
-uint8_t Ipv6ExtensionFragment::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionFragment::Process (Ptr<Packet>& packet,
+                                        uint8_t offset,
+                                        Ipv6Header const& ipv6Header,
+                                        Ipv6Address dst,
+                                        uint8_t *nextHeader,
+                                        bool& stopProcessing,
+                                        bool& isDropped,
+                                        Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
@@ -347,7 +372,7 @@ uint8_t Ipv6ExtensionFragment::Process (Ptr<Packet>& packet, uint8_t offset, Ipv
   uint32_t identification = fragmentHeader.GetIdentification ();
   Ipv6Address src = ipv6Header.GetSourceAddress ();
 
-  std::pair<Ipv6Address, uint32_t> fragmentsId = std::make_pair<Ipv6Address, uint32_t> (src, identification);
+  std::pair<Ipv6Address, uint32_t> fragmentsId = std::pair<Ipv6Address, uint32_t> (src, identification);
   Ptr<Fragments> fragments;
 
   Ipv6Header ipHeader = ipv6Header;
@@ -382,12 +407,11 @@ uint8_t Ipv6ExtensionFragment::Process (Ptr<Packet>& packet, uint8_t offset, Ipv
       packet = fragments->GetPacket ();
       fragments->CancelTimeout ();
       m_fragments.erase (fragmentsId);
-      isDropped = false;
+      stopProcessing = false;
     }
   else
     {
-      // the fragment is not "dropped", but Ipv6L3Protocol::LocalDeliver must stop processing it.
-      isDropped = true;
+      stopProcessing = true;
     }
 
   return 0;
@@ -441,7 +465,7 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
               hopbyhopHeader->SetNextHeader (Ipv6Header::IPV6_EXT_FRAGMENTATION);
             }
 
-          unfragmentablePart.push_back (std::make_pair<Ipv6ExtensionHeader *, uint8_t> (hopbyhopHeader, Ipv6Header::IPV6_EXT_HOP_BY_HOP));
+          unfragmentablePart.push_back (std::pair<Ipv6ExtensionHeader *, uint8_t> (hopbyhopHeader, Ipv6Header::IPV6_EXT_HOP_BY_HOP));
           unfragmentablePartSize += extensionHeaderLength;
         }
       else if (nextHeader == Ipv6Header::IPV6_EXT_ROUTING)
@@ -465,7 +489,7 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
               routingHeader->SetNextHeader (Ipv6Header::IPV6_EXT_FRAGMENTATION);
             }
 
-          unfragmentablePart.push_back (std::make_pair<Ipv6ExtensionHeader *, uint8_t> (routingHeader, Ipv6Header::IPV6_EXT_ROUTING));
+          unfragmentablePart.push_back (std::pair<Ipv6ExtensionHeader *, uint8_t> (routingHeader, Ipv6Header::IPV6_EXT_ROUTING));
           unfragmentablePartSize += extensionHeaderLength;
         }
       else if (nextHeader == Ipv6Header::IPV6_EXT_DESTINATION)
@@ -485,7 +509,7 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
               destinationHeader->SetNextHeader (Ipv6Header::IPV6_EXT_FRAGMENTATION);
             }
 
-          unfragmentablePart.push_back (std::make_pair<Ipv6ExtensionHeader *, uint8_t> (destinationHeader, Ipv6Header::IPV6_EXT_DESTINATION));
+          unfragmentablePart.push_back (std::pair<Ipv6ExtensionHeader *, uint8_t> (destinationHeader, Ipv6Header::IPV6_EXT_DESTINATION));
           unfragmentablePartSize += extensionHeaderLength;
         }
     }
@@ -506,6 +530,7 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
         {
           moreFragment = true;
           currentFragmentablePartSize = maxFragmentablePartSize;
+          currentFragmentablePartSize -= currentFragmentablePartSize % 8;
         }
       else
         {
@@ -513,10 +538,8 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
           currentFragmentablePartSize = p->GetSize () - offset;
         }
 
-      currentFragmentablePartSize -= currentFragmentablePartSize % 8;
 
       fragmentHeader.SetNextHeader (nextHeader);
-      fragmentHeader.SetLength (currentFragmentablePartSize);
       fragmentHeader.SetOffset (offset);
       fragmentHeader.SetMoreFragment (moreFragment);
       fragmentHeader.SetIdentification (identification);
@@ -530,15 +553,24 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
         {
           if (it->second == Ipv6Header::IPV6_EXT_HOP_BY_HOP)
             {
-              fragment->AddHeader (*dynamic_cast<Ipv6ExtensionHopByHopHeader *> (it->first));
+              Ipv6ExtensionHopByHopHeader * p =
+                dynamic_cast<Ipv6ExtensionHopByHopHeader *> (it->first);
+              NS_ASSERT (p != 0);
+              fragment->AddHeader (*p);
             }
           else if (it->second == Ipv6Header::IPV6_EXT_ROUTING)
             {
-              fragment->AddHeader (*dynamic_cast<Ipv6ExtensionLooseRoutingHeader *> (it->first));
+              Ipv6ExtensionLooseRoutingHeader * p =
+                dynamic_cast<Ipv6ExtensionLooseRoutingHeader *> (it->first);
+              NS_ASSERT (p != 0);
+              fragment->AddHeader (*p);
             }
           else if (it->second == Ipv6Header::IPV6_EXT_DESTINATION)
             {
-              fragment->AddHeader (*dynamic_cast<Ipv6ExtensionDestinationHeader *> (it->first));
+              Ipv6ExtensionDestinationHeader * p =
+                dynamic_cast<Ipv6ExtensionDestinationHeader *> (it->first);
+              NS_ASSERT (p != 0);
+              fragment->AddHeader (*p);
             }
         }
 
@@ -561,7 +593,7 @@ void Ipv6ExtensionFragment::GetFragments (Ptr<Packet> packet, uint32_t maxFragme
 
 
 void Ipv6ExtensionFragment::HandleFragmentsTimeout (std::pair<Ipv6Address, uint32_t> fragmentsId,
-                                                    Ipv6Header & ipHeader)
+                                                    Ipv6Header ipHeader)
 {
   Ptr<Fragments> fragments;
 
@@ -571,15 +603,17 @@ void Ipv6ExtensionFragment::HandleFragmentsTimeout (std::pair<Ipv6Address, uint3
 
   Ptr<Packet> packet = fragments->GetPartialPacket ();
 
-  packet->AddHeader (ipHeader);
-
   // if we have at least 8 bytes, we can send an ICMP.
   if ( packet->GetSize () > 8 )
     {
+      Ptr<Packet> p = packet->Copy ();
+      p->AddHeader (ipHeader);
       Ptr<Icmpv6L4Protocol> icmp = GetNode ()->GetObject<Icmpv6L4Protocol> ();
-      icmp->SendErrorTimeExceeded (packet, ipHeader.GetSourceAddress (), Icmpv6Header::ICMPV6_FRAGTIME);
+      icmp->SendErrorTimeExceeded (p, ipHeader.GetSourceAddress (), Icmpv6Header::ICMPV6_FRAGTIME);
     }
-  m_dropTrace (packet);
+
+  Ptr<Ipv6L3Protocol> ipL3 = GetNode ()->GetObject<Ipv6L3Protocol> ();
+  ipL3->ReportDrop (ipHeader, packet, Ipv6L3Protocol::DROP_FRAGMENT_TIMEOUT);
 
   // clear the buffers
   m_fragments.erase (fragmentsId);
@@ -611,7 +645,7 @@ void Ipv6ExtensionFragment::Fragments::AddFragment (Ptr<Packet> fragment, uint16
       m_moreFragment = moreFragment;
     }
 
-  m_packetFragments.insert (it, std::make_pair<Ptr<Packet>, uint16_t> (fragment, fragmentOffset));
+  m_packetFragments.insert (it, std::pair<Ptr<Packet>, uint16_t> (fragment, fragmentOffset));
 }
 
 void Ipv6ExtensionFragment::Fragments::SetUnfragmentablePart (Ptr<Packet> unfragmentablePart)
@@ -729,7 +763,14 @@ uint8_t Ipv6ExtensionRouting::GetTypeRouting () const
   return 0;
 }
 
-uint8_t Ipv6ExtensionRouting::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionRouting::Process (Ptr<Packet>& packet,
+                                       uint8_t offset,
+                                       Ipv6Header const& ipv6Header,
+                                       Ipv6Address dst,
+                                       uint8_t *nextHeader,
+                                       bool& stopProcessing,
+                                       bool& isDropped,
+                                       Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
@@ -769,14 +810,15 @@ uint8_t Ipv6ExtensionRouting::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6
           NS_LOG_LOGIC ("Malformed header. Drop!");
 
           icmpv6->SendErrorParameterError (malformedPacket, ipv6Header.GetSourceAddress (), Icmpv6Header::ICMPV6_MALFORMED_HEADER, offset + 1);
-          m_dropTrace (packet);
+          dropReason = Ipv6L3Protocol::DROP_MALFORMED_HEADER;
           isDropped = true;
+          stopProcessing = true;
         }
 
       return routingLength;
     }
 
-  return ipv6ExtensionRouting->Process (packet, offset, ipv6Header, dst, (uint8_t *)0, isDropped);
+  return ipv6ExtensionRouting->Process (packet, offset, ipv6Header, dst, (uint8_t *)0, stopProcessing, isDropped, dropReason);
 }
 
 
@@ -870,7 +912,14 @@ uint8_t Ipv6ExtensionLooseRouting::GetTypeRouting () const
   return TYPE_ROUTING;
 }
 
-uint8_t Ipv6ExtensionLooseRouting::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionLooseRouting::Process (Ptr<Packet>& packet,
+                                            uint8_t offset,
+                                            Ipv6Header const& ipv6Header,
+                                            Ipv6Address dst,
+                                            uint8_t *nextHeader,
+                                            bool& stopProcessing,
+                                            bool& isDropped,
+                                            Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
@@ -923,8 +972,9 @@ uint8_t Ipv6ExtensionLooseRouting::Process (Ptr<Packet>& packet, uint8_t offset,
     {
       NS_LOG_LOGIC ("Malformed header. Drop!");
       icmpv6->SendErrorParameterError (malformedPacket, srcAddress, Icmpv6Header::ICMPV6_MALFORMED_HEADER, offset + 1);
-      m_dropTrace (packet);
+      dropReason = Ipv6L3Protocol::DROP_MALFORMED_HEADER;
       isDropped = true;
+      stopProcessing = true;
       return routingHeader.GetSerializedSize ();
     }
 
@@ -932,8 +982,9 @@ uint8_t Ipv6ExtensionLooseRouting::Process (Ptr<Packet>& packet, uint8_t offset,
     {
       NS_LOG_LOGIC ("Malformed header. Drop!");
       icmpv6->SendErrorParameterError (malformedPacket, srcAddress, Icmpv6Header::ICMPV6_MALFORMED_HEADER, offset + 3);
-      m_dropTrace (packet);
+      dropReason = Ipv6L3Protocol::DROP_MALFORMED_HEADER;
       isDropped = true;
+      stopProcessing = true;
       return routingHeader.GetSerializedSize ();
     }
 
@@ -943,8 +994,9 @@ uint8_t Ipv6ExtensionLooseRouting::Process (Ptr<Packet>& packet, uint8_t offset,
 
   if (nextAddress.IsMulticast () || destAddress.IsMulticast ())
     {
-      m_dropTrace (packet);
+      dropReason = Ipv6L3Protocol::DROP_MALFORMED_HEADER;
       isDropped = true;
+      stopProcessing = true;
       return routingHeader.GetSerializedSize ();
     }
 
@@ -955,8 +1007,9 @@ uint8_t Ipv6ExtensionLooseRouting::Process (Ptr<Packet>& packet, uint8_t offset,
     {
       NS_LOG_LOGIC ("Time Exceeded : Hop Limit <= 1. Drop!");
       icmpv6->SendErrorTimeExceeded (malformedPacket, srcAddress, Icmpv6Header::ICMPV6_HOPLIMIT);
-      m_dropTrace (packet);
+      dropReason = Ipv6L3Protocol::DROP_MALFORMED_HEADER;
       isDropped = true;
+      stopProcessing = true;
       return routingHeader.GetSerializedSize ();
     }
 
@@ -1023,11 +1076,18 @@ uint8_t Ipv6ExtensionESP::GetExtensionNumber () const
   return EXT_NUMBER;
 }
 
-uint8_t Ipv6ExtensionESP::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionESP::Process (Ptr<Packet>& packet,
+                                   uint8_t offset,
+                                   Ipv6Header const& ipv6Header,
+                                   Ipv6Address dst,
+                                   uint8_t *nextHeader,
+                                   bool& stopProcessing,
+                                   bool& isDropped,
+                                   Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
-  /* TODO */
+  /** \todo */
 
   return 0;
 }
@@ -1061,11 +1121,18 @@ uint8_t Ipv6ExtensionAH::GetExtensionNumber () const
   return EXT_NUMBER;
 }
 
-uint8_t Ipv6ExtensionAH::Process (Ptr<Packet>& packet, uint8_t offset, Ipv6Header const& ipv6Header, Ipv6Address dst, uint8_t *nextHeader, bool& isDropped)
+uint8_t Ipv6ExtensionAH::Process (Ptr<Packet>& packet,
+                                  uint8_t offset,
+                                  Ipv6Header const& ipv6Header,
+                                  Ipv6Address dst,
+                                  uint8_t *nextHeader,
+                                  bool& stopProcessing,
+                                  bool& isDropped,
+                                  Ipv6L3Protocol::DropReason& dropReason)
 {
   NS_LOG_FUNCTION (this << packet << offset << ipv6Header << dst << nextHeader << isDropped);
 
-  /* TODO */
+  /** \todo */
 
   return true;
 }

@@ -2,7 +2,7 @@
 
 def build(bld):
 
-    module = bld.create_ns3_module('spectrum', ['internet', 'propagation', 'antenna', 'applications'])
+    module = bld.create_ns3_module('spectrum', ['propagation', 'antenna'])
     module.source = [
         'model/spectrum-model.cc',
         'model/spectrum-value.cc',
@@ -39,9 +39,10 @@ def build(bld):
         'test/spectrum-interference-test.cc',
         'test/spectrum-value-test.cc',
         'test/spectrum-ideal-phy-test.cc',
+        'test/spectrum-waveform-generator-test.cc',
         ]
     
-    headers = bld.new_task_gen(features=['ns3header'])
+    headers = bld(features='ns3header')
     headers.module = 'spectrum'
     headers.source = [
         'model/spectrum-model.h',
@@ -76,7 +77,7 @@ def build(bld):
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):
-        bld.add_subdirs('examples')
+        bld.recurse('examples')
 
 
     bld.ns3_python_bindings()

@@ -23,10 +23,17 @@
 #include "candidate-queue.h"
 #include "global-route-manager-impl.h"
 
-NS_LOG_COMPONENT_DEFINE ("CandidateQueue");
-
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("CandidateQueue");
+
+/**
+ * \brief Stream insertion operator.
+ *
+ * \param os the reference to the output stream
+ * \param t the SPFVertex type
+ * \returns the reference to the output stream
+ */
 std::ostream&
 operator<< (std::ostream& os, const SPFVertex::VertexType& t)
 {
@@ -61,19 +68,19 @@ operator<< (std::ostream& os, const CandidateQueue& q)
 CandidateQueue::CandidateQueue()
   : m_candidates ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 CandidateQueue::~CandidateQueue()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   Clear ();
 }
 
 void
 CandidateQueue::Clear (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   while (!m_candidates.empty ())
     {
       SPFVertex *p = Pop ();
@@ -97,7 +104,7 @@ CandidateQueue::Push (SPFVertex *vNew)
 SPFVertex *
 CandidateQueue::Pop (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   if (m_candidates.empty ())
     {
       return 0;
@@ -111,7 +118,7 @@ CandidateQueue::Pop (void)
 SPFVertex *
 CandidateQueue::Top (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   if (m_candidates.empty ())
     {
       return 0;
@@ -123,21 +130,21 @@ CandidateQueue::Top (void) const
 bool
 CandidateQueue::Empty (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_candidates.empty ();
 }
 
 uint32_t
 CandidateQueue::Size (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_candidates.size ();
 }
 
 SPFVertex *
 CandidateQueue::Find (const Ipv4Address addr) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   CandidateList_t::const_iterator i = m_candidates.begin ();
 
   for (; i != m_candidates.end (); i++)
@@ -155,7 +162,7 @@ CandidateQueue::Find (const Ipv4Address addr) const
 void
 CandidateQueue::Reorder (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   m_candidates.sort (&CandidateQueue::CompareSPFVertex);
   NS_LOG_LOGIC ("After reordering the CandidateQueue");

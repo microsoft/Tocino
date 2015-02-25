@@ -21,10 +21,10 @@
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/mobility-module.h"
-#include "ns3/lte-module.h"
 #include "ns3/config-store.h"
 #include <ns3/buildings-helper.h>
 #include <ns3/hybrid-buildings-propagation-loss-model.h>
+#include <ns3/constant-position-mobility-model.h>
 
 #include <iomanip>
 #include <string>
@@ -64,15 +64,17 @@ main (int argc, char *argv[])
     NS_FATAL_ERROR ("Can't open output file");
   }
   
-  Ptr<BuildingsMobilityModel> mmEnb = CreateObject<BuildingsMobilityModel> ();
+  Ptr<ConstantPositionMobilityModel> mmEnb = CreateObject<ConstantPositionMobilityModel> ();
   mmEnb->SetPosition (Vector (0.0, 0.0, hEnb));
   if (enbIndoor)
     {
-      Ptr<Building> building1 = Create<Building> (-2, 2, -2, 2, 0.0, 20.0);
+      Ptr<Building> building1 = CreateObject<Building> (-2, 2, -2, 2, 0.0, 20.0);
       building1->SetBuildingType (Building::Residential);
       building1->SetExtWallsType (Building::ConcreteWithWindows);
     }
-
+  
+  Ptr<MobilityBuildingInfo> buildingInfoEnb = CreateObject<MobilityBuildingInfo> ();
+  mmEnb->AggregateObject (buildingInfoEnb); // operation usually done by BuildingsHelper::Install
   BuildingsHelper::MakeConsistent (mmEnb);
   
   Ptr<HybridBuildingsPropagationLossModel> propagationLossModel = CreateObject<HybridBuildingsPropagationLossModel> ();
@@ -86,8 +88,10 @@ main (int argc, char *argv[])
   //for (uint8_t i = 0; i < 23; i++)
   for (uint32_t i = 1; i < 2300; i++)
     {
-      Ptr<BuildingsMobilityModel> mmUe = CreateObject<BuildingsMobilityModel> ();
-      mmUe->SetPosition (Vector (i, 0.0, hUe));      
+      Ptr<ConstantPositionMobilityModel> mmUe = CreateObject<ConstantPositionMobilityModel> ();
+      mmUe->SetPosition (Vector (i, 0.0, hUe));
+      Ptr<MobilityBuildingInfo> buildingInfoUe = CreateObject<MobilityBuildingInfo> ();
+      mmUe->AggregateObject (buildingInfoUe); // operation usually done by BuildingsHelper::Install
       BuildingsHelper::MakeConsistent (mmUe);
       double loss = propagationLossModel->GetLoss (mmEnb, mmUe);
       outFile << i << "\t"

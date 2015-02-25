@@ -21,6 +21,7 @@
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
+#include "ns3/names.h"
 
 #include "ipv6-l3-protocol.h" 
 #include "icmpv6-l4-protocol.h"
@@ -149,6 +150,49 @@ uint32_t NdiscCache::GetUnresQlen ()
   return m_unresQlen;
 }
 
+void NdiscCache::PrintNdiscCache (Ptr<OutputStreamWrapper> stream)
+{
+  NS_LOG_FUNCTION (this << stream);
+  std::ostream* os = stream->GetStream ();
+
+  for (CacheI i = m_ndCache.begin (); i != m_ndCache.end (); i++)
+    {
+      *os << i->first << " dev ";
+      std::string found = Names::FindName (m_device);
+      if (Names::FindName (m_device) != "")
+        {
+          *os << found;
+        }
+      else
+        {
+          *os << static_cast<int> (m_device->GetIfIndex ());
+        }
+
+      *os << " lladdr " << i->second->GetMacAddress ();
+
+      if (i->second->IsReachable ())
+        {
+          *os << " REACHABLE\n";
+        }
+      else if (i->second->IsDelay ())
+        {
+          *os << " DELAY\n";
+        }
+      else if (i->second->IsIncomplete ())
+        {
+          *os << " INCOMPLETE\n";
+        }
+      else if (i->second->IsProbe ())
+        {
+          *os << " PROBE\n";
+        }
+      else
+        {
+          *os << " STALE\n";
+        }
+    }
+}
+
 NdiscCache::Entry::Entry (NdiscCache* nd)
   : m_ndCache (nd),
     m_waiting (),
@@ -182,7 +226,7 @@ void NdiscCache::Entry::AddWaitingPacket (Ptr<Packet> p)
   if (m_waiting.size () >= m_ndCache->GetUnresQlen ())
     {
       /* we store only m_unresQlen packet => first packet in first packet remove */
-      /* XXX report packet as 'dropped' */
+      /** \todo report packet as 'dropped' */
       m_waiting.remove (0);
     }
   m_waiting.push_back (p);
@@ -191,7 +235,7 @@ void NdiscCache::Entry::AddWaitingPacket (Ptr<Packet> p)
 void NdiscCache::Entry::ClearWaitingPacket ()
 {
   NS_LOG_FUNCTION_NOARGS ();
-  /* XXX report packets as 'dropped' */
+  /** \todo report packets as 'dropped' */
   m_waiting.clear ();
 }
 
@@ -367,6 +411,10 @@ void NdiscCache::Entry::UpdateLastReachabilityconfirmation ()
 void NdiscCache::Entry::StartReachableTimer ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  if (m_reachableTimer.IsRunning ())
+    {
+      m_reachableTimer.Cancel ();
+    }
   m_reachableTimer.SetFunction (&NdiscCache::Entry::FunctionReachableTimeout, this);
   m_reachableTimer.SetDelay (MilliSeconds (Icmpv6L4Protocol::REACHABLE_TIME));
   m_reachableTimer.Schedule ();
@@ -381,6 +429,10 @@ void NdiscCache::Entry::StopReachableTimer ()
 void NdiscCache::Entry::StartProbeTimer ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  if (m_probeTimer.IsRunning ())
+    {
+      m_probeTimer.Cancel ();
+    }
   m_probeTimer.SetFunction (&NdiscCache::Entry::FunctionProbeTimeout, this);
   m_probeTimer.SetDelay (MilliSeconds (Icmpv6L4Protocol::RETRANS_TIMER));
   m_probeTimer.Schedule ();
@@ -397,6 +449,10 @@ void NdiscCache::Entry::StopProbeTimer ()
 void NdiscCache::Entry::StartDelayTimer ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  if (m_delayTimer.IsRunning ())
+    {
+      m_delayTimer.Cancel ();
+    }
   m_delayTimer.SetFunction (&NdiscCache::Entry::FunctionDelayTimeout, this);
   m_delayTimer.SetDelay (Seconds (Icmpv6L4Protocol::DELAY_FIRST_PROBE_TIME));
   m_delayTimer.Schedule ();
@@ -412,6 +468,10 @@ void NdiscCache::Entry::StopDelayTimer ()
 void NdiscCache::Entry::StartRetransmitTimer ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  if (m_retransTimer.IsRunning ())
+    {
+      m_retransTimer.Cancel ();
+    }
   m_retransTimer.SetFunction (&NdiscCache::Entry::FunctionRetransmitTimeout, this);
   m_retransTimer.SetDelay (MilliSeconds (Icmpv6L4Protocol::RETRANS_TIMER));
   m_retransTimer.Schedule ();

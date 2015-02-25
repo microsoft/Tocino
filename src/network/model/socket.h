@@ -30,6 +30,8 @@
 #include "ns3/net-device.h"
 #include "address.h"
 #include <stdint.h>
+#include "ns3/inet-socket-address.h"
+#include "ns3/inet6-socket-address.h"
 
 namespace ns3 {
 
@@ -64,11 +66,19 @@ class Packet;
 class Socket : public Object
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
 
   Socket (void);
   virtual ~Socket (void);
 
+  /**
+   * \enum SocketErrno
+   * \brief Enumeration of the possible errors returned by a socket.
+   */
   enum SocketErrno {
     ERROR_NOTERROR,
     ERROR_ISCONN,
@@ -87,6 +97,10 @@ public:
     SOCKET_ERRNO_LAST
   };
 
+  /**
+   * \enum SocketType
+   * \brief Enumeration of the possible socket types.
+   */
   enum SocketType {
     NS3_SOCK_STREAM,
     NS3_SOCK_SEQPACKET,
@@ -105,6 +119,8 @@ public:
    */
   static Ptr<Socket> CreateSocket (Ptr<Node> node, TypeId tid);
   /**
+   * \brief Get last error number.
+   *
    * \return the errno associated to the last call which failed in this
    *         socket. Each socket's errno is initialized to zero
    *         when the socket is created.
@@ -115,7 +131,8 @@ public:
     */
   virtual enum Socket::SocketType GetSocketType (void) const = 0;
   /**
-   * \returns the node this socket is associated with.
+   * \brief Return the node this socket is associated with.
+   * \returns the node
    */
   virtual Ptr<Node> GetNode (void) const = 0;
   /**
@@ -251,6 +268,7 @@ public:
   /**
    * \brief Initiate a connection to a remote host
    * \param address Address of remote.
+   * \returns 0 on success, -1 on error (in which case errno is set).
    */
   virtual int Connect (const Address &address) = 0;
 
@@ -269,6 +287,8 @@ public:
    *
    * For stream sockets, this returns the available space in bytes
    * left in the transmit buffer.
+   *
+   * \returns The number of bytes which can be sent in a single Send call.
    */
   virtual uint32_t GetTxAvailable (void) const = 0;
  
@@ -339,6 +359,9 @@ public:
    * Return number of bytes which can be returned from one or 
    * multiple calls to Recv.
    * Must be possible to call this method from the Recv callback.
+   *
+   * \returns the number of bytes which can be returned from one or
+   *          multiple Recv calls.
    */
   virtual uint32_t GetRxAvailable (void) const = 0;
 
@@ -444,6 +467,8 @@ public:
    * second parameter
    * \param size the number of bytes to copy from the buffer
    * \param flags Socket control flags
+   * \returns the number of bytes accepted for transmission if no error
+   *          occurs, and -1 otherwise.
    */
   int Send (const uint8_t* buf, uint32_t size, uint32_t flags);
 
@@ -529,6 +554,7 @@ public:
   int RecvFrom (uint8_t* buf, uint32_t size, uint32_t flags,
                 Address &fromAddress);
   /**
+   * \brief Get socket address.
    * \param address the address name this socket is associated with.
    * \returns 0 if success, -1 otherwise
    */
@@ -549,6 +575,9 @@ public:
    * Socket::Bind (address) and Socket::BindToNetDevice (device), but it
    * is also possible to bind to mismatching device and address, even if
    * the socket can not receive any packets as a result.
+   *
+   * \warning BindToNetDevice should be used \a after Bind. Otherwise
+   * it will perform a Bind itself.
    *
    * \param netdevice Pointer to Netdevice of desired interface
    * \returns nothing
@@ -610,31 +639,309 @@ public:
    * \returns True if packet information should be sent to socket
    */
   bool IsRecvPktInfo () const;
+
+  /**
+   * \brief Manually set IP Type of Service field
+   * 
+   * This method corresponds to using setsockopt () IP_TOS of
+   * real network or BSD sockets. This option is for IPv4 only.
+   * Setting the IP TOS should also change the socket queueing
+   * priority as stated in the man page. However, socket priority
+   * is not yet supported.
+   *
+   * \param ipTos The desired TOS value for IP headers
+   */
+  void SetIpTos (uint8_t ipTos);
+
+  /**
+   * \brief Query the value of IP Type of Service of this socket
+   *
+   * This method corresponds to using getsockopt () IP_TOS of real network
+   * or BSD sockets.
+   *
+   * \return The raw IP TOS value
+   */
+  uint8_t GetIpTos (void) const;
+
+  /**
+   * \brief Tells a socket to pass information about IP Type of Service up the stack
+   *
+   * This method corresponds to using setsockopt () IP_RECVTOS of real
+   * network or BSD sockets. In our implementation, the socket simply 
+   * adds a SocketIpTosTag tag to the packet before passing the
+   * packet up the stack.
+   *
+   * \param ipv4RecvTos Whether the socket should add SocketIpv4TosTag tag
+   * to the packet
+   */
+  void SetIpRecvTos (bool ipv4RecvTos);
+
+  /**
+   * \brief Ask if the socket is currently passing information about IP Type of Service up the stack
+   *
+   * This method corresponds to using getsockopt () IP_RECVTOS of real
+   * network or BSD sockets.
+   *
+   * \return Whether the IP_RECVTOS is set
+   */
+  bool IsIpRecvTos (void) const;
+
+  /**
+   * \brief Manually set IPv6 Traffic Class field
+   * 
+   * This method corresponds to using setsockopt () IPV6_TCLASS of
+   * real network or BSD sockets. This option is for IPv6 only.
+   * Setting the IPV6_TCLASSS to -1 clears the option and let the socket
+   * uses the default value.
+   *
+   * \param ipTclass The desired TCLASS value for IPv6 headers
+   */
+  void SetIpv6Tclass (int ipTclass);
+
+  /**
+   * \brief Query the value of IPv6 Traffic Class field of this socket
+   *
+   * This method corresponds to using getsockopt () IPV6_TCLASS of real network
+   * or BSD sockets.
+   *
+   * \return The raw IPV6_TCLASS value
+   */
+  uint8_t GetIpv6Tclass (void) const;
+
+  /**
+   * \brief Tells a socket to pass information about IPv6 Traffic Class up the stack
+   *
+   * This method corresponds to using setsockopt () IPV6_RECVTCLASS of real
+   * network or BSD sockets. In our implementation, the socket simply 
+   * adds a SocketIpv6TclasssTag tag to the packet before passing the
+   * packet up the stack.
+   *
+   * \param ipv6RecvTclass Whether the socket should add SocketIpv6TclassTag tag
+   * to the packet
+   */
+  void SetIpv6RecvTclass (bool ipv6RecvTclass);
+
+  /**
+   * \brief Ask if the socket is currently passing information about IPv6 Traffic Class up the stack
+   *
+   * This method corresponds to using getsockopt () IPV6_RECVTCLASS of real
+   * network or BSD sockets.
+   *
+   * \return Whether the IPV6_RECVTCLASS is set
+   */
+  bool IsIpv6RecvTclass (void) const;
+
+  /**
+   * \brief Manually set IP Time to Live field
+   * 
+   * This method corresponds to using setsockopt () IP_TTL of
+   * real network or BSD sockets.
+   *
+   * \param ipTtl The desired TTL value for IP headers
+   */
+  virtual void SetIpTtl (uint8_t ipTtl);
+
+  /**
+   * \brief Query the value of IP Time to Live field of this socket
+   *
+   * This method corresponds to using getsockopt () IP_TTL of real network
+   * or BSD sockets.
+   *
+   * \return The raw IP TTL value
+   */
+  virtual uint8_t GetIpTtl (void) const;
+
+  /**
+   * \brief Tells a socket to pass information about IP_TTL up the stack
+   *
+   * This method corresponds to using setsockopt () IP_RECVTTL of real
+   * network or BSD sockets. In our implementation, the socket simply 
+   * adds a SocketIpTtlTag tag to the packet before passing the
+   * packet up the stack.
+   *
+   * \param ipv4RecvTtl Whether the socket should add SocketIpv4TtlTag tag
+   * to the packet
+   */
+  void SetIpRecvTtl (bool ipv4RecvTtl);
+
+  /**
+   * \brief Ask if the socket is currently passing information about IP_TTL up the stack
+   *
+   * This method corresponds to using getsockopt () IP_RECVTTL of real
+   * network or BSD sockets.
+   *
+   * \return Whether the IP_RECVTTL is set
+   */
+  bool IsIpRecvTtl (void) const;
+
+  /**
+   * \brief Manually set IPv6 Hop Limit
+   * 
+   * This method corresponds to using setsockopt () IPV6_HOPLIMIT of
+   * real network or BSD sockets.
+   *
+   * \param ipHopLimit The desired Hop Limit value for IPv6 headers
+   */
+  virtual void SetIpv6HopLimit (uint8_t ipHopLimit);
+
+  /**
+   * \brief Query the value of IP Hop Limit field of this socket
+   *
+   * This method corresponds to using getsockopt () IPV6_HOPLIMIT of real network
+   * or BSD sockets.
+   *
+   * \return The raw IPv6 Hop Limit value
+   */
+  virtual uint8_t GetIpv6HopLimit (void) const;
+
+  /**
+   * \brief Tells a socket to pass information about IPv6 Hop Limit up the stack
+   *
+   * This method corresponds to using setsockopt () IPV6_RECVHOPLIMIT of real
+   * network or BSD sockets. In our implementation, the socket simply 
+   * adds a SocketIpv6HopLimitTag tag to the packet before passing the
+   * packet up the stack.
+   *
+   * \param ipv6RecvHopLimit Whether the socket should add SocketIpv6HopLimitTag tag
+   * to the packet
+   */
+  void SetIpv6RecvHopLimit (bool ipv6RecvHopLimit);
+
+  /**
+   * \brief Ask if the socket is currently passing information about IPv6 Hop Limit up the stack
+   *
+   * This method corresponds to using getsockopt () IPV6_RECVHOPLIMIT of real
+   * network or BSD sockets.
+   *
+   * \return Whether the IPV6_RECVHOPLIMIT is set
+   */
+  bool IsIpv6RecvHopLimit (void) const;
  
 protected:
+  /**
+   * \brief Notify through the callback (if set) that the connection has been
+   *        established.
+   */
   void NotifyConnectionSucceeded (void);
-  void NotifyConnectionFailed (void);
-  void NotifyNormalClose (void);
-  void NotifyErrorClose (void);
-  bool NotifyConnectionRequest (const Address &from);
-  void NotifyNewConnectionCreated (Ptr<Socket> socket, const Address &from);
-  void NotifyDataSent (uint32_t size);
-  void NotifySend (uint32_t spaceAvailable);
-  void NotifyDataRecv (void);
-  virtual void DoDispose (void);
-  Ptr<NetDevice> m_boundnetdevice;
-  bool m_recvPktInfo;
-private:
-  Callback<void, Ptr<Socket> >                   m_connectionSucceeded;
-  Callback<void, Ptr<Socket> >                   m_connectionFailed;
-  Callback<void, Ptr<Socket> >                   m_normalClose;
-  Callback<void, Ptr<Socket> >                   m_errorClose;
-  Callback<bool, Ptr<Socket>, const Address &>   m_connectionRequest;
-  Callback<void, Ptr<Socket>, const Address&>    m_newConnectionCreated;
-  Callback<void, Ptr<Socket>, uint32_t>          m_dataSent;
-  Callback<void, Ptr<Socket>, uint32_t >         m_sendCb;
-  Callback<void, Ptr<Socket> >                   m_receivedData;
 
+  /**
+   * \brief Notify through the callback (if set) that the connection has not been
+   *        established due to an error.
+   */
+  void NotifyConnectionFailed (void);
+
+  /**
+   * \brief Notify through the callback (if set) that the connection has been
+   *        closed.
+   */
+  void NotifyNormalClose (void);
+
+  /**
+   * \brief Notify through the callback (if set) that the connection has been
+   *        closed due to an error.
+   */
+  void NotifyErrorClose (void);
+
+  /**
+   * \brief Notify through the callback (if set) that an incoming connection
+   *        is being requested by a remote host.
+   *
+   * This function returns true by default (i.e., accept all the incoming connections).
+   * The callback (if set) might restrict this behaviour by returning zero for a
+   * connection that should be refused.
+   *
+   * \param from the address the connection is incoming from
+   * \returns true if the connection must be accepted, false otherwise.
+   */
+  bool NotifyConnectionRequest (const Address &from);
+
+  /**
+   * \brief Notify through the callback (if set) that a new connection has been
+   *        created.
+   */
+  void NotifyNewConnectionCreated (Ptr<Socket> socket, const Address &from);
+
+  /**
+   * \brief Notify through the callback (if set) that some data have been sent.
+   *
+   * \param size number of sent bytes.
+   */
+  void NotifyDataSent (uint32_t size);
+
+  /**
+   * \brief Notify through the callback (if set) that some data have been sent.
+   *
+   * \param spaceAvailable the number of bytes available in the transmission buffer.
+   */
+  void NotifySend (uint32_t spaceAvailable);
+
+  /**
+   * \brief Notify through the callback (if set) that some data have been received.
+   */
+  void NotifyDataRecv (void);
+
+  // inherited function, no doc necessary
+  virtual void DoDispose (void);
+
+  /**
+   * \brief Checks if the socket has a specific IPv4 ToS set
+   *
+   * \returns true if the socket has a IPv4 ToS set, false otherwise.
+   */
+  bool IsManualIpTos (void) const;
+
+  /**
+   * \brief Checks if the socket has a specific IPv6 Tclass set
+   *
+   * \returns true if the socket has a IPv6 Tclass set, false otherwise.
+   */
+  bool IsManualIpv6Tclass (void) const;
+
+  /**
+   * \brief Checks if the socket has a specific IPv4 TTL set
+   *
+   * \returns true if the socket has a IPv4 TTL set, false otherwise.
+   */
+  bool IsManualIpTtl (void) const;
+
+  /**
+   * \brief Checks if the socket has a specific IPv6 Hop Limit set
+   *
+   * \returns true if the socket has a IPv6 Hop Limit set, false otherwise.
+   */
+  bool IsManualIpv6HopLimit (void) const;
+
+  Ptr<NetDevice> m_boundnetdevice; //!< the device this socket is bound to (might be null).
+  bool m_recvPktInfo; //!< if the socket should add packet info tags to the packet forwarded to L4.
+
+private:
+  Callback<void, Ptr<Socket> >                   m_connectionSucceeded;  //!< connection succeeded callback
+  Callback<void, Ptr<Socket> >                   m_connectionFailed;     //!< connection failed callback
+  Callback<void, Ptr<Socket> >                   m_normalClose;          //!< connection closed callback
+  Callback<void, Ptr<Socket> >                   m_errorClose;           //!< connection closed due to errors callback
+  Callback<bool, Ptr<Socket>, const Address &>   m_connectionRequest;    //!< connection request callback
+  Callback<void, Ptr<Socket>, const Address&>    m_newConnectionCreated; //!< connection created callback
+  Callback<void, Ptr<Socket>, uint32_t>          m_dataSent;             //!< data sent callback
+  Callback<void, Ptr<Socket>, uint32_t >         m_sendCb;               //!< packet sent callback
+  Callback<void, Ptr<Socket> >                   m_receivedData;         //!< data received callback
+
+  //IPv4 options
+  bool m_manualIpTos; //!< socket has IPv4 TOS set
+  bool m_manualIpTtl; //!< socket has IPv4 TTL set
+  bool m_ipRecvTos;   //!< socket forwards IPv4 TOS tag to L4
+  bool m_ipRecvTtl;   //!< socket forwards IPv4 TTL tag to L4
+
+  uint8_t m_ipTos; //!< the socket IPv4 TOS
+  uint8_t m_ipTtl; //!< the socket IPv4 TTL
+
+  //IPv6 options
+  bool m_manualIpv6Tclass;    //!< socket has IPv6 Tclass set
+  bool m_manualIpv6HopLimit;  //!< socket has IPv6 Hop Limit set
+  bool m_ipv6RecvTclass;      //!< socket forwards IPv6 Tclass tag to L4
+  bool m_ipv6RecvHopLimit;    //!< socket forwards IPv6 Hop Limit tag to L4
+
+  uint8_t m_ipv6Tclass;     //!< the socket IPv6 Tclass
+  uint8_t m_ipv6HopLimit;   //!< the socket IPv6 Hop Limit
 };
 
 /**
@@ -645,18 +952,44 @@ class SocketAddressTag : public Tag
 {
 public:
   SocketAddressTag ();
+
+  /**
+   * \brief Set the tag's address
+   *
+   * \param addr the address
+   */
   void SetAddress (Address addr);
+
+  /**
+   * \brief Get the tag's address
+   *
+   * \returns the address
+   */
   Address GetAddress (void) const;
 
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
+
+  // inherited function, no need to doc.
   virtual TypeId GetInstanceTypeId (void) const;
+
+  // inherited function, no need to doc.
   virtual uint32_t GetSerializedSize (void) const;
+
+  // inherited function, no need to doc.
   virtual void Serialize (TagBuffer i) const;
+
+  // inherited function, no need to doc.
   virtual void Deserialize (TagBuffer i);
+
+  // inherited function, no need to doc.
   virtual void Print (std::ostream &os) const;
 
 private:
-  Address m_address;
+  Address m_address; //!< the address carried by the tag
 };
 
 /**
@@ -667,41 +1000,236 @@ class SocketIpTtlTag : public Tag
 {
 public:
   SocketIpTtlTag ();
+
+  /**
+   * \brief Set the tag's TTL
+   *
+   * \param ttl the TTL
+   */
   void SetTtl (uint8_t ttl);
+
+  /**
+   * \brief Get the tag's TTL
+   *
+   * \returns the TTL
+   */
   uint8_t GetTtl (void) const;
 
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
+
+  // inherited function, no need to doc.
   virtual TypeId GetInstanceTypeId (void) const;
+
+  // inherited function, no need to doc.
   virtual uint32_t GetSerializedSize (void) const;
+
+  // inherited function, no need to doc.
   virtual void Serialize (TagBuffer i) const;
+
+  // inherited function, no need to doc.
   virtual void Deserialize (TagBuffer i);
+
+  // inherited function, no need to doc.
   virtual void Print (std::ostream &os) const;
 
 private:
-  uint8_t m_ttl;
+  uint8_t m_ttl; //!< the ttl carried by the tag
 };
 
+/**
+ * \brief This class implements a tag that carries the socket-specific
+ * HOPLIMIT of a packet to the IPv6 layer
+ */
+class SocketIpv6HopLimitTag : public Tag
+{
+public:
+  SocketIpv6HopLimitTag ();
+
+  /**
+   * \brief Set the tag's Hop Limit
+   *
+   * \param hopLimit the Hop Limit
+   */
+  void SetHopLimit (uint8_t hopLimit);
+
+  /**
+   * \brief Get the tag's Hop Limit
+   *
+   * \returns the Hop Limit
+   */
+  uint8_t GetHopLimit (void) const;
+
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  // inherited function, no need to doc.
+  virtual TypeId GetInstanceTypeId (void) const;
+
+  // inherited function, no need to doc.
+  virtual uint32_t GetSerializedSize (void) const;
+
+  // inherited function, no need to doc.
+  virtual void Serialize (TagBuffer i) const;
+
+  // inherited function, no need to doc.
+  virtual void Deserialize (TagBuffer i);
+
+  // inherited function, no need to doc.
+  virtual void Print (std::ostream &os) const;
+
+private:
+  uint8_t m_hopLimit; //!< the Hop Limit carried by the tag
+};
 
 /**
- * \brief indicated whether packets should be sent out with
- * the DF flag set.
+ * \brief indicates whether packets should be sent out with
+ * the DF (Don't Fragment) flag set.
  */
 class SocketSetDontFragmentTag : public Tag
 {
 public:
   SocketSetDontFragmentTag ();
+
+  /**
+   * \brief Enables the DF (Don't Fragment) flag
+   */
   void Enable (void);
+
+  /**
+   * \brief Disables the DF (Don't Fragment) flag
+   */
   void Disable (void);
+
+  /**
+   * \brief Checks if the DF (Don't Fragment) flag is set
+   *
+   * \returns true if DF is set.
+   */
   bool IsEnabled (void) const;
 
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
+
+  // inherited function, no need to doc.
   virtual TypeId GetInstanceTypeId (void) const;
+
+  // inherited function, no need to doc.
   virtual uint32_t GetSerializedSize (void) const;
+
+  // inherited function, no need to doc.
   virtual void Serialize (TagBuffer i) const;
+
+  // inherited function, no need to doc.
   virtual void Deserialize (TagBuffer i);
+
+  // inherited function, no need to doc.
   virtual void Print (std::ostream &os) const;
 private:
-  bool m_dontFragment;
+  bool m_dontFragment; //!< DF bit value for outgoing packets.
+};
+
+/**
+ * \brief indicates whether the socket has IP_TOS set.
+ * This tag is for IPv4 socket.
+ */
+class SocketIpTosTag : public Tag
+{
+public:
+  SocketIpTosTag ();
+
+  /**
+   * \brief Set the tag's TOS
+   *
+   * \param tos the TOS
+   */
+  void SetTos (uint8_t tos);
+
+  /**
+   * \brief Get the tag's TOS
+   *
+   * \returns the TOS
+   */
+  uint8_t GetTos (void) const;
+  
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  // inherited function, no need to doc.
+  virtual TypeId GetInstanceTypeId (void) const;
+
+  // inherited function, no need to doc.
+  virtual uint32_t GetSerializedSize (void) const;
+
+  // inherited function, no need to doc.
+  virtual void Serialize (TagBuffer i) const;
+
+  // inherited function, no need to doc.
+  virtual void Deserialize (TagBuffer i);
+
+  // inherited function, no need to doc.
+  virtual void Print (std::ostream &os) const;
+private:
+  uint8_t m_ipTos;  //!< the TOS carried by the tag
+};
+
+/**
+ * \brief indicates whether the socket has IPV6_TCLASS set.
+ * This tag is for IPv6 socket.
+ */
+class SocketIpv6TclassTag : public Tag
+{
+public:
+  SocketIpv6TclassTag ();
+
+  /**
+   * \brief Set the tag's Tclass
+   *
+   * \param tclass the Tclass
+   */
+  void SetTclass (uint8_t tclass);
+
+  /**
+   * \brief Get the tag's Tclass
+   *
+   * \returns the Tclass
+   */
+  uint8_t GetTclass (void) const;
+  
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  // inherited function, no need to doc.
+  virtual TypeId GetInstanceTypeId (void) const;
+
+  // inherited function, no need to doc.
+  virtual uint32_t GetSerializedSize (void) const;
+
+  // inherited function, no need to doc.
+  virtual void Serialize (TagBuffer i) const;
+
+  // inherited function, no need to doc.
+  virtual void Deserialize (TagBuffer i);
+
+  // inherited function, no need to doc.
+  virtual void Print (std::ostream &os) const;
+private:
+  uint8_t m_ipv6Tclass; //!< the Tclass carried by the tag
 };
 
 } // namespace ns3

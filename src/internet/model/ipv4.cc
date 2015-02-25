@@ -22,8 +22,11 @@
 #include "ns3/node.h" 
 #include "ns3/boolean.h"
 #include "ipv4.h"
+#include "ns3/log.h"
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Ipv4");
 
 NS_OBJECT_ENSURE_REGISTERED (Ipv4);
 
@@ -56,10 +59,12 @@ Ipv4::GetTypeId (void)
 
 Ipv4::Ipv4 ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 Ipv4::~Ipv4 ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 } // namespace ns3

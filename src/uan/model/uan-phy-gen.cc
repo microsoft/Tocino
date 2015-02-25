@@ -28,6 +28,7 @@
 #include "ns3/ptr.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/double.h"
+#include "ns3/string.h"
 #include "ns3/log.h"
 #include "ns3/uan-tx-mode.h"
 #include "ns3/node.h"
@@ -36,9 +37,9 @@
 #include "ns3/acoustic-modem-energy-model.h"
 
 
-NS_LOG_COMPONENT_DEFINE ("UanPhyGen");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("UanPhyGen");
 
 NS_OBJECT_ENSURE_REGISTERED (UanPhyGen);
 NS_OBJECT_ENSURE_REGISTERED (UanPhyPerGenDefault);
@@ -111,7 +112,7 @@ UanPhyCalcSinrFhFsk::GetTypeId (void)
     .SetParent<Object> ()
     .AddConstructor<UanPhyCalcSinrFhFsk> ()
     .AddAttribute ("NumberOfHops",
-                   "Number of frequencies in hopping pattern",
+                   "Number of frequencies in hopping pattern.",
                    UintegerValue (13),
                    MakeUintegerAccessor (&UanPhyCalcSinrFhFsk::m_hops),
                    MakeUintegerChecker<uint32_t> ())
@@ -144,9 +145,9 @@ UanPhyCalcSinrFhFsk::CalcSinrDb (Ptr<Packet> pkt,
   UanPdp::Iterator pit = pdp.GetBegin ();
   for (; pit != pdp.GetEnd (); pit++)
     {
-      if (abs (pit->GetAmp ()) > maxAmp)
+      if (std::abs (pit->GetAmp ()) > maxAmp)
         {
-          maxAmp = abs (pit->GetAmp ());
+          maxAmp = std::abs (pit->GetAmp ());
           maxTapDelay = pit->GetDelay ().GetSeconds ();
         }
     }
@@ -216,7 +217,7 @@ UanPhyPerGenDefault::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::UanPhyPerGenDefault")
     .SetParent<Object> ()
     .AddConstructor<UanPhyPerGenDefault> ()
-    .AddAttribute ("Threshold", "SINR cutoff for good packet reception",
+    .AddAttribute ("Threshold", "SINR cutoff for good packet reception.",
                    DoubleValue (8),
                    MakeDoubleAccessor (&UanPhyPerGenDefault::m_thresh),
                    MakeDoubleChecker<double> ());
@@ -432,49 +433,52 @@ UanPhyGen::GetTypeId (void)
     .SetParent<UanPhy> ()
     .AddConstructor<UanPhyGen> ()
     .AddAttribute ("CcaThreshold",
-                   "Aggregate energy of incoming signals to move to CCA Busy state dB",
+                   "Aggregate energy of incoming signals to move to CCA Busy state dB.",
                    DoubleValue (10),
                    MakeDoubleAccessor (&UanPhyGen::m_ccaThreshDb),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("RxThreshold",
-                   "Required SNR for signal acquisition in dB",
+                   "Required SNR for signal acquisition in dB.",
                    DoubleValue (10),
                    MakeDoubleAccessor (&UanPhyGen::m_rxThreshDb),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("TxPower",
-                   "Transmission output power in dB",
+                   "Transmission output power in dB.",
                    DoubleValue (190),
                    MakeDoubleAccessor (&UanPhyGen::m_txPwrDb),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("RxGain",
-                   "Gain added to incoming signal at receiver",
+                   "Gain added to incoming signal at receiver.",
                    DoubleValue (0),
                    MakeDoubleAccessor (&UanPhyGen::m_rxGainDb),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("SupportedModes",
-                   "List of modes supported by this PHY",
+                   "List of modes supported by this PHY.",
                    UanModesListValue (UanPhyGen::GetDefaultModes ()),
                    MakeUanModesListAccessor (&UanPhyGen::m_modes),
                    MakeUanModesListChecker () )
     .AddAttribute ("PerModel",
-                   "Functor to calculate PER based on SINR and TxMode",
-                   PointerValue (CreateObject<UanPhyPerGenDefault> ()),
+                   "Functor to calculate PER based on SINR and TxMode.",
+                   StringValue ("ns3::UanPhyPerGenDefault"),
                    MakePointerAccessor (&UanPhyGen::m_per),
                    MakePointerChecker<UanPhyPer> ())
     .AddAttribute ("SinrModel",
-                   "Functor to calculate SINR based on pkt arrivals and modes",
-                   PointerValue (CreateObject<UanPhyCalcSinrDefault> ()),
+                   "Functor to calculate SINR based on pkt arrivals and modes.",
+                   StringValue ("ns3::UanPhyCalcSinrDefault"),
                    MakePointerAccessor (&UanPhyGen::m_sinr),
                    MakePointerChecker<UanPhyCalcSinr> ())
     .AddTraceSource ("RxOk",
-                     "A packet was received successfully",
-                     MakeTraceSourceAccessor (&UanPhyGen::m_rxOkLogger))
+                     "A packet was received successfully.",
+                     MakeTraceSourceAccessor (&UanPhyGen::m_rxOkLogger),
+                     "ns3::UanPhy::TracedCallback")
     .AddTraceSource ("RxError",
-                     "A packet was received unsuccessfully",
-                     MakeTraceSourceAccessor (&UanPhyGen::m_rxErrLogger))
+                     "A packet was received unsuccessfully.",
+                     MakeTraceSourceAccessor (&UanPhyGen::m_rxErrLogger),
+                     "ns3::UanPhy::TracedCallback")
     .AddTraceSource ("Tx",
-                     "Packet transmission beginning",
-                     MakeTraceSourceAccessor (&UanPhyGen::m_txLogger))
+                     "Packet transmission beginning.",
+                     MakeTraceSourceAccessor (&UanPhyGen::m_txLogger),
+                     "ns3::UanPhy::TracedCallback")
   ;
   return tid;
 
@@ -895,7 +899,7 @@ UanPhyGen::NotifyIntChange (void)
 double
 UanPhyGen::CalculateSinrDb (Ptr<Packet> pkt, Time arrTime, double rxPowerDb, UanTxMode mode, UanPdp pdp)
 {
-  double noiseDb = m_channel->GetNoiseDbHz ( (double) mode.GetCenterFreqHz () / 1000.0) + 10 * log10 (mode.GetBandwidthHz ());
+  double noiseDb = m_channel->GetNoiseDbHz ( (double) mode.GetCenterFreqHz () / 1000.0) + 10 * std::log10 (mode.GetBandwidthHz ());
   return m_sinr->CalcSinrDb (pkt, arrTime, rxPowerDb, noiseDb, mode, pdp, m_transducer->GetArrivalList ());
 }
 
@@ -924,12 +928,12 @@ UanPhyGen::GetInterferenceDb (Ptr<Packet> pkt)
 double
 UanPhyGen::DbToKp (double db)
 {
-  return pow (10, db / 10.0);
+  return std::pow (10, db / 10.0);
 }
 double
 UanPhyGen::KpToDb (double kp)
 {
-  return 10 * log10 (kp);
+  return 10 * std::log10 (kp);
 }
 
 void

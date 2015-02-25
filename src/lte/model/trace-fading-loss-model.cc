@@ -30,15 +30,16 @@
 #include <fstream>
 #include <ns3/simulator.h>
 
-NS_LOG_COMPONENT_DEFINE ("TraceFadingLossModel");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("TraceFadingLossModel");
 
 NS_OBJECT_ENSURE_REGISTERED (TraceFadingLossModel);
   
 
 
 TraceFadingLossModel::TraceFadingLossModel ()
+  : m_streamsAssigned (false)
 {
   NS_LOG_FUNCTION (this);
   SetNext (NULL);
@@ -84,6 +85,11 @@ TraceFadingLossModel::GetTypeId (void)
                     UintegerValue (100),
                    MakeUintegerAccessor (&TraceFadingLossModel::m_rbNum),
                    MakeUintegerChecker<uint8_t> ())
+    .AddAttribute ("RngStreamSetSize",
+                    "The number of RNG streams reserved for the fading model. The maximum number of streams that are needed for an LTE FDD scenario is 2 * numUEs * numeNBs.",
+                    UintegerValue (200000),
+                   MakeUintegerAccessor (&TraceFadingLossModel::m_streamSetSize),
+                   MakeUintegerChecker<uint64_t> ())
   ;
   return tid;
 }
@@ -103,7 +109,7 @@ TraceFadingLossModel::SetTraceLength (Time t)
 }
 
 void 
-TraceFadingLossModel::DoStart ()
+TraceFadingLossModel::DoInitialize ()
 {
   LoadTrace ();
 }
@@ -155,12 +161,15 @@ TraceFadingLossModel::DoCalcRxPowerSpectralDensity (
     {
       if (Simulator::Now ().GetSeconds () >= m_lastWindowUpdate.GetSeconds () + m_windowSize.GetSeconds ())
         {
-          NS_LOG_INFO ("Fading Window Updated");
-          std::map <ChannelRealizationId_t, Ptr<UniformRandomVariable> >::iterator itVar;
-
-        itVar = m_startVariableMap.find (mobilityPair);
-        (*itOff).second = (*itVar).second->GetValue ();
-
+          // update all the offsets
+          NS_LOG_INFO ("Fading Windows Updated");
+          std::map <ChannelRealizationId_t, int >::iterator itOff2;
+          for (itOff2 = m_windowOffsetsMap.begin (); itOff2 != m_windowOffsetsMap.end (); itOff2++)
+            {
+              std::map <ChannelRealizationId_t, Ptr<UniformRandomVariable> >::iterator itVar;
+              itVar = m_startVariableMap.find ((*itOff2).first);
+              (*itOff2).second = (*itVar).second->GetValue ();
+            }
           m_lastWindowUpdate = Simulator::Now ();
         }
     }
@@ -170,6 +179,12 @@ TraceFadingLossModel::DoCalcRxPowerSpectralDensity (
       Ptr<UniformRandomVariable> startV = CreateObject<UniformRandomVariable> ();
       startV->SetAttribute ("Min", DoubleValue (1.0));
       startV->SetAttribute ("Max", DoubleValue ((m_traceLength.GetSeconds () - m_windowSize.GetSeconds ()) * 1000.0));
+      if (m_streamsAssigned)
+        {
+          NS_ASSERT_MSG (m_currentStream <= m_lastStream, "not enough streams, consider increasing the StreamSetSize attribute");
+          startV->SetStream (m_currentStream);
+          m_currentStream += 1;
+        }
       ChannelRealizationId_t mobilityPair = std::make_pair (a,b);
       m_startVariableMap.insert (std::pair<ChannelRealizationId_t,Ptr<UniformRandomVariable> > (mobilityPair, startV));
       m_windowOffsetsMap.insert (std::pair<ChannelRealizationId_t,int> (mobilityPair, startV->GetValue ()));
@@ -182,13 +197,13 @@ TraceFadingLossModel::DoCalcRxPowerSpectralDensity (
   //Vector aSpeedVector = a->GetVelocity ();
   //Vector bSpeedVector = b->GetVelocity ();
   
-  //double speed = sqrt (pow (aSpeedVector.x-bSpeedVector.x,2) +  pow (aSpeedVector.y-bSpeedVector.y,2));
+  //double speed = std::sqrt (std::pow (aSpeedVector.x-bSpeedVector.x,2) + std::pow (aSpeedVector.y-bSpeedVector.y,2));
 
   NS_LOG_LOGIC (this << *rxPsd);
   NS_ASSERT (!m_fadingTrace.empty ());
   int now_ms = static_cast<int> (Simulator::Now ().GetMilliSeconds () * m_timeGranularity);
   int lastUpdate_ms = static_cast<int> (m_lastWindowUpdate.GetMilliSeconds () * m_timeGranularity);
-  int index = (*itOff).second + now_ms - lastUpdate_ms;
+  int index = ((*itOff).second + now_ms - lastUpdate_ms) % m_samplesNum;
   int subChannel = 0;
   while (vit != rxPsd->ValuesEnd ())
     {
@@ -196,13 +211,13 @@ TraceFadingLossModel::DoCalcRxPowerSpectralDensity (
       if (*vit != 0.)
         {
           double fading = m_fadingTrace.at (subChannel).at (index);
-          //NS_LOG_INFO (this << " offset " << (*itOff).second << " fading " << fading);
+          NS_LOG_INFO (this << " FADING now " << now_ms << " offset " << (*itOff).second << " id " << index << " fading " << fading);
           double power = *vit; // in Watt/Hz
-          power = 10 * log10 (180000 * power); // in dB
+          power = 10 * std::log10 (180000 * power); // in dB
 
           NS_LOG_LOGIC (this << subChannel << *vit  << power << fading);
 
-          *vit = pow (10., ((power + fading) / 10)) / 180000; // in Watt
+          *vit = std::pow (10., ((power + fading) / 10)) / 180000; // in Watt
 
           NS_LOG_LOGIC (this << subChannel << *vit);
 
@@ -221,15 +236,21 @@ int64_t
 TraceFadingLossModel::AssignStreams (int64_t stream)
 {
   NS_LOG_FUNCTION (this << stream);
-  int64_t currentStream = stream;
+  NS_ASSERT (m_streamsAssigned == false);  
+  m_streamsAssigned = true;
+  m_currentStream = stream;
+  m_lastStream = stream + m_streamSetSize - 1;
   std::map <ChannelRealizationId_t, Ptr<UniformRandomVariable> >::iterator itVar;
   itVar = m_startVariableMap.begin ();
+  // the following loop is for eventually pre-existing ChannelRealization instances
+  // note that more instances are expected to be created at run time
   while (itVar!=m_startVariableMap.end ())
     {
-      (*itVar).second->SetStream (currentStream);
-      currentStream += 1;
+      NS_ASSERT_MSG (m_currentStream <= m_lastStream, "not enough streams, consider increasing the StreamSetSize attribute");
+      (*itVar).second->SetStream (m_currentStream);
+      m_currentStream += 1;
     }
-  return (currentStream - stream);
+  return m_streamSetSize;
 }
 
 

@@ -31,7 +31,7 @@
 #include "ns3/object-factory.h"
 #include "ns3/simulator.h"
 
-namespace ns3 {
+using namespace ns3;
 
 class RocketfuelTopologyReaderTest : public TestCase
 {
@@ -82,8 +82,7 @@ private:
 RocketfuelTopologyReaderTestSuite::RocketfuelTopologyReaderTestSuite ()
   : TestSuite ("rocketfuel-topology-reader", UNIT)
 {
-  AddTestCase (new RocketfuelTopologyReaderTest ());
+  AddTestCase (new RocketfuelTopologyReaderTest (), TestCase::QUICK);
 }
 
 static RocketfuelTopologyReaderTestSuite rocketfuelTopologyReaderTestSuite;
-}

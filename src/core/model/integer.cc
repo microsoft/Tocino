@@ -19,17 +19,36 @@
  */
 #include "integer.h"
 #include "fatal-error.h"
+#include "log.h"
 #include <sstream>
 
+/**
+ * \file
+ * \ingroup attribute_Integer
+ * Integer attribute value implementations.
+ */
+
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Integer");
 
 ATTRIBUTE_VALUE_IMPLEMENT_WITH_NAME (int64_t, Integer);
 
 namespace internal {
 
+/**
+ * \ingroup attribute_Integer
+ * Make an Integer attribute checker with embedded numeric type name.
+ *
+ * \param min The minimum allowed value.
+ * \param max The maximum allowed value.
+ * \param name The original type name ("int8_t", "int16_t", _etc_.).
+ * \returns The AttributeChecker.
+ */
 Ptr<const AttributeChecker>
 MakeIntegerChecker (int64_t min, int64_t max, std::string name)
 {
+  NS_LOG_FUNCTION (min << max << name);
   struct IntegerChecker : public AttributeChecker
   {
     IntegerChecker (int64_t minValue, int64_t maxValue, std::string name)
@@ -37,6 +56,7 @@ MakeIntegerChecker (int64_t min, int64_t max, std::string name)
         m_maxValue (maxValue),
         m_name (name) {}
     virtual bool Check (const AttributeValue &value) const {
+      NS_LOG_FUNCTION (&value);
       const IntegerValue *v = dynamic_cast<const IntegerValue *> (&value);
       if (v == 0)
         {
@@ -45,20 +65,25 @@ MakeIntegerChecker (int64_t min, int64_t max, std::string name)
       return v->Get () >= m_minValue && v->Get () <= m_maxValue;
     }
     virtual std::string GetValueTypeName (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       return "ns3::IntegerValue";
     }
     virtual bool HasUnderlyingTypeInformation (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       return true;
     }
     virtual std::string GetUnderlyingTypeInformation (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       std::ostringstream oss;
       oss << m_name << " " << m_minValue << ":" << m_maxValue;
       return oss.str ();
     }
     virtual Ptr<AttributeValue> Create (void) const {
+      NS_LOG_FUNCTION_NOARGS ();
       return ns3::Create<IntegerValue> ();
     }
     virtual bool Copy (const AttributeValue &src, AttributeValue &dst) const {
+      NS_LOG_FUNCTION (&src << &dst);
       const IntegerValue *source = dynamic_cast<const IntegerValue *> (&src);
       IntegerValue *destination = dynamic_cast<IntegerValue *> (&dst);
       if (source == 0 || destination == 0)

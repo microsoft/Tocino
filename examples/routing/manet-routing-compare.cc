@@ -119,7 +119,7 @@ RoutingExperiment::RoutingExperiment ()
 {
 }
 
-std::string
+static inline std::string
 PrintReceivedPacket (Ptr<Socket> socket, Ptr<Packet> packet)
 {
   SocketAddressTag tag;
@@ -343,7 +343,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
   onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
 
-  for (int i = 0; i <= nSinks - 1; i++)
+  for (int i = 0; i < nSinks; i++)
     {
       Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), adhocNodes.Get (i));
 
@@ -378,9 +378,8 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   //AsciiTraceHelper ascii;
   //Ptr<OutputStreamWrapper> osw = ascii.CreateFileStream ( (tr_name + ".tr").c_str());
   //wifiPhy.EnableAsciiAll (osw);
-  std::ofstream os;
-  os.open ((tr_name + ".mob").c_str ());
-  MobilityHelper::EnableAsciiAll (os);
+  AsciiTraceHelper ascii;
+  MobilityHelper::EnableAsciiAll (ascii.CreateFileStream (tr_name + ".mob"));
 
   //Ptr<FlowMonitor> flowmon;
   //FlowMonitorHelper flowmonHelper;

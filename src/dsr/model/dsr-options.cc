@@ -60,9 +60,10 @@
 #include "dsr-options.h"
 #include "dsr-rcache.h"
 
-NS_LOG_COMPONENT_DEFINE ("DsrOptions");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("DsrOptions");
+  
 namespace dsr {
 
 NS_OBJECT_ENSURE_REGISTERED (DsrOptions);
@@ -75,8 +76,14 @@ TypeId DsrOptions::GetTypeId ()
                    UintegerValue (0),
                    MakeUintegerAccessor (&DsrOptions::GetOptionNumber),
                    MakeUintegerChecker<uint8_t> ())
-    .AddTraceSource ("Rx", "Receive DSR packet.",
-                     MakeTraceSourceAccessor (&DsrOptions::m_rxPacketTrace))
+    .AddTraceSource ("Drop",
+                     "Packet dropped.",
+                     MakeTraceSourceAccessor (&DsrOptions::m_dropTrace),
+                     "ns3::Packet::TracedCallback")
+    .AddTraceSource ("Rx",
+                     "Receive DSR packet.",
+                     MakeTraceSourceAccessor (&DsrOptions::m_rxPacketTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -217,6 +224,25 @@ Ipv4Address DsrOptions::ReverseSearchNextHop (Ipv4Address ipv4Address, std::vect
   return none;
 }
 
+Ipv4Address DsrOptions::ReverseSearchNextTwoHop  (Ipv4Address ipv4Address, std::vector<Ipv4Address>& vec)
+{
+  NS_LOG_FUNCTION (this << ipv4Address);
+  Ipv4Address nextTwoHop;
+  NS_LOG_DEBUG ("The vector size " << vec.size ());
+  NS_ASSERT (vec.size () > 2);
+  for (std::vector<Ipv4Address>::reverse_iterator ri = vec.rbegin (); ri != vec.rend (); ++ri)
+    {
+      if (ipv4Address == (*ri))
+        {
+          nextTwoHop = *(ri + 2);
+          return nextTwoHop;
+        }
+    }
+  NS_FATAL_ERROR ("next hop address not found, route corrupted");
+  Ipv4Address none = "0.0.0.0";
+  return none;
+}
+
 void DsrOptions::PrintVector (std::vector<Ipv4Address>& vec)
 {
   NS_LOG_FUNCTION (this);
@@ -240,10 +266,6 @@ void DsrOptions::PrintVector (std::vector<Ipv4Address>& vec)
 bool DsrOptions::IfDuplicates (std::vector<Ipv4Address>& vec, std::vector<Ipv4Address>& vec2)
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("The first vector ");
-  PrintVector (vec);
-  NS_LOG_DEBUG ("The second vector ");
-  PrintVector (vec2);
   for (std::vector<Ipv4Address>::const_iterator i = vec.begin (); i != vec.end (); ++i)
     {
       for (std::vector<Ipv4Address>::const_iterator j = vec2.begin (); j != vec2.end (); ++j)
@@ -384,7 +406,7 @@ uint8_t DsrOptionPad1::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionPad1::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionPad1::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
   Ptr<Packet> p = packet->Copy ();
@@ -423,7 +445,7 @@ uint8_t DsrOptionPadn::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionPadn::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionPadn::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
 
@@ -469,7 +491,7 @@ uint8_t DsrOptionRreq::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
   // Fields from IP header
@@ -478,9 +500,9 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
    * \ when the ip source address is equal to the address of our own, this is request packet originated
    * \ by the node itself, discard it
    */
-  if (srcAddress == ipv4Address)
+  if (source == ipv4Address)
     {
-      NS_LOG_DEBUG ("Discard the packet");
+      NS_LOG_DEBUG ("Discard the packet since it was originated from same source address");
       m_dropTrace (packet); // call the drop trace to show in the tracing
       return 0;
     }
@@ -490,7 +512,7 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
   Ptr<Node> node = GetNodeWithAddress (ipv4Address);
   Ptr<dsr::DsrRouting> dsr = node->GetObject<dsr::DsrRouting> ();
 
-  Ptr<Packet> p = packet->Copy (); // The packet here doesn't contain the fixed size dsr header
+  Ptr<Packet> p = packet->Copy (); // Note: The packet here doesn't contain the fixed size dsr header
   /*
    * \brief Get the number of routers' address field before removing the header
    * \peek the packet and get the value
@@ -524,14 +546,19 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
       m_dropTrace (packet); // call drop trace
       return 0;
     }
+  // Check the rreq id for verifying the request id
+  uint16_t requestId = rreq.GetId ();
   // The target address is where we want to send the data packets
   Ipv4Address targetAddress = rreq.GetTarget ();
   // Get the node list and source address from the route request header
   std::vector<Ipv4Address> mainVector = rreq.GetNodesAddresses ();
   std::vector<Ipv4Address> nodeList (mainVector);
+  // Get the real source address of this request, it will be used when checking if we have received the save
+  // route request before or not
+  Ipv4Address sourceAddress = nodeList.front ();
   PrintVector (nodeList);
   /*
-   * Construct the dsr routing header for future use
+   * Construct the dsr routing header for later use
    */
   DsrRoutingHeader dsrRoutingHeader;
   dsrRoutingHeader.SetNextHeader (protocol);
@@ -539,7 +566,34 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
   dsrRoutingHeader.SetSourceId (GetIDfromIP (source));
   dsrRoutingHeader.SetDestId (255);
 
-  if (CheckDuplicates (ipv4Address, nodeList))
+  // check whether we have received this request or not, if not, it will save the request in the table for
+  // later use, if not found, return false, and push the newly received source request entry in the cache
+
+  // Get the TTL value, this is used to test if the packet will be forwarded or not
+  uint8_t ttl = ipv4Header.GetTtl ();
+  bool dupRequest = false;  // initialize the duplicate request check value
+  if (ttl)
+    {
+      // if the ttl value is not 0, then this request will be forwarded, then we need to
+      // save it in the source entry
+      dupRequest = dsr->FindSourceEntry (sourceAddress, targetAddress, requestId);
+    }
+  /*
+   * Before processing the route request, we need to check two things
+   * 1. if this is the exact same request we have just received, ignore it
+   * 2. if our address is already in the path list, ignore it
+   * 3. otherwise process further
+   */
+
+  if (dupRequest)
+    {
+      // We have received this same route reqeust before, not forwarding it now
+      NS_LOG_LOGIC ("Duplicate request. Drop!");
+      m_dropTrace (packet); // call drop trace
+      return 0;
+    }
+
+  else if (CheckDuplicates (ipv4Address, nodeList))
     {
       /*
        * if the route contains the node address already, drop the request packet
@@ -552,6 +606,14 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
     {
       // A node ignores all RREQs received from any node in its blacklist
       RouteCacheEntry toPrev;
+      bool isRouteInCache = dsr->LookupRoute (targetAddress,
+                                              toPrev);
+      RouteCacheEntry::IP_VECTOR ip = toPrev.GetVector (); // The route from our own route cache to dst
+      PrintVector (ip);
+      std::vector<Ipv4Address> saveRoute (nodeList);
+      PrintVector (saveRoute);
+      bool areThereDuplicates = IfDuplicates (ip,
+                                              saveRoute);
       /*
        *  When the reverse route is created or updated, the following actions on the route are also carried out:
        *  3. the next hop in the routing table becomes the node from which the  RREQ was received
@@ -571,7 +633,8 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
             {
               NS_LOG_DEBUG ("These two nodes are neighbors");
               m_finalRoute.clear ();
-              m_finalRoute.push_back (srcAddress);     // push back the request originator's address
+              /// TODO has changed the srcAddress to source, should not matter either way, check later
+              m_finalRoute.push_back (source);     // push back the request originator's address
               m_finalRoute.push_back (ipv4Address);    // push back our own address
               nextHop = srcAddress;
             }
@@ -645,10 +708,14 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
                   DsrOptionSRHeader sourceRoute;
                   NS_LOG_DEBUG ("The route length " << m_finalRoute.size ());
                   sourceRoute.SetNodesAddress (m_finalRoute);
-                  if (dsr->IsLinkCache ())
-                    {
-                      dsr->UseExtends (m_finalRoute);
-                    }
+
+                  /// TODO !!!!!!!!!!!!!!
+                  /// Think about this part, we just added the route,
+                  /// probability no need to increase stability now?????
+                  // if (dsr->IsLinkCache ())
+                  //   {
+                  //     dsr->UseExtends (m_finalRoute);
+                  //   }
                   sourceRoute.SetSegmentsLeft ((m_finalRoute.size () - 2));
                   // The salvage value here is 0
                   sourceRoute.SetSalvage (0);
@@ -686,18 +753,12 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
       /*
        * (ii) or it has an active route to the destination, send reply based on request header and route cache,
        *      need to delay based on a random value from d = H * (h - 1 + r), which can avoid possible route
-       *      reply storm.
+       *      reply storm. Also, verify if two vectors do not contain duplicates (part of the route to the
+       *      destination from route cache and route collected so far). If so, do not use the route found
+       *      and forward the route request.
        */
-      else if (dsr->LookupRoute (targetAddress, toPrev))
+      else if (isRouteInCache && !areThereDuplicates)
         {
-          RouteCacheEntry::IP_VECTOR ip = toPrev.GetVector (); // The route from our own route cache to dst
-          PrintVector (ip);
-          std::vector<Ipv4Address> saveRoute (nodeList);
-          PrintVector (saveRoute);
-          // Verify if the two vector contains duplicates, if so, do not use
-          // the route found and forward the route request
-          if (!(IfDuplicates (ip, saveRoute)))
-            {
               m_finalRoute.clear ();            // Clear the final route vector
               /**
                * push back the intermediate node address from the source to this node
@@ -741,7 +802,7 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
 
                   if (addRoute)
                     {
-                      NS_LOG_DEBUG ("We have added the route and search send buffer for packet with destination " << dst);
+                      NS_LOG_LOGIC ("We have added the route and search send buffer for packet with destination " << dst);
                       /*
                        * Found a route the dst, construct the source route option header
                        */
@@ -749,10 +810,10 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
                       PrintVector (saveRoute);
 
                       sourceRoute.SetNodesAddress (saveRoute);
-                      if (dsr->IsLinkCache ())
-                        {
-                          dsr->UseExtends (saveRoute);
-                        }
+                      // if (dsr->IsLinkCache ())
+                      //   {
+                      //     dsr->UseExtends (saveRoute);
+                      //   }
                       sourceRoute.SetSegmentsLeft ((saveRoute.size () - 2));
                       uint8_t salvage = 0;
                       sourceRoute.SetSalvage (salvage);
@@ -788,7 +849,6 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
                * Need to first pin down the next hop address before removing duplicates
                */
               Ipv4Address nextHop = ReverseSearchNextHop (ipv4Address, m_finalRoute);
-              NS_LOG_DEBUG ("The nextHop address " << nextHop);
               /*
                * First remove the duplicate ip address to automatically shorten the route, and then reversely
                * search the next hop address
@@ -819,11 +879,6 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
               newPacket->AddHeader (dsrRoutingHeader);
               dsr->ScheduleCachedReply (newPacket, ipv4Address, nextHop, m_ipv4Route, hops);
               isPromisc = false;
-            }
-          else
-            {
-              NS_LOG_DEBUG ("There is duplicate ip addresses in the two route parts");
-            }
           return rreq.GetSerializedSize ();
         }
       /*
@@ -899,7 +954,7 @@ uint8_t DsrOptionRreq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
           return rreq.GetSerializedSize ();
         }
     }
-  return rreq.GetSerializedSize ();
+  //unreachable:  return rreq.GetSerializedSize ();
 }
 
 NS_OBJECT_ENSURE_REGISTERED (DsrOptionRrep);
@@ -935,7 +990,7 @@ uint8_t DsrOptionRrep::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionRrep::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionRrep::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
 
@@ -1134,7 +1189,7 @@ uint8_t DsrOptionSR::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionSR::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionSR::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Address << ipv4Header << (uint32_t)protocol << isPromisc);
   Ptr<Packet> p = packet->Copy ();
@@ -1160,6 +1215,7 @@ uint8_t DsrOptionSR::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address 
    */
   Ipv4Address srcAddress = ipv4Header.GetSource ();
   Ipv4Address destAddress = ipv4Header.GetDestination ();
+
   // Get the node list destination
   Ipv4Address destination = nodeList.back ();
   /*
@@ -1169,26 +1225,57 @@ uint8_t DsrOptionSR::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address 
    */
   if (isPromisc)
     {
-      /*
-       * Get the node from Ip address and get the dsr routing object
-       */
-      Ptr<Node> node = GetNodeWithAddress (ipv4Address);
-      Ptr<dsr::DsrRouting> dsr = node->GetObject<dsr::DsrRouting> ();
-      bool findSame = dsr->FindSamePackets (packet, source, destination, segsLeft);
-
-      if (findSame)
-        {
-          NS_LOG_DEBUG ("Received one passive acknowledgment for a successfully delivered packet");
-        }
+      NS_LOG_LOGIC ("We process promiscuous receipt data packet");
       if (ContainAddressAfter (ipv4Address, destAddress, nodeList))
         {
-          NS_LOG_DEBUG ("Send back the gratuitous reply");
+          NS_LOG_LOGIC ("Send back the gratuitous reply");
           dsr->SendGratuitousReply (source, srcAddress, nodeList, protocol);
         }
-      else
+
+      uint16_t fragmentOffset = ipv4Header.GetFragmentOffset ();
+      uint16_t identification = ipv4Header.GetIdentification ();
+
+      if (destAddress != destination)
         {
-          return 0;
+          NS_LOG_DEBUG ("Process the promiscuously received packet");
+          bool findPassive = false;
+          int32_t nNodes = NodeList::GetNNodes ();
+          for (int32_t i = 0; i < nNodes; ++i)
+            {
+              NS_LOG_DEBUG ("Working with node " << i);
+
+              Ptr<Node> node = NodeList::GetNode (i);
+              Ptr<dsr::DsrRouting> dsrNode = node->GetObject<dsr::DsrRouting> ();
+              // The source and destination addresses here are the real source and destination for the packet
+              findPassive = dsrNode->PassiveEntryCheck (packet, source, destination, segsLeft, fragmentOffset, identification, false);
+              if (findPassive)
+                {
+                  break;
+                }
+            }
+
+          if (findPassive)
+            {
+              NS_LOG_DEBUG ("We find one previously received passive entry");
+              /*
+               * Get the node from IP address and get the DSR extension object
+               * the srcAddress would be the source address from ip header
+               */
+              PrintVector (nodeList);
+
+              NS_LOG_DEBUG ("promisc source " << promiscSource);
+              Ptr<Node> node = GetNodeWithAddress (promiscSource);
+              Ptr<dsr::DsrRouting> dsrSrc = node->GetObject<dsr::DsrRouting> ();
+              dsrSrc->CancelPassiveTimer (packet, source, destination, segsLeft);
+            }
+          else
+            {
+              NS_LOG_DEBUG ("Saved the entry for further use");
+              dsr->PassiveEntryCheck (packet, source, destination, segsLeft, fragmentOffset, identification, true);
+            }
         }
+      /// Safely terminate promiscuously received packet
+      return 0;
     }
   else
     {
@@ -1205,23 +1292,41 @@ uint8_t DsrOptionSR::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address 
       p->CopyData (data, size);
       uint8_t optionType = 0;
       optionType = *(data);
-      NS_LOG_DEBUG ("The packet size over here " << p->GetSize ());
-
-      NS_LOG_DEBUG ("The option type over here " << (uint32_t)optionType);
+      /// When the option type is 160, means there is ACK request header after the source route, we need
+      /// to send back acknowledgment
       if (optionType == 160)
         {
-          NS_LOG_DEBUG ("Here we remove the ack request header and add ack header to the packet");
+          NS_LOG_LOGIC ("Remove the ack request header and add ack header to the packet");
           // Here we remove the ack packet to the previous hop
           DsrOptionAckReqHeader ackReq;
           p->RemoveHeader (ackReq);
           uint16_t ackId = ackReq.GetAckId ();
-          NS_LOG_DEBUG ("The type value " << (uint32_t)ackReq.GetType ());
           /*
            * Send back acknowledgment packet to the earlier hop
+           * If the node list is not empty, find the previous hop from the node list,
+           * otherwise, use srcAddress
            */
-          m_ipv4Route = SetRoute (srcAddress, ipv4Address);
-          NS_LOG_DEBUG ("Send back ACK to the earlier hop " << srcAddress << " from us " << ipv4Address);
-          dsr->SendAck (ackId, srcAddress, source, destination, protocol, m_ipv4Route);
+          Ipv4Address ackAddress = srcAddress;
+          if (!nodeList.empty ())
+            {
+                if (segsLeft > numberAddress) // The segmentsLeft field should not be larger than the total number of ip addresses
+                  {
+                    NS_LOG_LOGIC ("Malformed header. Drop!");
+                    m_dropTrace (packet);
+                    return 0;
+                  }
+                // -fstrict-overflow sensitive, see bug 1868
+                if (numberAddress - segsLeft < 2) // The index is invalid
+                   {
+                      NS_LOG_LOGIC ("Malformed header. Drop!");
+                      m_dropTrace (packet);
+                      return 0;
+                   }
+                   ackAddress = nodeList[numberAddress - segsLeft - 2];
+            }
+           m_ipv4Route = SetRoute (ackAddress, ipv4Address);
+           NS_LOG_DEBUG ("Send back ACK to the earlier hop " << ackAddress << " from us " << ipv4Address);
+           dsr->SendAck (ackId, ackAddress, source, destination, protocol, m_ipv4Route);
         }
       /*
        * After send back ACK, check if the segments left value has turned to 0 or not, if yes, update the route entry
@@ -1325,7 +1430,7 @@ uint8_t DsrOptionRerr::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionRerr::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionRerr::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
   Ptr<Packet> p = packet->Copy ();
@@ -1356,7 +1461,7 @@ uint8_t DsrOptionRerr::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
       Ipv4Address unreachAddress = rerrUnreach.GetUnreachNode ();
       Ipv4Address errorSource = rerrUnreach.GetErrorSrc ();
 
-      NS_LOG_DEBUG ("The destination address and the unreachable node " << rerrUnreach.GetErrorDst () << " " << unreachAddress);
+      NS_LOG_DEBUG ("The error source is " <<  rerrUnreach.GetErrorDst () << "and the unreachable node is " << unreachAddress);
       /*
        * Get the serialized size of the rerr header
        */
@@ -1385,7 +1490,7 @@ uint8_t DsrOptionRerr::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addres
       p->RemoveHeader (rerrUnsupport);
       rerrSize = rerrUnsupport.GetSerializedSize ();
 
-      // This is for the other two error options, not supporting for now TODO
+      /// \todo This is for the other two error options, not supporting for now
 //      uint32_t serialized = DoSendError (p, rerrUnsupport, rerrSize, ipv4Address, protocol);
       uint32_t serialized = 0;
       return serialized;
@@ -1459,7 +1564,7 @@ uint8_t DsrOptionRerr::DoSendError (Ptr<Packet> p, DsrOptionRerrUnreachHeader &r
   newSourceRoute.SetNodesAddress (nodeList);
   nextAddress = newSourceRoute.GetNodeAddress (nextAddressIndex);
 
-  // / to test if the next address is multicast or not
+  /// to test if the next address is multicast or not
   if (nextAddress.IsMulticast () || targetAddress.IsMulticast ())
     {
       m_dropTrace (p);
@@ -1504,7 +1609,7 @@ uint8_t DsrOptionAckReq::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionAckReq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionAckReq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
   /*
@@ -1523,9 +1628,6 @@ uint8_t DsrOptionAckReq::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Addr
   Ptr<dsr::DsrRouting> dsr = node->GetObject<dsr::DsrRouting> ();
 
   NS_LOG_DEBUG ("The next header value " << (uint32_t)protocol);
-
-  Ipv4Address srcAddress = ipv4Header.GetSource ();
-  SetRoute (srcAddress, ipv4Address);
 
   return ackReq.GetSerializedSize ();
 }
@@ -1562,7 +1664,7 @@ uint8_t DsrOptionAck::GetOptionNumber () const
   return OPT_NUMBER;
 }
 
-uint8_t DsrOptionAck::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc)
+uint8_t DsrOptionAck::Process (Ptr<Packet> packet, Ptr<Packet> dsrP, Ipv4Address ipv4Address, Ipv4Address source, Ipv4Header const& ipv4Header, uint8_t protocol, bool& isPromisc, Ipv4Address promiscSource)
 {
   NS_LOG_FUNCTION (this << packet << dsrP << ipv4Address << source << ipv4Header << (uint32_t)protocol << isPromisc);
   /*

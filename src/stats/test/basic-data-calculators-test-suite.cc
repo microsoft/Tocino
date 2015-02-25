@@ -18,7 +18,7 @@
  * Author: Mitch Watrous (watrous@u.washington.edu)
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "ns3/test.h"
 #include "ns3/basic-data-calculators.h"
@@ -83,15 +83,8 @@ OneIntegerTestCase::DoRun (void)
   min = multiple;
   max = multiple * count;
   mean = sum / count;
-  if (count == 1)
-    {
-      variance = 0;
-    }
-  else
-    {
-      variance = (count * sqrSum - sum * sum) / (count * (count - 1));
-    }
-  stddev = sqrt (variance);
+  variance = 0;
+  stddev = std::sqrt (variance);
 
   // Test the calculator.
   NS_TEST_ASSERT_MSG_EQ_TOL (calculator.getCount(),    count,    TOLERANCE, "Count value wrong");
@@ -161,15 +154,8 @@ FiveIntegersTestCase::DoRun (void)
   min = multiple;
   max = multiple * count;
   mean = sum / count;
-  if (count == 1)
-    {
-      variance = 0;
-    }
-  else
-    {
-      variance = (count * sqrSum - sum * sum) / (count * (count - 1));
-    }
-  stddev = sqrt (variance);
+  variance = (count * sqrSum - sum * sum) / (count * (count - 1));
+  stddev = std::sqrt (variance);
 
   // Test the calculator.
   NS_TEST_ASSERT_MSG_EQ_TOL (calculator.getCount(),    count,    TOLERANCE, "Count value wrong");
@@ -239,15 +225,8 @@ FiveDoublesTestCase::DoRun (void)
   min = multiple;
   max = multiple * count;
   mean = sum / count;
-  if (count == 1)
-    {
-      variance = 0;
-    }
-  else
-    {
-      variance = (count * sqrSum - sum * sum) / (count * (count - 1));
-    }
-  stddev = sqrt (variance);
+  variance = (count * sqrSum - sum * sum) / (count * (count - 1));
+  stddev = std::sqrt (variance);
 
   // Test the calculator.
   NS_TEST_ASSERT_MSG_EQ_TOL (calculator.getCount(),    count,    TOLERANCE, "Count value wrong");
@@ -270,9 +249,9 @@ public:
 BasicDataCalculatorsTestSuite::BasicDataCalculatorsTestSuite ()
   : TestSuite ("basic-data-calculators", UNIT)
 {
-  AddTestCase (new OneIntegerTestCase);
-  AddTestCase (new FiveIntegersTestCase);
-  AddTestCase (new FiveDoublesTestCase);
+  AddTestCase (new OneIntegerTestCase, TestCase::QUICK);
+  AddTestCase (new FiveIntegersTestCase, TestCase::QUICK);
+  AddTestCase (new FiveDoublesTestCase, TestCase::QUICK);
 }
 
 static BasicDataCalculatorsTestSuite basicDataCalculatorsTestSuite;

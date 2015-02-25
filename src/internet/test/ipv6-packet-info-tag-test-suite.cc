@@ -45,7 +45,7 @@
 #include "ns3/boolean.h"
 #include "ns3/node.h"
 
-namespace ns3 {
+using namespace ns3;
 
 static void
 AddInternetStack (Ptr<Node> node)
@@ -106,7 +106,7 @@ Ipv6PacketInfoTagTest::DoSendData (Ptr<Socket> socket, std::string to)
   if (DynamicCast<UdpSocket> (socket) != 0)
     {
       NS_TEST_EXPECT_MSG_EQ (socket->SendTo (Create<Packet> (123), 0, realTo),
-                             123, "XXX");
+                             123, "100");
     }
   // Should only Ipv6RawSock
   else
@@ -155,7 +155,7 @@ Ipv6PacketInfoTagTest::DoRun (void)
   socket->SetAttribute ("Protocol", UintegerValue (Ipv6Header::IPV6_ICMPV6));
   socket->Bind (local);
   socket->SetRecvPktInfo (true);
-  socket->SetRecvCallback (MakeCallback (&ns3::Ipv6PacketInfoTagTest::RxCb, this));
+  socket->SetRecvCallback (MakeCallback (&Ipv6PacketInfoTagTest::RxCb, this));
 
   // receive on loopback 
   Simulator::ScheduleWithContext (socket->GetNode ()->GetId (), Seconds (0),
@@ -178,7 +178,7 @@ Ipv6PacketInfoTagTest::DoRun (void)
   local =  Inet6SocketAddress (Ipv6Address::GetAny (), 200);
   socket->Bind (local);
   socket->SetRecvPktInfo (true);
-  socket->SetRecvCallback (MakeCallback (&ns3::Ipv6PacketInfoTagTest::RxCb, this));
+  socket->SetRecvCallback (MakeCallback (&Ipv6PacketInfoTagTest::RxCb, this));
 
   // receive on loopback 
   Simulator::ScheduleWithContext (socket->GetNode ()->GetId (), Seconds (0),
@@ -207,9 +207,5 @@ private:
 Ipv6PacketInfoTagTestSuite::Ipv6PacketInfoTagTestSuite ()
   : TestSuite ("ipv6-packet-info-tag", UNIT)
 {
-  AddTestCase (new Ipv6PacketInfoTagTest ());
+  AddTestCase (new Ipv6PacketInfoTagTest (), TestCase::QUICK);
 }
-
-
-}
-

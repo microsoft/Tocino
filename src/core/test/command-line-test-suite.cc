@@ -24,21 +24,33 @@
 #include "ns3/type-id.h"
 #include "ns3/test.h"
 #include "ns3/string.h"
-#include <stdlib.h>
-#include <stdarg.h>
+#include <cstdlib>
+#include <cstdarg>
 
-namespace ns3 {
+using namespace ns3;
 
-// ===========================================================================
-// A test base class that drives Command Line parsing
-// ===========================================================================
+/*************************************************************************//**
+ * A test base class that drives Command Line parsing
+ ****************************************************************************/
 class CommandLineTestCaseBase : public TestCase
 {
 public:
+  /**
+   * Constructor
+   *
+   * \param description purpose of this TestCase
+   */
   CommandLineTestCaseBase (std::string description);
+  /** Destructor */
   virtual ~CommandLineTestCaseBase () {}
 
-  void Parse (const CommandLine &cmd, int n, ...);
+  /**
+   * Excercise the CommandLine with the provided arguments
+   *
+   * \param cmd the configured CommandLine
+   * \param n the number of arguments
+   */
+  void Parse (CommandLine &cmd, int n, ...);
 };
 
 CommandLineTestCaseBase::CommandLineTestCaseBase (std::string description)
@@ -47,7 +59,7 @@ CommandLineTestCaseBase::CommandLineTestCaseBase (std::string description)
 }
 
 void
-CommandLineTestCaseBase::Parse (const CommandLine &cmd, int n, ...)
+CommandLineTestCaseBase::Parse (CommandLine &cmd, int n, ...)
 {
   char **args = new char* [n+1];
   args[0] = (char *) "Test";
@@ -60,22 +72,23 @@ CommandLineTestCaseBase::Parse (const CommandLine &cmd, int n, ...)
       args[i+1] = arg;
       i++;
     }
+  va_end (ap);
   int argc = n + 1;
   cmd.Parse (argc, args);
   delete [] args;
 }
 
-// ===========================================================================
-// Test boolean Command Line processing
-// ===========================================================================
+/*************************************************************************//**
+ * Test boolean Command Line processing
+ ****************************************************************************/
 class CommandLineBooleanTestCase : public CommandLineTestCaseBase
 {
 public:
-  CommandLineBooleanTestCase ();
-  virtual ~CommandLineBooleanTestCase () {}
+  CommandLineBooleanTestCase ();             /**< Constructor */
+  virtual ~CommandLineBooleanTestCase () {}  /**< Destructor */
 
 private:
-  virtual void DoRun (void);
+  virtual void DoRun (void);                 /**< Run the test */
 
 };
 
@@ -89,27 +102,41 @@ CommandLineBooleanTestCase::DoRun (void)
 {
   CommandLine cmd;
   bool myBool = true;
+  bool myDefaultFalseBool = false;
 
   cmd.AddValue ("my-bool", "help", myBool);
+  cmd.AddValue ("my-false-bool", "help", myDefaultFalseBool);
 
   Parse (cmd, 1, "--my-bool=0");
   NS_TEST_ASSERT_MSG_EQ (myBool, false, "Command parser did not correctly set a boolean value to false");
 
   Parse (cmd, 1, "--my-bool=1");
-  NS_TEST_ASSERT_MSG_EQ (myBool, true, "Command parser did not correctly set a boolean value to true");
+  NS_TEST_ASSERT_MSG_EQ (myBool, true, "Command parser did not correctly set a boolean value to true, given integer argument");
+
+  Parse (cmd, 1, "--my-bool");
+  NS_TEST_ASSERT_MSG_EQ (myBool, false, "Command parser did not correctly toggle a default true boolean value to false, given no argument");
+
+  Parse (cmd, 1, "--my-false-bool");
+  NS_TEST_ASSERT_MSG_EQ (myDefaultFalseBool, true, "Command parser did not correctly toggle a default false boolean value to true, given no argument");
+
+  Parse (cmd, 1, "--my-bool=t");
+  NS_TEST_ASSERT_MSG_EQ (myBool, true, "Command parser did not correctly set a boolean value to true, given 't' argument");
+
+  Parse (cmd, 1, "--my-bool=true");
+  NS_TEST_ASSERT_MSG_EQ (myBool, true, "Command parser did not correctly set a boolean value to true, given \"true\" argument");
 }
 
-// ===========================================================================
-// Test int Command Line processing
-// ===========================================================================
+/*************************************************************************//**
+ * Test int Command Line processing
+ ****************************************************************************/
 class CommandLineIntTestCase : public CommandLineTestCaseBase
 {
 public:
-  CommandLineIntTestCase ();
-  virtual ~CommandLineIntTestCase () {}
-
-private:
-  virtual void DoRun (void);
+  CommandLineIntTestCase ();                 /**< Constructor */ 
+  virtual ~CommandLineIntTestCase () {}      /**< Destructor */  
+                                                                 
+private:                                                         
+  virtual void DoRun (void);                 /**< Run the test */
 
 };
 
@@ -137,17 +164,17 @@ CommandLineIntTestCase::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (myInt32, +2, "Command parser did not correctly set an integer value to +2");
 }
 
-// ===========================================================================
-// Test unsigned int Command Line processing
-// ===========================================================================
+/*************************************************************************//**
+ * Test unsigned int Command Line processing
+ ****************************************************************************/
 class CommandLineUnsignedIntTestCase : public CommandLineTestCaseBase
 {
 public:
-  CommandLineUnsignedIntTestCase ();
-  virtual ~CommandLineUnsignedIntTestCase () {}
-
-private:
-  virtual void DoRun (void);
+  CommandLineUnsignedIntTestCase ();              /**< Constructor */ 
+  virtual ~CommandLineUnsignedIntTestCase () {}   /**< Destructor */  
+                                                                      
+private:                                                              
+  virtual void DoRun (void);                      /**< Run the test */
 
 };
 
@@ -172,17 +199,17 @@ CommandLineUnsignedIntTestCase::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (myUint32, 9, "Command parser did not correctly set an unsigned integer value to 9");
 }
 
-// ===========================================================================
-// Test string Command Line processing
-// ===========================================================================
+/*************************************************************************//**
+ * Test string Command Line processing
+ ****************************************************************************/
 class CommandLineStringTestCase : public CommandLineTestCaseBase
 {
 public:
-  CommandLineStringTestCase ();
-  virtual ~CommandLineStringTestCase () {}
-
-private:
-  virtual void DoRun (void);
+  CommandLineStringTestCase ();              /**< Constructor */ 
+  virtual ~CommandLineStringTestCase () {}   /**< Destructor */  
+                                                                 
+private:                                                         
+  virtual void DoRun (void);                 /**< Run the test */
 
 };
 
@@ -207,24 +234,22 @@ CommandLineStringTestCase::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (myStr, "XX", "Command parser did not correctly set an string value to \"XX\"");
 }
 
-// ===========================================================================
-// The Test Suite that glues all of the Test Cases together.
-// ===========================================================================
+/*************************************************************************//**
+ * The Test Suite that glues all of the Test Cases together.
+ ****************************************************************************/
 class CommandLineTestSuite : public TestSuite
 {
 public:
-  CommandLineTestSuite ();
+  CommandLineTestSuite ();                   /**< Constructor */
 };
 
 CommandLineTestSuite::CommandLineTestSuite ()
   : TestSuite ("command-line", UNIT)
 {
-  AddTestCase (new CommandLineBooleanTestCase);
-  AddTestCase (new CommandLineIntTestCase);
-  AddTestCase (new CommandLineUnsignedIntTestCase);
-  AddTestCase (new CommandLineStringTestCase);
+  AddTestCase (new CommandLineBooleanTestCase, TestCase::QUICK);
+  AddTestCase (new CommandLineIntTestCase, TestCase::QUICK);
+  AddTestCase (new CommandLineUnsignedIntTestCase, TestCase::QUICK);
+  AddTestCase (new CommandLineStringTestCase, TestCase::QUICK);
 }
 
-static CommandLineTestSuite CommandLineTestSuite;
-
-} // namespace ns3
+static CommandLineTestSuite CommandLineTestSuite; /**< Test instance */

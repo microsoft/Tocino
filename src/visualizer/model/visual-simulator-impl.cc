@@ -22,11 +22,9 @@
 #include "ns3/default-simulator-impl.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("VisualSimulatorImpl");
-
 namespace ns3 {
 
-
+NS_LOG_COMPONENT_DEFINE ("VisualSimulatorImpl");
 
 NS_OBJECT_ENSURE_REGISTERED (VisualSimulatorImpl);
 
@@ -199,9 +197,9 @@ VisualSimulatorImpl::Cancel (const EventId &id)
 }
 
 bool
-VisualSimulatorImpl::IsExpired (const EventId &ev) const
+VisualSimulatorImpl::IsExpired (const EventId &id) const
 {
-  return m_simulator->IsExpired (ev);
+  return m_simulator->IsExpired (id);
 }
 
 Time 

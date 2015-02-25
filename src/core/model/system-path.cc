@@ -20,16 +20,21 @@
 #include "system-path.h"
 #include "fatal-error.h"
 #include "assert.h"
+#include "log.h"
 #include "ns3/core-config.h"
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
+#include <cstdlib>
+#include <cerrno>
+#include <cstring>
+
+
 #if defined (HAVE_DIRENT_H) and defined (HAVE_SYS_TYPES_H)
+/** Do we have an \c opendir function? */
 #define HAVE_OPENDIR
 #include <sys/types.h>
 #include <dirent.h>
 #endif
 #if defined (HAVE_SYS_STAT_H) and defined (HAVE_SYS_TYPES_H)
+/** Do we have a \c makedir function? */
 #define HAVE_MKDIR_H
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -48,18 +53,41 @@
 #include <unistd.h>
 #endif
 
+/**
+ * \def SYSTEM_PATH_SEP
+ * System-specific path separator used between directory names.
+ */
 #if defined (__win32__)
 #define SYSTEM_PATH_SEP "\\"
 #else
 #define SYSTEM_PATH_SEP "/"
 #endif
 
+/**
+ * \file
+ * \ingroup systempath
+ * System-independent file and directory functions implementation.
+ */
+
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("SystemPath");
 
 namespace SystemPath {
 
+/**
+ * \ingroup systempath
+ * \brief Get the directory path for a file.
+ *
+ * This is an internal function (by virtue of not being
+ * declared in a \c .h file); the public API is FindSelfDirectory().
+ * 
+ * \param path The full path to a file.
+ * \returns The full path to the containing directory.
+ */
 std::string Dirname (std::string path)
 {
+  NS_LOG_FUNCTION (path);
   std::list<std::string> elements = Split (path);
   std::list<std::string>::const_iterator last = elements.end();
   last--;
@@ -77,6 +105,7 @@ std::string FindSelfDirectory (void)
    * BSD with procfs: readlink /proc/curproc/file
    * Windows: GetModuleFileName() with hModule = NULL
    */
+  NS_LOG_FUNCTION_NOARGS ();
   std::string filename;
 #if defined(__linux__)
   {
@@ -105,8 +134,8 @@ std::string FindSelfDirectory (void)
   }
 #elif defined (__win32__)
   {
-    // XXX: untested. it should work if code is compiled with
-    // LPTSTR = char *
+    /// \todo untested. it should work if code is compiled with
+    /// LPTSTR = char *
     DWORD size = 1024;
     LPTSTR lpFilename = (LPTSTR) malloc (sizeof(TCHAR) * size);
     DWORD status = GetModuleFilename (0, lpFilename, size);
@@ -158,6 +187,7 @@ std::string FindSelfDirectory (void)
 std::string Append (std::string left, std::string right)
 {
   // removing trailing separators from 'left'
+  NS_LOG_FUNCTION (left << right);
   while (true)
     {
       std::string::size_type lastSep = left.rfind (SYSTEM_PATH_SEP);
@@ -173,6 +203,7 @@ std::string Append (std::string left, std::string right)
 
 std::list<std::string> Split (std::string path)
 {
+  NS_LOG_FUNCTION (path);
   std::list<std::string> retval;
   std::string::size_type current = 0, next = 0;
   next = path.find (SYSTEM_PATH_SEP, current);
@@ -191,6 +222,7 @@ std::list<std::string> Split (std::string path)
 std::string Join (std::list<std::string>::const_iterator begin,
 		  std::list<std::string>::const_iterator end)
 {
+  NS_LOG_FUNCTION (&begin << &end);
   std::string retval = "";
   for (std::list<std::string>::const_iterator i = begin; i != end; i++)
     {
@@ -208,6 +240,7 @@ std::string Join (std::list<std::string>::const_iterator begin,
   
 std::list<std::string> ReadFiles (std::string path)
 {
+  NS_LOG_FUNCTION (path);
   std::list<std::string> files;
 #if defined HAVE_OPENDIR
   DIR *dp = opendir (path.c_str ());
@@ -223,7 +256,7 @@ std::list<std::string> ReadFiles (std::string path)
     }
   closedir (dp);
 #elif defined (HAVE_FIND_FIRST_FILE)
-  // XXX: untested
+  /// \todo untested
   HANDLE hFind;
   WIN32_FIND_DATA fileData;
   
@@ -246,6 +279,7 @@ std::list<std::string> ReadFiles (std::string path)
 std::string 
 MakeTemporaryDirectoryName (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   char *path = NULL;
 
   path = getenv ("TMP");
@@ -292,16 +326,27 @@ MakeTemporaryDirectoryName (void)
 void 
 MakeDirectories (std::string path)
 {
+  NS_LOG_FUNCTION (path);
+
+  // Make sure all directories on the path exist
   std::list<std::string> elements = Split (path);
   for (std::list<std::string>::const_iterator i = elements.begin (); i != elements.end (); ++i)
     {
       std::string tmp = Join (elements.begin (), i);
 #if defined(HAVE_MKDIR_H)
-      mkdir (tmp.c_str (), S_IRWXU);
+      if (mkdir (tmp.c_str (), S_IRWXU))
+        {
+          NS_LOG_ERROR ("failed creating directory " << tmp);
+        }
 #endif
     }
+
+  // Make the final directory.  Is this redundant with last iteration above?
 #if defined(HAVE_MKDIR_H)
-  mkdir (path.c_str (), S_IRWXU);
+  if (mkdir (path.c_str (), S_IRWXU))
+    {
+      NS_LOG_ERROR ("failed creating directory " << path);
+    }
 #endif
 
 }

@@ -33,14 +33,16 @@
 #include <ns3/lte-enb-phy-sap.h>
 #include "ns3/traced-value.h"
 #include "ns3/trace-source-accessor.h"
+#include <ns3/packet.h>
+#include <ns3/packet-burst.h>
 
 namespace ns3 {
 
-class DlCqiIdealControlMessage;
-class UlCqiIdealControlMessage;
-class PdcchMapIdealControlMessage;
+class DlCqiLteControlMessage;
+class UlCqiLteControlMessage;
+class PdcchMapLteControlMessage;
 
-
+typedef std::vector <std::vector < Ptr<PacketBurst> > > DlHarqProcessesBuffer_t;
 
 /**
  * This class implements the MAC layer of the eNodeB device
@@ -118,32 +120,66 @@ public:
   */
   void SetLteEnbPhySapProvider (LteEnbPhySapProvider* s);
 
+  /**
+   * TracedCallback signature for DL scheduling events.
+   *
+   * \param [in] frame Frame number.
+   * \param [in] subframe Subframe number.
+   * \param [in] rnti The C-RNTI identifying the UE.
+   * \param [in] mcs0 The MCS for transport block.. 
+   * \param [in] tbs0Size
+   * \param [in] mcs1 The MCS for transport block.
+   * \param [in] tbs1Size
+   */
+  typedef void (* DlSchedulingTracedCallback)
+    (const uint32_t frame, const uint32_t subframe, const uint16_t rnti,
+     const uint8_t mcs0, const uint16_t tbs0Size,
+     const uint8_t mcs1, const uint16_t tbs1Size);
+
+  /**
+   *  TracedCallback signature for UL scheduling events.
+   *
+   * \param [in] frame Frame number.
+   * \param [in] subframe Subframe number.
+   * \param [in] rnti The C-RNTI identifying the UE.
+   * \param [in] mcs  The MCS for transport block
+   * \param [in] tbsSize
+   */
+  typedef void (* UlSchedulingTracedCallback)
+    (const uint32_t frame, const uint32_t subframe, const uint16_t rnti,
+     const uint8_t mcs, const uint16_t tbsSize);
+  
+private:
 
   /**
   * \brief Receive a DL CQI ideal control message
   * \param msg the DL CQI message
   */
-  void ReceiveDlCqiIdealControlMessage  (Ptr<DlCqiIdealControlMessage> msg);
+  void ReceiveDlCqiLteControlMessage  (Ptr<DlCqiLteControlMessage> msg);
 
-  void DoReceiveIdealControlMessage (Ptr<IdealControlMessage> msg);
+  void DoReceiveLteControlMessage (Ptr<LteControlMessage> msg);
 
   /**
   * \brief Receive a CE element containing the buffer status report
-  * \param msg the BSR message
+  * \param bsr the BSR message
   */
   void ReceiveBsrMessage  (MacCeListElement_s bsr);
 
-  void DoUlCqiReport (UlCqi_s ulcqi);
+ 
+  void DoUlCqiReport (FfMacSchedSapProvider::SchedUlCqiInfoReqParameters ulcqi);
 
 
 
-private:
   // forwarded from LteEnbCmacSapProvider
   void DoConfigureMac (uint8_t ulBandwidth, uint8_t dlBandwidth);
   void DoAddUe (uint16_t rnti);
+  void DoRemoveUe (uint16_t rnti);
   void DoAddLc (LteEnbCmacSapProvider::LcInfo lcinfo, LteMacSapUser* msu);
   void DoReconfigureLc (LteEnbCmacSapProvider::LcInfo lcinfo);
   void DoReleaseLc (uint16_t  rnti, uint8_t lcid);
+  void DoUeUpdateConfigurationReq (LteEnbCmacSapProvider::UeConfig params);
+  LteEnbCmacSapProvider::RachConfig DoGetRachConfig ();
+  LteEnbCmacSapProvider::AllocateNcRaPreambleReturnValue DoAllocateNcRaPreamble (uint16_t rnti);
 
   // forwarded from LteMacSapProvider
   void DoTransmitPdu (LteMacSapProvider::TransmitPduParameters);
@@ -162,40 +198,35 @@ private:
   // forwarded from FfMacSchedSapUser
   void DoSchedDlConfigInd (FfMacSchedSapUser::SchedDlConfigIndParameters ind);
   void DoSchedUlConfigInd (FfMacSchedSapUser::SchedUlConfigIndParameters params);
-  
-  void DoRrcUpdateConfigurationReq (FfMacCschedSapProvider::CschedUeConfigReqParameters params);
 
-  /**
-  * \brief Forwarded from LteEnbPhySapUser: trigger the start from a new frame
-  *
-  * \param frameNo frame number
-  * \param subframeNo subframe number
-  */
+  // forwarded from LteEnbPhySapUser
   void DoSubframeIndication (uint32_t frameNo, uint32_t subframeNo);
+  void DoReceiveRachPreamble (uint8_t prachId);
 
-  /**
-  * \brief Forwarded from LtePhySapUser: receive a PHY-PDU
-  *
-  * \param p PHY-PDU received
-  */
 public:
   // legacy public for use the Phy callback
   void DoReceivePhyPdu (Ptr<Packet> p);
 
 private:
-private:
-  // std::map <uint16_t, std::map <uint8_t,Ptr<LteMacSapUser> > > m_rlcAttached;
-  std::map <LteFlowId_t, LteMacSapUser*> m_rlcAttached;
+  void DoUlInfoListElementHarqFeeback (UlInfoListElement_s params);
+  void DoDlInfoListElementHarqFeeback (DlInfoListElement_s params);
+
+  //            rnti,             lcid, SAP of the RLC instance
+  std::map <uint16_t, std::map<uint8_t, LteMacSapUser*> > m_rlcAttached;
 
   std::vector <CqiListElement_s> m_dlCqiReceived; // DL-CQI received
-  std::vector <UlCqi_s> m_ulCqiReceived; // UL-CQI received
+  std::vector <FfMacSchedSapProvider::SchedUlCqiInfoReqParameters> m_ulCqiReceived; // UL-CQI received
   std::vector <MacCeListElement_s> m_ulCeReceived; // CE received (BSR up to now)
+
+  std::vector <DlInfoListElement_s> m_dlInfoListReceived; // DL HARQ feedback received
+
+  std::vector <UlInfoListElement_s> m_ulInfoListReceived; // UL HARQ feedback received
 
 
   /*
   * Map of UE's info element (see 4.3.12 of FF MAC Scheduler API)
   */
-  std::map <uint16_t,UlInfoListElement_s> m_ulInfoListElements; 
+//   std::map <uint16_t,UlInfoListElement_s> m_ulInfoListElements; 
 
 
 
@@ -229,8 +260,34 @@ private:
   TracedCallback<uint32_t, uint32_t, uint16_t, uint8_t, uint16_t> m_ulScheduling;
   
   uint8_t m_macChTtiDelay; // delay of MAC, PHY and channel in terms of TTIs
-  
 
+
+  std::map <uint16_t, DlHarqProcessesBuffer_t> m_miDlHarqProcessesPackets; // Packet under trasmission of the DL HARQ process
+  
+  uint8_t m_numberOfRaPreambles;
+  uint8_t m_preambleTransMax;
+  uint8_t m_raResponseWindowSize;
+
+  /**
+   * info associated with a preamble allocated for non-contention based RA
+   * 
+   */
+  struct NcRaPreambleInfo
+  {   
+    uint16_t rnti; ///< rnti previously allocated for this non-contention based RA procedure
+    Time expiryTime; ///< value the expiration time of this allocation (so that stale preambles can be reused)
+  };
+
+  /**
+   * map storing as key the random acccess preamble IDs allocated for
+   * non-contention based access, and as value the associated info
+   * 
+   */
+  std::map<uint8_t, NcRaPreambleInfo> m_allocatedNcRaPreambleMap;
+ 
+  std::map<uint8_t, uint32_t> m_receivedRachPreambleCount;
+
+  std::map<uint8_t, uint32_t> m_rapIdRntiMap;
 };
 
 } // end namespace ns3

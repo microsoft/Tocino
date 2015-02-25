@@ -37,16 +37,24 @@ namespace ns3 {
  * http://inst.eecs.berkeley.edu/~ee122/fa05/projects/Project2/proj2_spec_files/sacks.pdf
  * In summary, we have slow start, congestion avoidance, and fast retransmit.
  * The implementation of these algorithms are based on W. R. Stevens's book and
- * also RFC2001.
+ * also \RFC{2001}.
  */
 class TcpTahoe : public TcpSocketBase
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
   /**
    * Create an unbound tcp socket.
    */
   TcpTahoe (void);
+  /**
+   * \brief Copy constructor
+   * \param sock the object to copy
+   */
   TcpTahoe (const TcpTahoe& sock);
   virtual ~TcpTahoe (void);
 
@@ -63,18 +71,22 @@ protected:
 
   // Implementing ns3::TcpSocket -- Attribute get/set
   virtual void     SetSegSize (uint32_t size);
-  virtual void     SetSSThresh (uint32_t threshold);
-  virtual uint32_t GetSSThresh (void) const;
+  virtual void     SetInitialSSThresh (uint32_t threshold);
+  virtual uint32_t GetInitialSSThresh (void) const;
   virtual void     SetInitialCwnd (uint32_t cwnd);
   virtual uint32_t GetInitialCwnd (void) const;
 private:
-  void InitializeCwnd (void);            // set m_cWnd when connection starts
+  /**
+   * \brief Set the congestion window when connection starts
+   */
+  void InitializeCwnd (void);
 
 protected:
-  TracedValue<uint32_t>  m_cWnd;         //< Congestion window
-  uint32_t               m_ssThresh;     //< Slow Start Threshold
-  uint32_t               m_initialCWnd;  //< Initial cWnd value
-  uint32_t               m_retxThresh;   //< Fast Retransmit threshold
+  TracedValue<uint32_t>  m_cWnd;         //!< Congestion window
+  TracedValue<uint32_t>  m_ssThresh;     //!< Slow Start Threshold
+  uint32_t               m_initialCWnd;  //!< Initial cWnd value
+  uint32_t               m_initialSsThresh;  //!< Initial Slow Start Threshold value
+  uint32_t               m_retxThresh;   //!< Fast Retransmit threshold
 };
 
 } // namespace ns3

@@ -22,7 +22,7 @@
 #include "ns3/simulator.h"
 #include "ns3/dcf-manager.h"
 
-namespace ns3 {
+using namespace ns3;
 
 class DcfManagerTest;
 
@@ -37,6 +37,8 @@ private:
   virtual void DoNotifyInternalCollision (void);
   virtual void DoNotifyCollision (void);
   virtual void DoNotifyChannelSwitching (void);
+  virtual void DoNotifySleep (void);
+  virtual void DoNotifyWakeUp (void);
 
   typedef std::pair<uint64_t,uint64_t> ExpectedGrant;
   typedef std::list<ExpectedGrant> ExpectedGrants;
@@ -136,7 +138,16 @@ DcfStateTest::DoNotifyChannelSwitching (void)
 {
   m_test->NotifyChannelSwitching (m_i);
 }
+void
+DcfStateTest::DoNotifySleep (void)
+{
 
+}
+void
+DcfStateTest::DoNotifyWakeUp (void)
+{
+
+}
 
 DcfManagerTest::DcfManagerTest ()
   : TestCase ("DcfManager")
@@ -682,9 +693,7 @@ public:
 DcfTestSuite::DcfTestSuite ()
   : TestSuite ("devices-wifi-dcf", UNIT)
 {
-  AddTestCase (new DcfManagerTest);
+  AddTestCase (new DcfManagerTest, TestCase::QUICK);
 }
 
 static DcfTestSuite g_dcfTestSuite;
-
-} // namespace ns3

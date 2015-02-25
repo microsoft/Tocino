@@ -22,7 +22,6 @@
 #define NDISC_CACHE_H
 
 #include <stdint.h>
-
 #include <list>
 
 #include "ns3/packet.h"
@@ -32,6 +31,7 @@
 #include "ns3/ptr.h"
 #include "ns3/timer.h"
 #include "ns3/sgi-hashmap.h"
+#include "ns3/output-stream-wrapper.h"
 
 namespace ns3
 {
@@ -123,6 +123,13 @@ public:
    * \param interface the IPv6 interface
    */
   void SetDevice (Ptr<NetDevice> device, Ptr<Ipv6Interface> interface);
+
+  /**
+   * \brief Print the NDISC cache entries
+   *
+   * \param stream the ostream the NDISC cache entries is printed to
+   */
+  void PrintNdiscCache (Ptr<OutputStreamWrapper> stream);
 
   /**
    * \class Entry
@@ -412,20 +419,29 @@ private:
   };
 
 private:
+  /**
+   * \brief Neighbor Discovery Cache container
+   */
   typedef sgi::hash_map<Ipv6Address, NdiscCache::Entry *, Ipv6AddressHash> Cache;
+  /**
+   * \brief Neighbor Discovery Cache container iterator
+   */
   typedef sgi::hash_map<Ipv6Address, NdiscCache::Entry *, Ipv6AddressHash>::iterator CacheI;
 
   /**
    * \brief Copy constructor.
-   * \param a cache to copy
+   *
+   * Not implemented to avoid misuse
    */
-  NdiscCache (NdiscCache const &a);
+  NdiscCache (NdiscCache const &);
 
   /**
-   * \brief Equal operator.
-   * \param a cache to copy
+   * \brief Copy constructor.
+   *
+   * Not implemented to avoid misuse
+   * \returns
    */
-  NdiscCache& operator= (NdiscCache const &a);
+  NdiscCache& operator= (NdiscCache const &);
 
   /**
    * \brief Dispose this object.

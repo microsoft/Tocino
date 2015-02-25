@@ -37,9 +37,7 @@
 #include "msdu-aggregator.h"
 #include "amsdu-subframe-header.h"
 #include "mgt-headers.h"
-
-NS_LOG_COMPONENT_DEFINE ("StaWifiMac");
-
+#include "ht-capabilities.h"
 
 /*
  * The state machine for this STA is:
@@ -58,6 +56,8 @@ NS_LOG_COMPONENT_DEFINE ("StaWifiMac");
  */
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("StaWifiMac");
 
 NS_OBJECT_ENSURE_REGISTERED (StaWifiMac);
 
@@ -83,12 +83,14 @@ StaWifiMac::GetTypeId (void)
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("ActiveProbing", "If true, we send probe requests. If false, we don't. NOTE: if more than one STA in your simulation is using active probing, you should enable it at a different simulation time for each STA, otherwise all the STAs will start sending probes at the same time resulting in collisions. See bug 1060 for more info.",
                    BooleanValue (false),
-                   MakeBooleanAccessor (&StaWifiMac::SetActiveProbing),
+                   MakeBooleanAccessor (&StaWifiMac::SetActiveProbing, &StaWifiMac::GetActiveProbing),
                    MakeBooleanChecker ())
     .AddTraceSource ("Assoc", "Associated with an access point.",
-                     MakeTraceSourceAccessor (&StaWifiMac::m_assocLogger))
+                     MakeTraceSourceAccessor (&StaWifiMac::m_assocLogger),
+                     "ns3::Mac48Address::TracedCallback")
     .AddTraceSource ("DeAssoc", "Association with an access point lost.",
-                     MakeTraceSourceAccessor (&StaWifiMac::m_deAssocLogger))
+                     MakeTraceSourceAccessor (&StaWifiMac::m_deAssocLogger),
+                     "ns3::Mac48Address::TracedCallback")
   ;
   return tid;
 }
@@ -151,6 +153,12 @@ StaWifiMac::SetActiveProbing (bool enable)
     {
       m_probeRequestEvent.Cancel ();
     }
+  m_activeProbing = enable;
+}
+  
+bool StaWifiMac::GetActiveProbing (void) const
+{
+  return m_activeProbing;
 }
 
 void
@@ -168,6 +176,12 @@ StaWifiMac::SendProbeRequest (void)
   MgtProbeRequestHeader probe;
   probe.SetSsid (GetSsid ());
   probe.SetSupportedRates (GetSupportedRates ());
+  if (m_htSupported)
+    {
+      probe.SetHtCapabilities (GetHtCapabilities());
+      hdr.SetNoOrder();
+    }
+
   packet->AddHeader (probe);
 
   // The standard is not clear on the correct queue for management
@@ -176,6 +190,10 @@ StaWifiMac::SendProbeRequest (void)
   // association or not.
   m_dca->Queue (packet, hdr);
 
+  if (m_probeRequestEvent.IsRunning ())
+    {
+      m_probeRequestEvent.Cancel ();
+    }
   m_probeRequestEvent = Simulator::Schedule (m_probeRequestTimeout,
                                              &StaWifiMac::ProbeRequestTimeout, this);
 }
@@ -195,6 +213,12 @@ StaWifiMac::SendAssociationRequest (void)
   MgtAssocRequestHeader assoc;
   assoc.SetSsid (GetSsid ());
   assoc.SetSupportedRates (GetSupportedRates ());
+  if (m_htSupported)
+    {
+      assoc.SetHtCapabilities (GetHtCapabilities());
+      hdr.SetNoOrder();
+    }
+
   packet->AddHeader (assoc);
 
   // The standard is not clear on the correct queue for management
@@ -203,6 +227,10 @@ StaWifiMac::SendAssociationRequest (void)
   // association or not.
   m_dca->Queue (packet, hdr);
 
+  if (m_assocRequestEvent.IsRunning ())
+    {
+      m_assocRequestEvent.Cancel ();
+    }
   m_assocRequestEvent = Simulator::Schedule (m_assocRequestTimeout,
                                              &StaWifiMac::AssocRequestTimeout, this);
 }
@@ -229,8 +257,11 @@ StaWifiMac::TryToEnsureAssociated (void)
        * We try to initiate a probe request now.
        */
       m_linkDown ();
+      if (m_activeProbing) 
+        {
       SetState (WAIT_PROBE_RESP);
       SendProbeRequest ();
+        }
       break;
     case WAIT_ASSOC_RESP:
       /* we have sent an assoc request so we do not need to
@@ -270,6 +301,10 @@ StaWifiMac::MissedBeacons (void)
   NS_LOG_FUNCTION (this);
   if (m_beaconWatchdogEnd > Simulator::Now ())
     {
+      if (m_beaconWatchdog.IsRunning ())
+        {
+          m_beaconWatchdog.Cancel ();
+        }
       m_beaconWatchdog = Simulator::Schedule (m_beaconWatchdogEnd - Simulator::Now (),
                                               &StaWifiMac::MissedBeacons, this);
       return;
@@ -350,6 +385,10 @@ StaWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
   else
     {
       hdr.SetTypeData ();
+    }
+if (m_htSupported)
+    {
+      hdr.SetNoOrder();
     }
 
   hdr.SetAddr1 (GetBssid ());
@@ -444,6 +483,15 @@ StaWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
         {
           goodBeacon = true;
         }
+      SupportedRates rates = beacon.GetSupportedRates ();
+      for (uint32_t i = 0; i < m_phy->GetNBssMembershipSelectors (); i++)
+        {
+           uint32_t selector = m_phy->GetBssMembershipSelector (i);
+           if (!rates.IsSupportedRate (selector))
+             {
+                goodBeacon = false;
+             }
+         }
       if ((IsWaitAssocResp () || IsAssociated ()) && hdr->GetAddr3 () != GetBssid ())
         {
           goodBeacon = false;
@@ -472,6 +520,15 @@ StaWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
               //not a probe resp for our ssid.
               return;
             }
+          SupportedRates rates = probeResp.GetSupportedRates ();
+          for (uint32_t i = 0; i < m_phy->GetNBssMembershipSelectors (); i++)
+            {
+             uint32_t selector = m_phy->GetBssMembershipSelector (i);
+             if (!rates.IsSupportedRate (selector))
+               {
+                 return;
+               }
+            }
           SetBssid (hdr->GetAddr3 ());
           Time delay = MicroSeconds (probeResp.GetBeaconIntervalUs () * m_maxMissedBeacons);
           RestartBeaconWatchdog (delay);
@@ -499,6 +556,12 @@ StaWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
               SetState (ASSOCIATED);
               NS_LOG_DEBUG ("assoc completed");
               SupportedRates rates = assocResp.GetSupportedRates ();
+              if (m_htSupported)
+                {
+                  HtCapabilities htcapabilities = assocResp.GetHtCapabilities ();
+                  m_stationManager->AddStationHtCapabilities (hdr->GetAddr2 (),htcapabilities);
+                }
+
               for (uint32_t i = 0; i < m_phy->GetNModes (); i++)
                 {
                   WifiMode mode = m_phy->GetMode (i);
@@ -509,6 +572,19 @@ StaWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
                         {
                           m_stationManager->AddBasicMode (mode);
                         }
+                    }
+                }
+              if(m_htSupported)
+                {
+                  HtCapabilities htcapabilities = assocResp.GetHtCapabilities ();
+                  for (uint32_t i = 0; i < m_phy->GetNMcs(); i++)
+                    {
+                       uint8_t mcs=m_phy->GetMcs(i);
+                       if (htcapabilities.IsSupportedMcs (mcs))
+                         {
+                           m_stationManager->AddSupportedMcs (hdr->GetAddr2 (), mcs);
+                          //here should add a control to add basic MCS when it is implemented
+                         }
                     }
                 }
               if (!m_linkUp.IsNull ())
@@ -535,6 +611,13 @@ SupportedRates
 StaWifiMac::GetSupportedRates (void) const
 {
   SupportedRates rates;
+  if(m_htSupported)
+    {
+      for (uint32_t i = 0; i < m_phy->GetNBssMembershipSelectors(); i++)
+        {
+          rates.SetBasicRate(m_phy->GetBssMembershipSelector(i));
+        }
+    }
   for (uint32_t i = 0; i < m_phy->GetNModes (); i++)
     {
       WifiMode mode = m_phy->GetMode (i);
@@ -542,7 +625,20 @@ StaWifiMac::GetSupportedRates (void) const
     }
   return rates;
 }
-
+HtCapabilities
+StaWifiMac::GetHtCapabilities (void) const
+{
+ HtCapabilities capabilities;
+ capabilities.SetHtSupported(1);
+ capabilities.SetLdpc (m_phy->GetLdpc());
+ capabilities.SetShortGuardInterval20 (m_phy->GetGuardInterval());
+ capabilities.SetGreenfield (m_phy->GetGreenfield());
+for (uint8_t i =0 ; i < m_phy->GetNMcs();i++)
+  {
+     capabilities.SetRxMcsBitmask(m_phy->GetMcs(i));
+  }
+ return capabilities;
+}
 void
 StaWifiMac::SetState (MacState value)
 {

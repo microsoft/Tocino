@@ -19,9 +19,12 @@
  */
 #include "packet-socket-factory.h"
 #include "ns3/node.h"
+#include "ns3/log.h"
 #include "packet-socket.h"
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("PacketSocketFactory");
 
 NS_OBJECT_ENSURE_REGISTERED (PacketSocketFactory);
 
@@ -35,10 +38,12 @@ PacketSocketFactory::GetTypeId (void)
 
 PacketSocketFactory::PacketSocketFactory ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 Ptr<Socket> PacketSocketFactory::CreateSocket (void)
 {
+  NS_LOG_FUNCTION (this);
   Ptr<Node> node = GetObject<Node> ();
   Ptr<PacketSocket> socket = CreateObject<PacketSocket> ();
   socket->SetNode (node);

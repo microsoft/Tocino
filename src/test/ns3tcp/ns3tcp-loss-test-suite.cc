@@ -38,12 +38,13 @@
 #include "ns3/error-model.h"
 #include "ns3/pointer.h"
 #include "ns3tcp-socket-writer.h"
+#include "ns3/tcp-westwood.h"
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("Ns3TcpLossTest");
 
-const bool WRITE_VECTORS = false;           // set to true to write response vectors
+const bool WRITE_VECTORS = false;            // set to true to write response vectors
 const bool WRITE_LOGGING = false;            // set to true to write logging
 const uint32_t PCAP_LINK_TYPE = 1187373557; // Some large random number -- we use to verify data was written by this program
 const uint32_t PCAP_SNAPLEN   = 64;         // Don't bother to save much data
@@ -95,7 +96,7 @@ Ns3TcpLossTestCase::Ns3TcpLossTestCase ()
     m_writeResults (false),
     m_writeLogging (WRITE_LOGGING),
     m_needToClose (true),
-    m_tcpModel ("ns3::TcpTahoe")
+    m_tcpModel ("ns3::TcpWestwood")
 {
 }
 
@@ -121,7 +122,7 @@ Ns3TcpLossTestCase::DoSetup (void)
   //
   std::ostringstream oss;
   oss << "/response-vectors/ns3tcp-loss-" << m_tcpModel << m_testCase << "-response-vectors.pcap";
-    m_pcapFilename = CreateDataDirFilename(oss.str ());
+  m_pcapFilename = CreateDataDirFilename(oss.str ());
 
   if (m_writeVectors)
     {
@@ -190,7 +191,7 @@ Ns3TcpLossTestCase::Ipv4L3Tx (std::string context, Ptr<const Packet> packet, Ptr
       uint8_t *actual = new uint8_t[readLen];
       p->CopyData (actual, readLen);
 
-      uint32_t result = memcmp (actual, expected, readLen);
+      int result = memcmp (actual, expected, readLen);
 
       delete [] actual;
 
@@ -199,7 +200,7 @@ Ns3TcpLossTestCase::Ipv4L3Tx (std::string context, Ptr<const Packet> packet, Ptr
       //
       if (IsStatusSuccess ())
         {
-          NS_TEST_EXPECT_MSG_EQ (result, 0, "Expected data comparison error");
+          NS_TEST_EXPECT_MSG_EQ (result, 0, "Expected data comparison error: " << m_tcpModel << "-" << m_testCase);
         }
     }
 }
@@ -286,17 +287,29 @@ Ns3TcpLossTestCase::DoRun (void)
 
   std::ostringstream tcpModel;
   tcpModel << "ns3::Tcp" << m_tcpModel;
-  Config::SetDefault ("ns3::TcpL4Protocol::SocketType", 
+  if (m_tcpModel.compare("WestwoodPlus") == 0)
+    {
+	  Config::SetDefault("ns3::TcpL4Protocol::SocketType",
+			             TypeIdValue (TcpWestwood::GetTypeId()));
+	  Config::SetDefault("ns3::TcpWestwood::ProtocolType",
+			             EnumValue(TcpWestwood::WESTWOODPLUS));
+    }
+  else
+    {
+	  Config::SetDefault ("ns3::TcpL4Protocol::SocketType",
                       StringValue (tcpModel.str ()));
+    }
+
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1000));
   Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (1));
+  Config::SetDefault ("ns3::TcpSocketBase::Timestamp", BooleanValue (false));
 
   if (m_writeLogging)
     {
       LogComponentEnableAll (LOG_PREFIX_FUNC);
-      LogComponentEnable ("TcpLossResponse", LOG_LEVEL_ALL);
+      LogComponentEnable ("Ns3TcpLossTest", LOG_LEVEL_ALL);
       LogComponentEnable ("ErrorModel", LOG_LEVEL_DEBUG);
-      LogComponentEnable ("TcpLossResponse", LOG_LEVEL_ALL);
+      LogComponentEnable ("TcpWestwood", LOG_LEVEL_ALL);
       LogComponentEnable ("TcpNewReno", LOG_LEVEL_INFO);
       LogComponentEnable ("TcpReno", LOG_LEVEL_INFO);
       LogComponentEnable ("TcpTahoe", LOG_LEVEL_INFO);
@@ -446,25 +459,38 @@ Ns3TcpLossTestSuite::Ns3TcpLossTestSuite ()
 {
   SetDataDir (NS_TEST_SOURCEDIR);
   Packet::EnablePrinting ();  // Enable packet metadata for all test cases
-#if 0
-  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 0));
-  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 1));
-  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 2));
-  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 3));
-  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 4));
 
-  AddTestCase (new Ns3TcpLossTestCase ("Reno", 0));
-  AddTestCase (new Ns3TcpLossTestCase ("Reno", 1));
-  AddTestCase (new Ns3TcpLossTestCase ("Reno", 2));
-  AddTestCase (new Ns3TcpLossTestCase ("Reno", 3));
-  AddTestCase (new Ns3TcpLossTestCase ("Reno", 4));
+  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 0), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 1), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 2), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 3), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Tahoe", 4), TestCase::QUICK);
 
-  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 0));
-  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 1));
-  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 2));
-  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 3));
-  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 4));
-#endif
+  AddTestCase (new Ns3TcpLossTestCase ("Reno", 0), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Reno", 1), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Reno", 2), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Reno", 3), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Reno", 4), TestCase::QUICK);
+
+  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 0), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 1), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 2), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 3), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("NewReno", 4), TestCase::QUICK);
+
+  AddTestCase (new Ns3TcpLossTestCase ("Westwood", 0), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Westwood", 1), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Westwood", 2), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Westwood", 3), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("Westwood", 4), TestCase::QUICK);
+
+  AddTestCase (new Ns3TcpLossTestCase ("WestwoodPlus", 0), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("WestwoodPlus", 1), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("WestwoodPlus", 2), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("WestwoodPlus", 3), TestCase::QUICK);
+  AddTestCase (new Ns3TcpLossTestCase ("WestwoodPlus", 4), TestCase::QUICK);
+
 }
 
 static Ns3TcpLossTestSuite ns3TcpLossTestSuite;
+

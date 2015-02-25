@@ -26,6 +26,7 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("BlockAckTest");
+
 /**
  * This simple test verifies the correctness of buffering for packets received
  * under block ack. In order to completely understand this example is important to cite
@@ -284,9 +285,9 @@ public:
 BlockAckTestSuite::BlockAckTestSuite ()
   : TestSuite ("wifi-block-ack", UNIT)
 {
-  AddTestCase (new PacketBufferingCaseA);
-  AddTestCase (new PacketBufferingCaseB);
-  AddTestCase (new CtrlBAckResponseHeaderTest);
+  AddTestCase (new PacketBufferingCaseA, TestCase::QUICK);
+  AddTestCase (new PacketBufferingCaseB, TestCase::QUICK);
+  AddTestCase (new CtrlBAckResponseHeaderTest, TestCase::QUICK);
 }
 
 static BlockAckTestSuite g_blockAckTestSuite;

@@ -6,9 +6,9 @@
 #include "ns3/log.h"
 #include "ns3/config.h"
 
-NS_LOG_COMPONENT_DEFINE ("RawTextConfig");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("RawTextConfig");
 
 RawTextConfigSave::RawTextConfigSave ()
   : m_os (0)
@@ -115,6 +115,7 @@ RawTextConfigLoad::Strip (std::string value)
 void 
 RawTextConfigLoad::Default (void)
 {
+  m_is->clear ();
   m_is->seekg (0);
   std::string type, name, value;
   *m_is >> type >> name >> value;
@@ -132,6 +133,7 @@ RawTextConfigLoad::Default (void)
 void 
 RawTextConfigLoad::Global (void)
 {
+  m_is->clear ();
   m_is->seekg (0);
   std::string type, name, value;
   *m_is >> type >> name >> value;

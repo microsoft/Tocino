@@ -27,31 +27,37 @@ NS_LOG_COMPONENT_DEFINE("ObjectFactory");
 
 ObjectFactory::ObjectFactory ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 ObjectFactory::ObjectFactory (std::string typeId)
 {
+  NS_LOG_FUNCTION (this << typeId);
   SetTypeId (typeId);
 }
 
 void
 ObjectFactory::SetTypeId (TypeId tid)
 {
+  NS_LOG_FUNCTION (this << tid.GetName ());
   m_tid = tid;
 }
 void
 ObjectFactory::SetTypeId (std::string tid)
 {
+  NS_LOG_FUNCTION (this << tid);
   m_tid = TypeId::LookupByName (tid);
 }
 void
 ObjectFactory::SetTypeId (const char *tid)
 {
+  NS_LOG_FUNCTION (this << tid);
   m_tid = TypeId::LookupByName (tid);
 }
 void
 ObjectFactory::Set (std::string name, const AttributeValue &value)
 {
+  NS_LOG_FUNCTION (this << name << &value);
   if (name == "")
     {
       return;
@@ -75,15 +81,18 @@ ObjectFactory::Set (std::string name, const AttributeValue &value)
 TypeId 
 ObjectFactory::GetTypeId (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_tid;
 }
 
 Ptr<Object> 
 ObjectFactory::Create (void) const
 {
+  NS_LOG_FUNCTION (this);
   Callback<ObjectBase *> cb = m_tid.GetConstructor ();
   ObjectBase *base = cb ();
   Object *derived = dynamic_cast<Object *> (base);
+  NS_ASSERT (derived != 0);
   derived->SetTypeId (m_tid);
   derived->Construct (m_parameters);
   Ptr<Object> object = Ptr<Object> (derived, false);
@@ -119,7 +128,6 @@ std::istream & operator >> (std::istream &is, ObjectFactory &factory)
     }
   if (lbracket == std::string::npos || rbracket == std::string::npos)
     {
-      NS_LOG_DEBUG ("Error while parsing factory specification: mismatching brackets. \"" << v << "\"");
       return is;
     }
   NS_ASSERT (lbracket != std::string::npos);
@@ -135,7 +143,6 @@ std::istream & operator >> (std::istream &is, ObjectFactory &factory)
       if (equal == std::string::npos)
         {
           is.setstate (std::ios_base::failbit);
-          NS_LOG_DEBUG ("Error while parsing serialized attribute: \"" << parameters << "\"");
           break;
         }
       else
@@ -145,7 +152,6 @@ std::istream & operator >> (std::istream &is, ObjectFactory &factory)
           if (!factory.m_tid.LookupAttributeByName (name, &info))
             {
               is.setstate (std::ios_base::failbit);
-              NS_LOG_DEBUG ("Error while parsing serialized attribute: name does not exist: \"" << name << "\"");
               break;
             }
           else
@@ -167,7 +173,6 @@ std::istream & operator >> (std::istream &is, ObjectFactory &factory)
               if (!ok)
                 {
                   is.setstate (std::ios_base::failbit);
-                  NS_LOG_DEBUG ("Error while parsing serialized attribute: value invalid: \"" << value << "\"");
                   break;
                 }
               else

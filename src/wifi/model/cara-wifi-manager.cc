@@ -25,11 +25,18 @@
 #include "ns3/uinteger.h"
 #include "ns3/simulator.h"
 
-NS_LOG_COMPONENT_DEFINE ("Cara");
-
+#define Min(a,b) ((a < b) ? a : b)
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("Cara");
+
+/**
+ * \brief hold per-remote-station state for CARA Wifi manager.
+ *
+ * This struct extends from WifiRemoteStation struct to hold additional
+ * information required by the CARA Wifi manager
+ */
 struct CaraWifiRemoteStation : public WifiRemoteStation
 {
   uint32_t m_timer;
@@ -73,14 +80,17 @@ CaraWifiManager::GetTypeId (void)
 CaraWifiManager::CaraWifiManager ()
   : WifiRemoteStationManager ()
 {
+  NS_LOG_FUNCTION (this);
 }
 CaraWifiManager::~CaraWifiManager ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 WifiRemoteStation *
 CaraWifiManager::DoCreateStation (void) const
 {
+  NS_LOG_FUNCTION (this);
   CaraWifiRemoteStation *station = new CaraWifiRemoteStation ();
   station->m_rate = 0;
   station->m_success = 0;
@@ -92,13 +102,14 @@ CaraWifiManager::DoCreateStation (void) const
 void
 CaraWifiManager::DoReportRtsFailed (WifiRemoteStation *st)
 {
+  NS_LOG_FUNCTION (this << st);
 }
 
 void
 CaraWifiManager::DoReportDataFailed (WifiRemoteStation *st)
 {
+  NS_LOG_FUNCTION (this << st);
   CaraWifiRemoteStation *station = (CaraWifiRemoteStation *) st;
-  NS_LOG_FUNCTION (station);
   station->m_timer++;
   station->m_failed++;
   station->m_success = 0;
@@ -117,17 +128,20 @@ void
 CaraWifiManager::DoReportRxOk (WifiRemoteStation *st,
                                double rxSnr, WifiMode txMode)
 {
+  NS_LOG_FUNCTION (this << st << rxSnr << txMode);
 }
 void
 CaraWifiManager::DoReportRtsOk (WifiRemoteStation *st,
                                 double ctsSnr, WifiMode ctsMode, double rtsSnr)
 {
+  NS_LOG_FUNCTION (this << st << ctsSnr << ctsMode << rtsSnr);
   NS_LOG_DEBUG ("self=" << st << " rts ok");
 }
 void
 CaraWifiManager::DoReportDataOk (WifiRemoteStation *st,
                                  double ackSnr, WifiMode ackMode, double dataSnr)
 {
+  NS_LOG_FUNCTION (this << st << ackSnr << ackMode << dataSnr);
   CaraWifiRemoteStation *station = (CaraWifiRemoteStation *) st;
   station->m_timer++;
   station->m_success++;
@@ -148,31 +162,36 @@ CaraWifiManager::DoReportDataOk (WifiRemoteStation *st,
 void
 CaraWifiManager::DoReportFinalRtsFailed (WifiRemoteStation *st)
 {
+  NS_LOG_FUNCTION (this << st);
 }
 void
 CaraWifiManager::DoReportFinalDataFailed (WifiRemoteStation *st)
 {
+  NS_LOG_FUNCTION (this << st);
 }
 
-WifiMode
-CaraWifiManager::DoGetDataMode (WifiRemoteStation *st,
-                                uint32_t size)
+WifiTxVector
+CaraWifiManager::DoGetDataTxVector (WifiRemoteStation *st,
+                                    uint32_t size)
 {
+  NS_LOG_FUNCTION (this << st << size);
   CaraWifiRemoteStation *station = (CaraWifiRemoteStation *) st;
-  return GetSupported (station, station->m_rate);
+  return WifiTxVector (GetSupported (station, station->m_rate), GetDefaultTxPowerLevel (), GetLongRetryCount (station), GetShortGuardInterval (station), Min (GetNumberOfReceiveAntennas (station),GetNumberOfTransmitAntennas()), GetNess (station), GetStbc (station));
 }
-WifiMode
-CaraWifiManager::DoGetRtsMode (WifiRemoteStation *st)
+WifiTxVector
+CaraWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
 {
-  // XXX: we could/should implement the Arf algorithm for
-  // RTS only by picking a single rate within the BasicRateSet.
-  return GetSupported (st, 0);
+  NS_LOG_FUNCTION (this << st);
+  /// \todo we could/should implement the Arf algorithm for
+  /// RTS only by picking a single rate within the BasicRateSet.
+  return WifiTxVector (GetSupported (st, 0), GetDefaultTxPowerLevel (), GetLongRetryCount (st), GetShortGuardInterval (st), Min (GetNumberOfReceiveAntennas (st),GetNumberOfTransmitAntennas()), GetNess (st), GetStbc (st));
 }
 
 bool
 CaraWifiManager::DoNeedRts (WifiRemoteStation *st,
                             Ptr<const Packet> packet, bool normally)
 {
+  NS_LOG_FUNCTION (this << st << normally);
   CaraWifiRemoteStation *station = (CaraWifiRemoteStation *) st;
   return normally || station->m_failed >= m_probeThreshold;
 }
@@ -180,6 +199,7 @@ CaraWifiManager::DoNeedRts (WifiRemoteStation *st,
 bool
 CaraWifiManager::IsLowLatency (void) const
 {
+  NS_LOG_FUNCTION (this);
   return true;
 }
 

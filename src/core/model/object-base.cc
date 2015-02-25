@@ -24,18 +24,33 @@
 #include "string.h"
 #include "ns3/core-config.h"
 #ifdef HAVE_STDLIB_H
-#include <stdlib.h>
+#include <cstdlib>
 #endif
 
-NS_LOG_COMPONENT_DEFINE ("ObjectBase");
+/**
+ * \file
+ * \ingroup object
+ * ns3::ObjectBase class implementation.
+ */
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("ObjectBase");
+
 NS_OBJECT_ENSURE_REGISTERED (ObjectBase);
 
+/**
+ * Ensure the TypeId for ObjectBase gets fully configured
+ * to anchor the inheritance tree properly.
+ *
+ * \relates ns3::ObjectBase
+ *
+ * \return The TypeId for ObjectBase.
+ */
 static TypeId
 GetObjectIid (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   TypeId tid = TypeId ("ns3::ObjectBase");
   tid.SetParent (tid);
   return tid;
@@ -44,22 +59,27 @@ GetObjectIid (void)
 TypeId 
 ObjectBase::GetTypeId (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   static TypeId tid = GetObjectIid ();
   return tid;
 }
 
 ObjectBase::~ObjectBase () 
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
 ObjectBase::NotifyConstructionCompleted (void)
-{}
+{
+  NS_LOG_FUNCTION (this);
+}
 
 void
 ObjectBase::ConstructSelf (const AttributeConstructionList &attributes)
 {
   // loop over the inheritance tree back to the Object base class.
+  NS_LOG_FUNCTION (this << &attributes);
   TypeId tid = GetInstanceTypeId ();
   do {
       // loop over all attributes in object type
@@ -69,13 +89,29 @@ ObjectBase::ConstructSelf (const AttributeConstructionList &attributes)
           struct TypeId::AttributeInformation info = tid.GetAttribute(i);
           NS_LOG_DEBUG ("try to construct \""<< tid.GetName ()<<"::"<<
                         info.name <<"\"");
-          if (!(info.flags & TypeId::ATTR_CONSTRUCT))
-            {
-              continue;
-            }
-          bool found = false;
           // is this attribute stored in this AttributeConstructionList instance ?
           Ptr<AttributeValue> value = attributes.Find(info.checker);
+          // See if this attribute should not be set here in the
+          // constructor.
+          if (!(info.flags & TypeId::ATTR_CONSTRUCT))
+            {
+              // Handle this attribute if it should not be 
+              // set here.
+              if (value == 0)
+                {
+                  // Skip this attribute if it's not in the
+                  // AttributeConstructionList.
+                  continue;
+                }              
+              else
+                {
+                  // This is an error because this attribute is not
+                  // settable in its constructor but is present in
+                  // the AttributeConstructionList.
+                  NS_FATAL_ERROR ("Attribute name="<<info.name<<" tid="<<tid.GetName () << ": initial value cannot be set using attributes");
+                }
+            }
+          bool found = false;
           if (value != 0)
             {
               // We have a matching attribute value.
@@ -140,6 +176,7 @@ ObjectBase::DoSet (Ptr<const AttributeAccessor> accessor,
                    Ptr<const AttributeChecker> checker,
                    const AttributeValue &value)
 {
+  NS_LOG_FUNCTION (this << accessor << checker << &value);
   Ptr<AttributeValue> v = checker->CreateValidValue (value);
   if (v == 0)
     {
@@ -148,9 +185,11 @@ ObjectBase::DoSet (Ptr<const AttributeAccessor> accessor,
   bool ok = accessor->Set (this, *v);
   return ok;
 }
+
 void
 ObjectBase::SetAttribute (std::string name, const AttributeValue &value)
 {
+  NS_LOG_FUNCTION (this << name << &value);
   struct TypeId::AttributeInformation info;
   TypeId tid = GetInstanceTypeId ();
   if (!tid.LookupAttributeByName (name, &info))
@@ -170,6 +209,7 @@ ObjectBase::SetAttribute (std::string name, const AttributeValue &value)
 bool 
 ObjectBase::SetAttributeFailSafe (std::string name, const AttributeValue &value)
 {
+  NS_LOG_FUNCTION (this << name << &value);
   struct TypeId::AttributeInformation info;
   TypeId tid = GetInstanceTypeId ();
   if (!tid.LookupAttributeByName (name, &info))
@@ -187,6 +227,7 @@ ObjectBase::SetAttributeFailSafe (std::string name, const AttributeValue &value)
 void
 ObjectBase::GetAttribute (std::string name, AttributeValue &value) const
 {
+  NS_LOG_FUNCTION (this << name << &value);
   struct TypeId::AttributeInformation info;
   TypeId tid = GetInstanceTypeId ();
   if (!tid.LookupAttributeByName (name, &info))
@@ -221,6 +262,7 @@ ObjectBase::GetAttribute (std::string name, AttributeValue &value) const
 bool
 ObjectBase::GetAttributeFailSafe (std::string name, AttributeValue &value) const
 {
+  NS_LOG_FUNCTION (this << name << &value);
   struct TypeId::AttributeInformation info;
   TypeId tid = GetInstanceTypeId ();
   if (!tid.LookupAttributeByName (name, &info))
@@ -255,6 +297,7 @@ ObjectBase::GetAttributeFailSafe (std::string name, AttributeValue &value) const
 bool 
 ObjectBase::TraceConnectWithoutContext (std::string name, const CallbackBase &cb)
 {
+  NS_LOG_FUNCTION (this << name << &cb);
   TypeId tid = GetInstanceTypeId ();
   Ptr<const TraceSourceAccessor> accessor = tid.LookupTraceSourceByName (name);
   if (accessor == 0)
@@ -267,6 +310,7 @@ ObjectBase::TraceConnectWithoutContext (std::string name, const CallbackBase &cb
 bool 
 ObjectBase::TraceConnect (std::string name, std::string context, const CallbackBase &cb)
 {
+  NS_LOG_FUNCTION (this << name << context << &cb);
   TypeId tid = GetInstanceTypeId ();
   Ptr<const TraceSourceAccessor> accessor = tid.LookupTraceSourceByName (name);
   if (accessor == 0)
@@ -279,6 +323,7 @@ ObjectBase::TraceConnect (std::string name, std::string context, const CallbackB
 bool 
 ObjectBase::TraceDisconnectWithoutContext (std::string name, const CallbackBase &cb)
 {
+  NS_LOG_FUNCTION (this << name << &cb);
   TypeId tid = GetInstanceTypeId ();
   Ptr<const TraceSourceAccessor> accessor = tid.LookupTraceSourceByName (name);
   if (accessor == 0)
@@ -291,6 +336,7 @@ ObjectBase::TraceDisconnectWithoutContext (std::string name, const CallbackBase 
 bool 
 ObjectBase::TraceDisconnect (std::string name, std::string context, const CallbackBase &cb)
 {
+  NS_LOG_FUNCTION (this << name << context << &cb);
   TypeId tid = GetInstanceTypeId ();
   Ptr<const TraceSourceAccessor> accessor = tid.LookupTraceSourceByName (name);
   if (accessor == 0)

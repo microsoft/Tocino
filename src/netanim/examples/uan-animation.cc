@@ -41,7 +41,6 @@
 #include "ns3/network-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/mobility-module.h"
-#include "ns3/tools-module.h"
 #include "ns3/applications-module.h"
 
 #include <fstream>
@@ -160,7 +159,7 @@ NetAnimExperiment::Run (UanHelper &uan)
       {
         double x = urv->GetValue ();
         double y = urv->GetValue ();
-        double newr = sqrt ((x - m_boundary / 2.0) * (x - m_boundary / 2.0)
+        double newr = std::sqrt ((x - m_boundary / 2.0) * (x - m_boundary / 2.0)
                             + (y - m_boundary / 2.0) * (y - m_boundary / 2.0));
         rsum += newr;
         minr = std::min (minr, newr);
@@ -255,7 +254,7 @@ main (int argc, char **argv)
 {
 
   LogComponentEnable ("UanCwExample", LOG_LEVEL_ALL);
-  LogComponentEnable ("AnimationInterface", LOG_LEVEL_ALL);
+  //LogComponentEnable ("AnimationInterface", LOG_LEVEL_ALL);
 
   NetAnimExperiment exp;
 

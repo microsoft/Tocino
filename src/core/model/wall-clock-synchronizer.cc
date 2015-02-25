@@ -16,21 +16,40 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <time.h>
-#include <sys/time.h>
+
+#include <ctime>       // clock_t
+#include <sys/time.h>  // gettimeofday
+                       // clock_getres: glibc < 2.17, link with librt
 
 #include "log.h"
 #include "system-condition.h"
 
 #include "wall-clock-synchronizer.h"
 
-NS_LOG_COMPONENT_DEFINE ("WallClockSynchronizer");
+/**
+ * \file
+ * \ingroup realtime
+ * ns3::WallClockSynchronizer implementation.
+ */
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("WallClockSynchronizer");
+
+NS_OBJECT_ENSURE_REGISTERED (WallClockSynchronizer);
+
+TypeId 
+WallClockSynchronizer::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::WallClockSynchronizer")
+    .SetParent<Synchronizer> ()
+  ;
+  return tid;
+}
+
 WallClockSynchronizer::WallClockSynchronizer ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 //
 // In Linux, the basic timekeeping unit is derived from a variable called HZ
 // HZ is the frequency in hertz of the system timer.  The system timer fires 
@@ -70,27 +89,27 @@ WallClockSynchronizer::WallClockSynchronizer ()
 
 WallClockSynchronizer::~WallClockSynchronizer ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 bool
 WallClockSynchronizer::DoRealtime (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
 uint64_t
 WallClockSynchronizer::DoGetCurrentRealtime (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return GetNormalizedRealtime ();
 }
 
 void
 WallClockSynchronizer::DoSetOrigin (uint64_t ns)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << ns);
 //
 // In order to make sure we're really locking the simulation time to some 
 // wall-clock time, we need to be able to compare that simulation time to
@@ -106,7 +125,7 @@ WallClockSynchronizer::DoSetOrigin (uint64_t ns)
 int64_t
 WallClockSynchronizer::DoGetDrift (uint64_t ns)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << ns);
 //
 // In order to make sure we're really locking the simulation time to some 
 // wall-clock time, we need to be able to compare that simulation time to
@@ -146,7 +165,7 @@ WallClockSynchronizer::DoGetDrift (uint64_t ns)
 bool
 WallClockSynchronizer::DoSynchronize (uint64_t nsCurrent, uint64_t nsDelay)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << nsCurrent << nsDelay);
 //
 // This is the belly of the beast.  We have received two parameters from the
 // simulator proper -- a current simulation time (nsCurrent) and a simulation
@@ -203,7 +222,7 @@ WallClockSynchronizer::DoSynchronize (uint64_t nsCurrent, uint64_t nsDelay)
 // I'm not really sure about this number -- a boss of mine once said, "pick
 // a number and it'll be wrong."  But this works for now.
 //
-// XXX BUGBUG Hardcoded tunable parameter below.
+// \todo Hardcoded tunable parameter below.
 //
   if (numberJiffies > 3)
     {
@@ -264,7 +283,7 @@ WallClockSynchronizer::DoSynchronize (uint64_t nsCurrent, uint64_t nsDelay)
 void
 WallClockSynchronizer::DoSignal (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   m_condition.SetCondition (true);
   m_condition.Signal ();
@@ -273,37 +292,30 @@ WallClockSynchronizer::DoSignal (void)
 void
 WallClockSynchronizer::DoSetCondition (bool cond)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << cond);
   m_condition.SetCondition (cond);
 }
 
 void
 WallClockSynchronizer::DoEventStart (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_nsEventStart = GetNormalizedRealtime ();
 }
 
 uint64_t
 WallClockSynchronizer::DoEventEnd (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return GetNormalizedRealtime () - m_nsEventStart;
 }
 
 bool
 WallClockSynchronizer::SpinWait (uint64_t ns)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-//
-// Do a busy-wait until the normalized realtime equals the value passed in
-// or the condition variable becomes true.  The condition becomes true if
-// an outside entity (a network device receives a packet, sets the condition
-// and signals the scheduler it needs to re-evaluate).
-// 
+  NS_LOG_FUNCTION (this << ns);
 // We just sit here and spin, wasting CPU cycles until we get to the right
 // time or are told to leave.
-//
   for (;;) 
     {
       if (GetNormalizedRealtime () >= ns)
@@ -322,32 +334,14 @@ WallClockSynchronizer::SpinWait (uint64_t ns)
 bool
 WallClockSynchronizer::SleepWait (uint64_t ns)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-//
-// Put our process to sleep for some number of nanoseconds.  Typically this
-// will be some time equal to an integral number of jiffies.  We will usually
-// follow a call to SleepWait with a call to SpinWait to get the kind of
-// accuracy we want.
-//
-// We have to have some mechanism to wake up this sleep in case an external
-// event happens that causes a schedule event in the simulator.  This newly
-// scheduled event might be before the time we are waiting until, so we have
-// to break out of both the SleepWait and the following SpinWait to go back
-// and reschedule/resynchronize taking the new event into account.  The 
-// SystemCondition we have saved in m_condition takes care of this for us.
-//
-// This call will return if the timeout expires OR if the condition is 
-// set true by a call to WallClockSynchronizer::SetCondition (true) followed
-// by a call to WallClockSynchronizer::Signal().  In either case, we are done
-// waiting.  If the timeout happened, we TimedWait returns true; if a Signal
-// happened, false.
-//
+  NS_LOG_FUNCTION (this << ns);
   return m_condition.TimedWait (ns);
 }
 
 uint64_t
 WallClockSynchronizer::DriftCorrect (uint64_t nsNow, uint64_t nsDelay)
 {
+  NS_LOG_FUNCTION (this << nsNow << nsDelay);
   int64_t drift = DoGetDrift (nsNow);
 //
 // If we're running late, drift will be positive and we need to correct by
@@ -378,6 +372,7 @@ WallClockSynchronizer::DriftCorrect (uint64_t nsNow, uint64_t nsDelay)
 uint64_t
 WallClockSynchronizer::GetRealtime (void)
 {
+  NS_LOG_FUNCTION (this);
   struct timeval tvNow;
   gettimeofday (&tvNow, NULL);
   return TimevalToNs (&tvNow);
@@ -386,12 +381,14 @@ WallClockSynchronizer::GetRealtime (void)
 uint64_t
 WallClockSynchronizer::GetNormalizedRealtime (void)
 {
+  NS_LOG_FUNCTION (this);
   return GetRealtime () - m_realtimeOriginNano;
 }
 
 void
 WallClockSynchronizer::NsToTimeval (int64_t ns, struct timeval *tv)
 {
+  NS_LOG_FUNCTION (this << ns << tv);
   NS_ASSERT ((ns % US_PER_NS) == 0);
   tv->tv_sec = ns / NS_PER_SEC;
   tv->tv_usec = (ns % NS_PER_SEC) / US_PER_NS;
@@ -400,6 +397,7 @@ WallClockSynchronizer::NsToTimeval (int64_t ns, struct timeval *tv)
 uint64_t
 WallClockSynchronizer::TimevalToNs (struct timeval *tv)
 {
+  NS_LOG_FUNCTION (this << tv);
   uint64_t nsResult = tv->tv_sec * NS_PER_SEC + tv->tv_usec * US_PER_NS;
   NS_ASSERT ((nsResult % US_PER_NS) == 0);
   return nsResult;
@@ -411,6 +409,7 @@ WallClockSynchronizer::TimevalAdd (
   struct timeval *tv2,
   struct timeval *result)
 {
+  NS_LOG_FUNCTION (this << tv1 << tv2 << result);
   result->tv_sec = tv1->tv_sec + tv2->tv_sec;
   result->tv_usec = tv1->tv_usec + tv2->tv_usec;
   if (result->tv_usec > (int64_t)US_PER_SEC)

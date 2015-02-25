@@ -29,10 +29,9 @@
 #include <ns3/enum.h>
 
 
-namespace ns3 {
+using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("ItuR1411NlosOverRooftopPropagationLossModelTest");
-
 
 class ItuR1411NlosOverRooftopPropagationLossModelTestCase : public TestCase
 {
@@ -116,16 +115,12 @@ ItuR1411NlosOverRooftopPropagationLossModelTestSuite::ItuR1411NlosOverRooftopPro
 
   // reference values obtained with the octave scripts in src/propagation/test/reference/
 
-  AddTestCase (new ItuR1411NlosOverRooftopPropagationLossModelTestCase (2.1140e9, 900, 30, 1, UrbanEnvironment, LargeCity, 143.68, "f=2114Mhz, dist=900, urban large city"));
+  AddTestCase (new ItuR1411NlosOverRooftopPropagationLossModelTestCase (2.1140e9, 900, 30, 1, UrbanEnvironment, LargeCity, 143.68, "f=2114Mhz, dist=900, urban large city"), TestCase::QUICK);
 
-  AddTestCase (new ItuR1411NlosOverRooftopPropagationLossModelTestCase (1.865e9, 500, 30, 1, UrbanEnvironment, LargeCity,  132.84, "f=2114Mhz, dist=900, urban large city"));
+  AddTestCase (new ItuR1411NlosOverRooftopPropagationLossModelTestCase (1.865e9, 500, 30, 1, UrbanEnvironment, LargeCity,  132.84, "f=2114Mhz, dist=900, urban large city"), TestCase::QUICK);
 
 }
 
 
 
 static ItuR1411NlosOverRooftopPropagationLossModelTestSuite g_ituR1411NlosOverRooftopTestSuite;
-
-
-
-}   // namespace ns3

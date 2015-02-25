@@ -22,9 +22,9 @@
 #include <map>
 #include <utility>
 
-NS_LOG_COMPONENT_DEFINE ("UanTxMode");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("UanTxMode");
 
 UanTxMode::UanTxMode ()
 {
@@ -288,7 +288,7 @@ operator >> (std::istream &is, UanModesList &ml)
   ml.m_modes.clear ();
   ml.m_modes.resize (numModes);
 
-  for (int i = 0; i < numModes; i++)
+  for (int i = 0; i < numModes && !is.eof (); i++)
     {
       is >> ml.m_modes[i] >> c;
       if (c != '|')

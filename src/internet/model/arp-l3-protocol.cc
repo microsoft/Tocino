@@ -23,6 +23,8 @@
 #include "ns3/net-device.h"
 #include "ns3/object-vector.h"
 #include "ns3/trace-source-accessor.h"
+#include "ns3/pointer.h"
+#include "ns3/string.h"
 
 #include "ipv4-l3-protocol.h"
 #include "arp-l3-protocol.h"
@@ -30,9 +32,9 @@
 #include "arp-cache.h"
 #include "ipv4-interface.h"
 
-NS_LOG_COMPONENT_DEFINE ("ArpL3Protocol");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("ArpL3Protocol");
 
 const uint16_t ArpL3Protocol::PROT_NUMBER = 0x0806;
 
@@ -49,9 +51,20 @@ ArpL3Protocol::GetTypeId (void)
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&ArpL3Protocol::m_cacheList),
                    MakeObjectVectorChecker<ArpCache> ())
+    .AddAttribute ("RequestJitter",
+                   "The jitter in ms a node is allowed to wait "
+                   "before sending an ARP request.  Some jitter aims "
+                   "to prevent collisions. By default, the model "
+                   "will wait for a duration in ms defined by "
+                   "a uniform random-variable between 0 and RequestJitter",
+                   StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=10.0]"),
+                   MakePointerAccessor (&ArpL3Protocol::m_requestJitter),
+                   MakePointerChecker<RandomVariableStream> ())
     .AddTraceSource ("Drop",
-                     "Packet dropped because not enough room in pending queue for a specific cache entry.",
-                     MakeTraceSourceAccessor (&ArpL3Protocol::m_dropTrace))
+                     "Packet dropped because not enough room "
+                     "in pending queue for a specific cache entry.",
+                     MakeTraceSourceAccessor (&ArpL3Protocol::m_dropTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -66,10 +79,18 @@ ArpL3Protocol::~ArpL3Protocol ()
   NS_LOG_FUNCTION (this);
 }
 
+int64_t
+ArpL3Protocol::AssignStreams (int64_t stream)
+{
+  NS_LOG_FUNCTION (this << stream);
+  m_requestJitter->SetStream (stream);
+  return 1;
+}
+
 void 
 ArpL3Protocol::SetNode (Ptr<Node> node)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << node);
   m_node = node;
 }
 
@@ -80,6 +101,7 @@ ArpL3Protocol::SetNode (Ptr<Node> node)
 void
 ArpL3Protocol::NotifyNewAggregate ()
 {
+  NS_LOG_FUNCTION (this);
   if (m_node == 0)
     {
       Ptr<Node>node = this->GetObject<Node> ();
@@ -173,8 +195,9 @@ ArpL3Protocol::Receive (Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t pro
     }
 
   /**
+   * \internal
    * Note: we do not update the ARP cache when we receive an ARP request
-   * from an unknown node. See bug #107
+   *  from an unknown node. See \bugid{107}
    */
   bool found = false;
   for (uint32_t i = 0; i < cache->GetInterface ()->GetNAddresses (); i++)
@@ -245,7 +268,7 @@ ArpL3Protocol::Lookup (Ptr<Packet> packet, Ipv4Address destination,
                        Ptr<ArpCache> cache,
                        Address *hardwareDestination)
 {
-  NS_LOG_FUNCTION (this << packet << destination << device << cache);
+  NS_LOG_FUNCTION (this << packet << destination << device << cache << hardwareDestination);
   ArpCache::Entry *entry = cache->Lookup (destination);
   if (entry != 0)
     {
@@ -256,14 +279,14 @@ ArpL3Protocol::Lookup (Ptr<Packet> packet, Ipv4Address destination,
               NS_LOG_LOGIC ("node="<<m_node->GetId ()<<
                             ", dead entry for " << destination << " expired -- send arp request");
               entry->MarkWaitReply (packet);
-              SendArpRequest (cache, destination);
+              Simulator::Schedule (Time (MilliSeconds (m_requestJitter->GetValue ())), &ArpL3Protocol::SendArpRequest, this, cache, destination);
             } 
           else if (entry->IsAlive ()) 
             {
               NS_LOG_LOGIC ("node="<<m_node->GetId ()<<
                             ", alive entry for " << destination << " expired -- send arp request");
               entry->MarkWaitReply (packet);
-              SendArpRequest (cache, destination);
+              Simulator::Schedule (Time (MilliSeconds (m_requestJitter->GetValue ())), &ArpL3Protocol::SendArpRequest, this, cache, destination);
             } 
           else if (entry->IsWaitReply ()) 
             {
@@ -303,7 +326,7 @@ ArpL3Protocol::Lookup (Ptr<Packet> packet, Ipv4Address destination,
                     ", no entry for " << destination << " -- send arp request");
       entry = cache->Add (destination);
       entry->MarkWaitReply (packet);
-      SendArpRequest (cache, destination);
+      Simulator::Schedule (Time (MilliSeconds (m_requestJitter->GetValue ())), &ArpL3Protocol::SendArpRequest, this, cache, destination);
     }
   return false;
 }
@@ -332,7 +355,7 @@ ArpL3Protocol::SendArpRequest (Ptr<const ArpCache> cache, Ipv4Address to)
 void
 ArpL3Protocol::SendArpReply (Ptr<const ArpCache> cache, Ipv4Address myIp, Ipv4Address toIp, Address toMac)
 {
-  NS_LOG_FUNCTION (this << cache << toIp << toMac);
+  NS_LOG_FUNCTION (this << cache << myIp << toIp << toMac);
   ArpHeader arp;
   NS_LOG_LOGIC ("ARP: sending reply from node "<<m_node->GetId ()<<
                 "|| src: " << cache->GetDevice ()->GetAddress () <<

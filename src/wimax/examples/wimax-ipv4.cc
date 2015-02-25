@@ -25,7 +25,7 @@
 // The SSs are grouped into two groups: senders and receivers. SSs from 0 to
 // nbSS/2 are designed as senders and SSs from (nbSS/2 + 1) to nbSS-1 will
 // designed as receivers.
-//  each SS creates 3 transport connection with the BS. the fist one has as QoS
+// Each SS creates 3 transport connection with the BS. the fist one has as QoS
 // scheduling type UGS, the second one rtPS and the third one BE.
 // Senders SSs send some stamped IP packets with variable bitrate to receiver SSs
 // through the BS station. receiver SSs receive the IP packets analyze them and
@@ -60,9 +60,9 @@
 #include "ns3/global-route-manager.h"
 #include <iostream>
 
-NS_LOG_COMPONENT_DEFINE ("wimaxIpV4Simulation");
-
 using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("wimaxIpV4Simulation");
 
 int main (int argc, char *argv[])
 {

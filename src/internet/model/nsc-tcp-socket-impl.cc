@@ -42,11 +42,10 @@
 
 #include "sim_errno.h"
 
-NS_LOG_COMPONENT_DEFINE ("NscTcpSocketImpl");
-
-using namespace std;
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("NscTcpSocketImpl");
 
 NS_OBJECT_ENSURE_REGISTERED (NscTcpSocketImpl);
 
@@ -57,7 +56,16 @@ NscTcpSocketImpl::GetTypeId ()
     .SetParent<TcpSocket> ()
     .AddTraceSource ("CongestionWindow",
                      "The TCP connection's congestion window",
-                     MakeTraceSourceAccessor (&NscTcpSocketImpl::m_cWnd))
+                     MakeTraceSourceAccessor (&NscTcpSocketImpl::m_cWnd),
+                     "ns3::TracedValue::Uint32Callback")
+    .AddTraceSource ("SlowStartThreshold",
+                     "TCP slow start threshold (bytes)",
+                     MakeTraceSourceAccessor (&NscTcpSocketImpl::m_ssThresh),
+                     "ns3::TracedValue::Uint32Callback")
+    .AddTraceSource ("State",
+                     "TCP state",
+                     MakeTraceSourceAccessor (&NscTcpSocketImpl::m_state),
+                     "ns3::TcpStatesTracedValueCallback")
   ;
   return tid;
 }
@@ -107,6 +115,7 @@ NscTcpSocketImpl::NscTcpSocketImpl(const NscTcpSocketImpl& sock)
     m_cWnd (sock.m_cWnd),
     m_ssThresh (sock.m_ssThresh),
     m_initialCWnd (sock.m_initialCWnd),
+    m_initialSsThresh (sock.m_initialSsThresh),
     m_lastMeasuredRtt (Seconds (0.0)),
     m_cnTimeout (sock.m_cnTimeout),
     m_cnCount (sock.m_cnCount),
@@ -153,6 +162,7 @@ NscTcpSocketImpl::SetNode (Ptr<Node> node)
   m_node = node;
   // Initialize some variables 
   m_cWnd = m_initialCWnd * m_segmentSize;
+  m_ssThresh = m_initialSsThresh;
   m_rxWindowSize = m_advertisedWindowSize;
 }
 
@@ -731,15 +741,15 @@ NscTcpSocketImpl::GetAdvWin (void) const
 }
 
 void
-NscTcpSocketImpl::SetSSThresh (uint32_t threshold)
+NscTcpSocketImpl::SetInitialSSThresh (uint32_t threshold)
 {
-  m_ssThresh = threshold;
+  m_initialSsThresh = threshold;
 }
 
 uint32_t
-NscTcpSocketImpl::GetSSThresh (void) const
+NscTcpSocketImpl::GetInitialSSThresh (void) const
 {
-  return m_ssThresh;
+  return m_initialSsThresh;
 }
 
 void
@@ -844,7 +854,7 @@ NscTcpSocketImpl::GetNativeNs3Errno (int error) const
     case NSC_EAGAIN: return ERROR_AGAIN;
     case NSC_EISCONN:   // fallthrough
     case NSC_EALREADY: return ERROR_ISCONN;
-    case NSC_ECONNREFUSED: return ERROR_NOROUTETOHOST;   // XXX, better mapping?
+    case NSC_ECONNREFUSED: return ERROR_NOROUTETOHOST;   /// \todo better mapping?
     case NSC_ECONNRESET:   // for no, all of these fall through
     case NSC_EHOSTDOWN:
     case NSC_ENETUNREACH:
@@ -852,7 +862,7 @@ NscTcpSocketImpl::GetNativeNs3Errno (int error) const
     case NSC_EMSGSIZE: return ERROR_MSGSIZE;
     case NSC_ENOTCONN: return ERROR_NOTCONN;
     case NSC_ESHUTDOWN: return ERROR_SHUTDOWN;
-    case NSC_ETIMEDOUT: return ERROR_NOTCONN;   // XXX - this mapping isn't correct
+    case NSC_ETIMEDOUT: return ERROR_NOTCONN;   /// \todo this mapping isn't correct
     case NSC_ENOTDIR:   // used by eg. sysctl(2). Shouldn't happen normally,
     // but is triggered by e.g. show_config().
     case NSC_EUNKNOWN: return ERROR_INVAL;   // Catches stacks that 'return -1' without real mapping

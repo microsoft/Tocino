@@ -97,8 +97,8 @@ public:
             const TocinoFlitHeader::Type );
    
     bool AllQuiet() const;
-   
     void DumpState() const;
+    void ReportStatistics() const;
 
     // Attempt to send m_currentFlits
     void TrySendFlits();

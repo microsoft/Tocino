@@ -25,9 +25,9 @@
 #include "log.h"
 #include <string>
 
-NS_LOG_COMPONENT_DEFINE ("MapScheduler");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("MapScheduler");
 
 NS_OBJECT_ENSURE_REGISTERED (MapScheduler);
 
@@ -43,9 +43,11 @@ MapScheduler::GetTypeId (void)
 
 MapScheduler::MapScheduler ()
 {
+  NS_LOG_FUNCTION (this);
 }
 MapScheduler::~MapScheduler ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
@@ -60,6 +62,7 @@ MapScheduler::Insert (const Event &ev)
 bool
 MapScheduler::IsEmpty (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_list.empty ();
 }
 

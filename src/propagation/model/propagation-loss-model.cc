@@ -28,11 +28,11 @@
 #include "ns3/double.h"
 #include "ns3/string.h"
 #include "ns3/pointer.h"
-#include <math.h>
-
-NS_LOG_COMPONENT_DEFINE ("PropagationLossModel");
+#include <cmath>
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("PropagationLossModel");
 
 // ------------------------------------------------------------------------- //
 
@@ -140,28 +140,27 @@ RandomPropagationLossModel::DoAssignStreams (int64_t stream)
 
 NS_OBJECT_ENSURE_REGISTERED (FriisPropagationLossModel);
 
-const double FriisPropagationLossModel::PI = 3.14159265358979323846;
-
 TypeId 
 FriisPropagationLossModel::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::FriisPropagationLossModel")
     .SetParent<PropagationLossModel> ()
     .AddConstructor<FriisPropagationLossModel> ()
-    .AddAttribute ("Lambda", 
-                   "The wavelength  (default is 5.15 GHz at 300 000 km/s).",
-                   DoubleValue (300000000.0 / 5.150e9),
-                   MakeDoubleAccessor (&FriisPropagationLossModel::m_lambda),
+    .AddAttribute ("Frequency", 
+                   "The carrier frequency (in Hz) at which propagation occurs  (default is 5.15 GHz).",
+                   DoubleValue (5.150e9),
+                   MakeDoubleAccessor (&FriisPropagationLossModel::SetFrequency,
+                                       &FriisPropagationLossModel::GetFrequency),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("SystemLoss", "The system loss",
                    DoubleValue (1.0),
                    MakeDoubleAccessor (&FriisPropagationLossModel::m_systemLoss),
                    MakeDoubleChecker<double> ())
-    .AddAttribute ("MinDistance", 
-                   "The distance under which the propagation model refuses to give results (m)",
-                   DoubleValue (0.5),
-                   MakeDoubleAccessor (&FriisPropagationLossModel::SetMinDistance,
-                                       &FriisPropagationLossModel::GetMinDistance),
+    .AddAttribute ("MinLoss", 
+                   "The minimum value (dB) of the total loss, used at short ranges. Note: ",
+                   DoubleValue (0.0),
+                   MakeDoubleAccessor (&FriisPropagationLossModel::SetMinLoss,
+                                       &FriisPropagationLossModel::GetMinLoss),
                    MakeDoubleChecker<double> ())
   ;
   return tid;
@@ -181,42 +180,41 @@ FriisPropagationLossModel::GetSystemLoss (void) const
   return m_systemLoss;
 }
 void
-FriisPropagationLossModel::SetMinDistance (double minDistance)
+FriisPropagationLossModel::SetMinLoss (double minLoss)
 {
-  m_minDistance = minDistance;
+  m_minLoss = minLoss;
 }
 double
-FriisPropagationLossModel::GetMinDistance (void) const
+FriisPropagationLossModel::GetMinLoss (void) const
 {
-  return m_minDistance;
+  return m_minLoss;
 }
+
 void
-FriisPropagationLossModel::SetLambda (double frequency, double speed)
+FriisPropagationLossModel::SetFrequency (double frequency)
 {
-  m_lambda = speed / frequency;
+  m_frequency = frequency;
+  static const double C = 299792458.0; // speed of light in vacuum
+  m_lambda = C / frequency;
 }
-void
-FriisPropagationLossModel::SetLambda (double lambda)
-{
-  m_lambda = lambda;
-}
+
 double
-FriisPropagationLossModel::GetLambda (void) const
+FriisPropagationLossModel::GetFrequency (void) const
 {
-  return m_lambda;
+  return m_frequency;
 }
 
 double
 FriisPropagationLossModel::DbmToW (double dbm) const
 {
-  double mw = pow (10.0,dbm/10.0);
+  double mw = std::pow (10.0,dbm/10.0);
   return mw / 1000.0;
 }
 
 double
 FriisPropagationLossModel::DbmFromW (double w) const
 {
-  double dbm = log10 (w * 1000.0) * 10.0;
+  double dbm = std::log10 (w * 1000.0) * 10.0;
   return dbm;
 }
 
@@ -255,15 +253,19 @@ FriisPropagationLossModel::DoCalcRxPower (double txPowerDbm,
    * lambda: wavelength (m)
    */
   double distance = a->GetDistanceFrom (b);
-  if (distance <= m_minDistance)
+  if (distance < 3*m_lambda)
     {
-      return txPowerDbm;
+      NS_LOG_WARN ("distance not within the far field region => inaccurate propagation loss value");
+    }
+  if (distance <= 0)
+    {
+      return txPowerDbm - m_minLoss;
     }
   double numerator = m_lambda * m_lambda;
-  double denominator = 16 * PI * PI * distance * distance * m_systemLoss;
-  double pr = 10 * log10 (numerator / denominator);
-  NS_LOG_DEBUG ("distance="<<distance<<"m, attenuation coefficient="<<pr<<"dB");
-  return txPowerDbm + pr;
+  double denominator = 16 * M_PI * M_PI * distance * distance * m_systemLoss;
+  double lossDb = -10 * log10 (numerator / denominator);
+  NS_LOG_DEBUG ("distance=" << distance<< "m, loss=" << lossDb <<"dB");
+  return txPowerDbm - std::max (lossDb, m_minLoss);
 }
 
 int64_t
@@ -277,18 +279,17 @@ FriisPropagationLossModel::DoAssignStreams (int64_t stream)
 
 NS_OBJECT_ENSURE_REGISTERED (TwoRayGroundPropagationLossModel);
 
-const double TwoRayGroundPropagationLossModel::PI = 3.14159265358979323846;
-
 TypeId 
 TwoRayGroundPropagationLossModel::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::TwoRayGroundPropagationLossModel")
     .SetParent<PropagationLossModel> ()
     .AddConstructor<TwoRayGroundPropagationLossModel> ()
-    .AddAttribute ("Lambda",
-                   "The wavelength  (default is 5.15 GHz at 300 000 km/s).",
-                   DoubleValue (300000000.0 / 5.150e9),
-                   MakeDoubleAccessor (&TwoRayGroundPropagationLossModel::m_lambda),
+    .AddAttribute ("Frequency", 
+                   "The carrier frequency (in Hz) at which propagation occurs  (default is 5.15 GHz).",
+                   DoubleValue (5.150e9),
+                   MakeDoubleAccessor (&TwoRayGroundPropagationLossModel::SetFrequency,
+                                       &TwoRayGroundPropagationLossModel::GetFrequency),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("SystemLoss", "The system loss",
                    DoubleValue (1.0),
@@ -337,33 +338,32 @@ TwoRayGroundPropagationLossModel::SetHeightAboveZ (double heightAboveZ)
 {
   m_heightAboveZ = heightAboveZ;
 }
-void 
-TwoRayGroundPropagationLossModel::SetLambda (double frequency, double speed)
+
+void
+TwoRayGroundPropagationLossModel::SetFrequency (double frequency)
 {
-  m_lambda = speed / frequency;
+  m_frequency = frequency;
+  static const double C = 299792458.0; // speed of light in vacuum
+  m_lambda = C / frequency;
 }
-void 
-TwoRayGroundPropagationLossModel::SetLambda (double lambda)
+
+double
+TwoRayGroundPropagationLossModel::GetFrequency (void) const
 {
-  m_lambda = lambda;
-}
-double 
-TwoRayGroundPropagationLossModel::GetLambda (void) const
-{
-  return m_lambda;
+  return m_frequency;
 }
 
 double 
 TwoRayGroundPropagationLossModel::DbmToW (double dbm) const
 {
-  double mw = pow (10.0,dbm / 10.0);
+  double mw = std::pow (10.0,dbm / 10.0);
   return mw / 1000.0;
 }
 
 double
 TwoRayGroundPropagationLossModel::DbmFromW (double w) const
 {
-  double dbm = log10 (w * 1000.0) * 10.0;
+  double dbm = std::log10 (w * 1000.0) * 10.0;
   return dbm;
 }
 
@@ -415,15 +415,15 @@ TwoRayGroundPropagationLossModel::DoCalcRxPower (double txPowerDbm,
    *
    */
 
-  double dCross = (4 * PI * txAntHeight * rxAntHeight) / GetLambda ();
+  double dCross = (4 * M_PI * txAntHeight * rxAntHeight) / m_lambda;
   double tmp = 0;
   if (distance <= dCross)
     {
       // We use Friis
       double numerator = m_lambda * m_lambda;
-      tmp = PI * distance;
+      tmp = M_PI * distance;
       double denominator = 16 * tmp * tmp * m_systemLoss;
-      double pr = 10 * log10 (numerator / denominator);
+      double pr = 10 * std::log10 (numerator / denominator);
       NS_LOG_DEBUG ("Receiver within crossover (" << dCross << "m) for Two_ray path; using Friis");
       NS_LOG_DEBUG ("distance=" << distance << "m, attenuation coefficient=" << pr << "dB");
       return txPowerDbm + pr;
@@ -434,7 +434,7 @@ TwoRayGroundPropagationLossModel::DoCalcRxPower (double txPowerDbm,
       double rayNumerator = tmp * tmp;
       tmp = distance * distance;
       double rayDenominator = tmp * tmp * m_systemLoss;
-      double rayPr = 10 * log10 (rayNumerator / rayDenominator);
+      double rayPr = 10 * std::log10 (rayNumerator / rayDenominator);
       NS_LOG_DEBUG ("distance=" << distance << "m, attenuation coefficient=" << rayPr << "dB");
       return txPowerDbm + rayPr;
 
@@ -522,7 +522,7 @@ LogDistancePropagationLossModel::DoCalcRxPower (double txPowerDbm,
    *
    * rx = rx0(tx) - 10 * n * log (d/d0)
    */
-  double pathLossDb = 10 * m_exponent * log10 (distance / m_referenceDistance);
+  double pathLossDb = 10 * m_exponent * std::log10 (distance / m_referenceDistance);
   double rxc = -m_referenceLoss - pathLossDb;
   NS_LOG_DEBUG ("distance="<<distance<<"m, reference-attenuation="<< -m_referenceLoss<<"dB, "<<
                 "attenuation coefficient="<<rxc<<"db");
@@ -608,20 +608,20 @@ ThreeLogDistancePropagationLossModel::DoCalcRxPower (double txPowerDbm,
   else if (distance < m_distance1)
     {
       pathLossDb = m_referenceLoss
-        + 10 * m_exponent0 * log10 (distance / m_distance0);
+        + 10 * m_exponent0 * std::log10 (distance / m_distance0);
     }
   else if (distance < m_distance2)
     {
       pathLossDb = m_referenceLoss
-        + 10 * m_exponent0 * log10 (m_distance1 / m_distance0)
-        + 10 * m_exponent1 * log10 (distance / m_distance1);
+        + 10 * m_exponent0 * std::log10 (m_distance1 / m_distance0)
+        + 10 * m_exponent1 * std::log10 (distance / m_distance1);
     }
   else
     {
       pathLossDb = m_referenceLoss
-        + 10 * m_exponent0 * log10 (m_distance1 / m_distance0)
-        + 10 * m_exponent1 * log10 (m_distance2 / m_distance1)
-        + 10 * m_exponent2 * log10 (distance / m_distance2);
+        + 10 * m_exponent0 * std::log10 (m_distance1 / m_distance0)
+        + 10 * m_exponent1 * std::log10 (m_distance2 / m_distance1)
+        + 10 * m_exponent2 * std::log10 (distance / m_distance2);
     }
 
   NS_LOG_DEBUG ("ThreeLogDistance distance=" << distance << "m, " <<
@@ -716,13 +716,13 @@ NakagamiPropagationLossModel::DoCalcRxPower (double txPowerDbm,
 
   // the current power unit is dBm, but Watt is put into the Nakagami /
   // Rayleigh distribution.
-  double powerW = pow (10, (txPowerDbm - 30) / 10);
+  double powerW = std::pow (10, (txPowerDbm - 30) / 10);
 
   double resultPowerW;
 
   // switch between Erlang- and Gamma distributions: this is only for
   // speed. (Gamma is equal to Erlang for any positive integer m.)
-  unsigned int int_m = static_cast<unsigned int>(floor (m));
+  unsigned int int_m = static_cast<unsigned int>(std::floor (m));
 
   if (int_m == m)
     {
@@ -733,7 +733,7 @@ NakagamiPropagationLossModel::DoCalcRxPower (double txPowerDbm,
       resultPowerW = m_gammaRandomVariable->GetValue (m, powerW / m);
     }
 
-  double resultPowerDbm = 10 * log10 (resultPowerW) + 30;
+  double resultPowerDbm = 10 * std::log10 (resultPowerW) + 30;
 
   NS_LOG_DEBUG ("Nakagami distance=" << distance << "m, " <<
                 "power=" << powerW <<"W, " <<

@@ -23,10 +23,18 @@
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
 
-NS_LOG_COMPONENT_DEFINE ("OnoeWifiRemoteStation");
+#define Min(a,b) ((a < b) ? a : b)
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("OnoeWifiRemoteStation");
+
+/**
+ * \brief hold per-remote-station state for ONOE Wifi manager.
+ *
+ * This struct extends from WifiRemoteStation struct to hold additional
+ * information required by the ONOE Wifi manager
+ */
 struct OnoeWifiRemoteStation : public WifiRemoteStation
 {
   Time m_nextModeUpdate;
@@ -215,8 +223,8 @@ OnoeWifiManager::UpdateMode (OnoeWifiRemoteStation *station)
 
 }
 
-WifiMode
-OnoeWifiManager::DoGetDataMode (WifiRemoteStation *st,
+WifiTxVector
+OnoeWifiManager::DoGetDataTxVector (WifiRemoteStation *st,
                                 uint32_t size)
 {
   OnoeWifiRemoteStation *station = (OnoeWifiRemoteStation *)st;
@@ -260,15 +268,15 @@ OnoeWifiManager::DoGetDataMode (WifiRemoteStation *st,
           rateIndex = station->m_txrate;
         }
     }
-  return GetSupported (station, rateIndex);
+  return WifiTxVector (GetSupported (station, rateIndex), GetDefaultTxPowerLevel (), GetLongRetryCount (station), GetShortGuardInterval (station), Min (GetNumberOfReceiveAntennas (station),GetNumberOfTransmitAntennas()), GetNess (station), GetStbc (station));
 }
-WifiMode
-OnoeWifiManager::DoGetRtsMode (WifiRemoteStation *st)
+WifiTxVector
+OnoeWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
 {
   OnoeWifiRemoteStation *station = (OnoeWifiRemoteStation *)st;
   UpdateMode (station);
-  // XXX: can we implement something smarter ?
-  return GetSupported (station, 0);
+  /// \todo can we implement something smarter ?
+  return WifiTxVector (GetSupported (station, 0), GetDefaultTxPowerLevel (), GetShortRetryCount (station), GetShortGuardInterval (station), Min (GetNumberOfReceiveAntennas (station),GetNumberOfTransmitAntennas()), GetNess (station), GetStbc (station));
 }
 
 bool

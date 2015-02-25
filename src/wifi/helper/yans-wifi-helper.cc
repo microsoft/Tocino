@@ -34,9 +34,9 @@
 #include "ns3/abort.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("YansWifiHelper");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("YansWifiHelper");
 
 static void
 AsciiPhyTransmitSinkWithContext (
@@ -234,7 +234,7 @@ YansWifiPhyHelper::SetErrorRateModel (std::string name,
 }
 
 Ptr<WifiPhy>
-YansWifiPhyHelper::Create (Ptr<Node> node, Ptr<WifiNetDevice> device) const
+YansWifiPhyHelper::Create (Ptr<Node> node, Ptr<NetDevice> device) const
 {
   Ptr<YansWifiPhy> phy = m_phy.Create<YansWifiPhy> ();
   Ptr<ErrorRateModel> error = m_errorRateModel.Create<ErrorRateModel> ();
@@ -252,7 +252,8 @@ PcapSniffTxEvent (
   uint16_t            channelFreqMhz,
   uint16_t            channelNumber,
   uint32_t            rate,
-  bool                isShortPreamble)
+  bool                isShortPreamble,
+  uint8_t             txPower)
 {
   uint32_t dlt = file->GetDataLinkType ();
 
@@ -309,6 +310,7 @@ PcapSniffTxEvent (
           }
 
         header.SetChannelFrequencyAndFlags (channelFreqMhz, channelFlags);
+        
 
         p->AddHeader (header);
         file->Write (Simulator::Now (), p);
@@ -415,6 +417,12 @@ YansWifiPhyHelper::SetPcapDataLinkType (enum SupportedPcapDataLinkTypes dlt)
     default:
       NS_ABORT_MSG ("YansWifiPhyHelper::SetPcapFormat(): Unexpected format");
     }
+}
+
+uint32_t
+YansWifiPhyHelper::GetPcapDataLinkType (void) const
+{
+  return m_pcapDlt;
 }
 
 void

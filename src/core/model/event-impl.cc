@@ -19,21 +19,33 @@
  */
 
 #include "event-impl.h"
+#include "log.h"
+
+/**
+ * \file
+ * \ingroup events
+ * ns3::EventImpl definitions.
+ */
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("EventImpl");
+
 EventImpl::~EventImpl ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 EventImpl::EventImpl ()
   : m_cancel (false)
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
 EventImpl::Invoke (void)
 {
+  NS_LOG_FUNCTION (this);
   if (!m_cancel)
     {
       Notify ();
@@ -43,12 +55,14 @@ EventImpl::Invoke (void)
 void
 EventImpl::Cancel (void)
 {
+  NS_LOG_FUNCTION (this);
   m_cancel = true;
 }
 
 bool
 EventImpl::IsCancelled (void)
 {
+  NS_LOG_FUNCTION (this);
   return m_cancel;
 }
 

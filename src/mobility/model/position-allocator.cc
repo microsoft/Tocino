@@ -26,9 +26,9 @@
 #include "ns3/log.h"
 #include <cmath>
 
-NS_LOG_COMPONENT_DEFINE ("PositionAllocator");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("PositionAllocator");
 
 NS_OBJECT_ENSURE_REGISTERED (PositionAllocator);
 
@@ -478,7 +478,7 @@ UniformDiscPositionAllocator::GetNext (void) const
       x = m_rv->GetValue (-m_rho, m_rho);
       y = m_rv->GetValue (-m_rho, m_rho);
     }
-  while (sqrt (x*x + y*y) > m_rho);
+  while (std::sqrt (x*x + y*y) > m_rho);
 
   x += m_x;
   y += m_y;

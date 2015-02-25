@@ -66,7 +66,7 @@
 ///
 /// We only use this value in order to define OLSR_NEIGHB_HOLD_TIME.
 ///
-#define OLSR_REFRESH_INTERVAL   Seconds (2)
+#define OLSR_REFRESH_INTERVAL   m_helloInterval
 
 
 /********** Holding times **********/
@@ -139,10 +139,10 @@
 
 
 namespace ns3 {
-namespace olsr {
 
 NS_LOG_COMPONENT_DEFINE ("OlsrRoutingProtocol");
-
+  
+namespace olsr {
 
 /********** OLSR class **********/
 
@@ -179,11 +179,14 @@ RoutingProtocol::GetTypeId (void)
                                     OLSR_WILL_HIGH, "high",
                                     OLSR_WILL_ALWAYS, "always"))
     .AddTraceSource ("Rx", "Receive OLSR packet.",
-                     MakeTraceSourceAccessor (&RoutingProtocol::m_rxPacketTrace))
+                     MakeTraceSourceAccessor (&RoutingProtocol::m_rxPacketTrace),
+                     "ns3::olsr::RoutingProtocol::PacketTxRxTracedCallback")
     .AddTraceSource ("Tx", "Send OLSR packet.",
-                     MakeTraceSourceAccessor (&RoutingProtocol::m_txPacketTrace))
+                     MakeTraceSourceAccessor (&RoutingProtocol::m_txPacketTrace),
+                     "ns3::olsr::RoutingProtocol::PacketTxRxTracedCallback")
     .AddTraceSource ("RoutingTableChanged", "The OLSR routing table has changed.",
-                     MakeTraceSourceAccessor (&RoutingProtocol::m_routingTableChanged))
+                     MakeTraceSourceAccessor (&RoutingProtocol::m_routingTableChanged),
+                     "ns3::olsr::RoutingProtocol::TableChangeTracedCallback")
   ;
   return tid;
 }
@@ -273,7 +276,7 @@ RoutingProtocol::PrintRoutingTable (Ptr<OutputStreamWrapper> stream) const
   m_hnaRoutingTable->PrintRoutingTable (stream);
 }
 
-void RoutingProtocol::DoStart ()
+void RoutingProtocol::DoInitialize ()
 {
   if (m_mainAddress == Ipv4Address ())
     {
@@ -356,7 +359,7 @@ void RoutingProtocol::SetInterfaceExclusions (std::set<uint32_t> exceptions)
 }
 
 //
-// \brief Processes an incoming %OLSR packet following RFC 3626 specification.
+// \brief Processes an incoming %OLSR packet following \RFC{3626} specification.
 void
 RoutingProtocol::RecvOlsr (Ptr<Socket> socket)
 {
@@ -506,7 +509,7 @@ RoutingProtocol::RecvOlsr (Ptr<Socket> socket)
 }
 
 ///
-/// \brief This auxiliary function (defined in RFC 3626) is used for calculating the MPR Set.
+/// \brief This auxiliary function (defined in \RFC{3626}) is used for calculating the MPR Set.
 ///
 /// \param tuple the neighbor tuple which has the main address of the node we are going to calculate its degree to.
 /// \return the degree of the node.
@@ -562,7 +565,7 @@ CoverTwoHopNeighbors (Ipv4Address neighborMainAddr, TwoHopNeighborSet & N2)
 } // anonymous namespace
 
 ///
-/// \brief Computates MPR set of a node following RFC 3626 hints.
+/// \brief Computates MPR set of a node following \RFC{3626} hints.
 ///
 void
 RoutingProtocol::MprComputation ()
@@ -870,7 +873,7 @@ RoutingProtocol::GetMainAddress (Ipv4Address iface_addr) const
 }
 
 ///
-/// \brief Creates the routing table of the node following RFC 3626 hints.
+/// \brief Creates the routing table of the node following \RFC{3626} hints.
 ///
 void
 RoutingProtocol::RoutingTableComputation ()
@@ -1188,7 +1191,7 @@ RoutingProtocol::RoutingTableComputation ()
 
 
 ///
-/// \brief Processes a HELLO message following RFC 3626 specification.
+/// \brief Processes a HELLO message following \RFC{3626} specification.
 ///
 /// Link sensing and population of the Neighbor Set, 2-hop Neighbor Set and MPR
 /// Selector Set are performed.
@@ -1252,7 +1255,7 @@ RoutingProtocol::ProcessHello (const olsr::MessageHeader &msg,
 }
 
 ///
-/// \brief Processes a TC message following RFC 3626 specification.
+/// \brief Processes a TC message following \RFC{3626} specification.
 ///
 /// The Topology Set is updated (if needed) with the information of
 /// the received TC message.
@@ -1347,7 +1350,7 @@ RoutingProtocol::ProcessTc (const olsr::MessageHeader &msg,
 }
 
 ///
-/// \brief Processes a MID message following RFC 3626 specification.
+/// \brief Processes a MID message following \RFC{3626} specification.
 ///
 /// The Interface Association Set is updated (if needed) with the information
 /// of the received MID message.
@@ -1426,7 +1429,7 @@ RoutingProtocol::ProcessMid (const olsr::MessageHeader &msg,
 }
 
 ///
-/// \brief Processes a HNA message following RFC 3626 specification.
+/// \brief Processes a HNA message following \RFC{3626} specification.
 ///
 /// The Host Network Association Set is updated (if needed) with the information
 /// of the received HNA message.
@@ -1494,7 +1497,7 @@ RoutingProtocol::ProcessHna (const olsr::MessageHeader &msg,
 ///
 /// \brief OLSR's default forwarding algorithm.
 ///
-/// See RFC 3626 for details.
+/// See \RFC{3626} for details.
 ///
 /// \param p the %OLSR packet which has been received.
 /// \param msg the %OLSR message which must be forwarded.
@@ -1982,7 +1985,7 @@ RoutingProtocol::UsesNonOlsrOutgoingInterface (const Ipv4RoutingTableEntry &rout
 
 ///
 /// \brief Updates Link Set according to a new received HELLO message
-/// (following RFC 3626 specification). Neighbor Set is also updated if needed.
+/// (following \RFC{3626} specification). Neighbor Set is also updated if needed.
 void
 RoutingProtocol::LinkSensing (const olsr::MessageHeader &msg,
                               const olsr::MessageHeader::Hello &hello,
@@ -2033,7 +2036,9 @@ RoutingProtocol::LinkSensing (const olsr::MessageHeader &msg,
         case OLSR_ASYM_LINK: linkTypeName = "ASYM_LINK"; break;
         case OLSR_SYM_LINK: linkTypeName = "SYM_LINK"; break;
         case OLSR_LOST_LINK: linkTypeName = "LOST_LINK"; break;
+          /*  no default, since lt must be in 0..3, covered above
         default: linkTypeName = "(invalid value!)";
+          */
         }
 
       const char *neighborTypeName;
@@ -2104,7 +2109,7 @@ RoutingProtocol::LinkSensing (const olsr::MessageHeader &msg,
     }
 
   // Schedules link tuple deletion
-  if (created && link_tuple != NULL)
+  if (created)
     {
       LinkTupleAdded (*link_tuple, hello.willingness);
       m_events.Track (Simulator::Schedule (DELAY (std::min (link_tuple->time, link_tuple->symTime)),
@@ -2117,7 +2122,7 @@ RoutingProtocol::LinkSensing (const olsr::MessageHeader &msg,
 
 ///
 /// \brief Updates the Neighbor Set according to the information contained in
-/// a new received HELLO message (following RFC 3626).
+/// a new received HELLO message (following \RFC{3626}).
 void
 RoutingProtocol::PopulateNeighborSet (const olsr::MessageHeader &msg,
                                       const olsr::MessageHeader::Hello &hello)
@@ -2132,7 +2137,7 @@ RoutingProtocol::PopulateNeighborSet (const olsr::MessageHeader &msg,
 
 ///
 /// \brief Updates the 2-hop Neighbor Set according to the information contained
-/// in a new received HELLO message (following RFC 3626).
+/// in a new received HELLO message (following \RFC{3626}).
 void
 RoutingProtocol::PopulateTwoHopNeighborSet (const olsr::MessageHeader &msg,
                                             const olsr::MessageHeader::Hello &hello)
@@ -2244,7 +2249,7 @@ RoutingProtocol::PopulateTwoHopNeighborSet (const olsr::MessageHeader &msg,
 
 ///
 /// \brief Updates the MPR Selector Set according to the information contained in
-/// a new received HELLO message (following RFC 3626).
+/// a new received HELLO message (following \RFC{3626}).
 void
 RoutingProtocol::PopulateMprSelectorSet (const olsr::MessageHeader &msg,
                                          const olsr::MessageHeader::Hello &hello)
@@ -2423,9 +2428,8 @@ RoutingProtocol::RemoveLinkTuple (const LinkTuple &tuple)
                 << "s: OLSR Node " << m_mainAddress
                 << " LinkTuple " << tuple << " REMOVED.");
 
-  m_state.EraseLinkTuple (tuple);
   m_state.EraseNeighborTuple (GetMainAddress (tuple.neighborIfaceAddr));
-
+  m_state.EraseLinkTuple (tuple);
 }
 
 ///
@@ -2454,9 +2458,7 @@ RoutingProtocol::LinkTupleUpdated (const LinkTuple &tuple, uint8_t willingness)
 
   if (nb_tuple != NULL)
     {
-#ifdef NS3_LOG_ENABLE
       int statusBefore = nb_tuple->status;
-#endif // NS3_LOG_ENABLE
 
       bool hasSymmetricLink = false;
 
@@ -3083,6 +3085,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header, Ptr<NetDe
       if (numOifAddresses == 1) {
           ifAddr = m_ipv4->GetAddress (interfaceIdx, 0);
         } else {
+          /// \todo Implment IP aliasing and OLSR
           NS_FATAL_ERROR ("XXX Not implemented yet:  IP aliasing and OLSR");
         }
       rtentry->SetSource (ifAddr.GetLocal ());
@@ -3176,6 +3179,7 @@ bool RoutingProtocol::RouteInput  (Ptr<const Packet> p,
       if (numOifAddresses == 1) {
           ifAddr = m_ipv4->GetAddress (interfaceIdx, 0);
         } else {
+          /// \todo Implment IP aliasing and OLSR
           NS_FATAL_ERROR ("XXX Not implemented yet:  IP aliasing and OLSR");
         }
       rtentry->SetSource (ifAddr.GetLocal ());
@@ -3352,6 +3356,12 @@ RoutingProtocol::Dump (void)
     }
   NS_LOG_DEBUG ("");
 #endif  //NS3_LOG_ENABLE
+}
+
+Ptr<const Ipv4StaticRouting>
+RoutingProtocol::GetRoutingTableAssociation () const
+{
+  return m_hnaRoutingTable;
 }
 
 } // namespace olsr

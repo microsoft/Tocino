@@ -21,7 +21,7 @@
 #include "ns3/test.h"
 #include "ns3/uinteger.h"
 
-namespace ns3 {
+using namespace ns3;
 
 // ===========================================================================
 // Test for the ability to get at a GlobalValue.
@@ -85,10 +85,7 @@ public:
 GlobalValueTestSuite::GlobalValueTestSuite ()
   : TestSuite ("global-value", UNIT)
 {
-  AddTestCase (new GlobalValueTestCase);
+  AddTestCase (new GlobalValueTestCase, TestCase::QUICK);
 }
 
 static GlobalValueTestSuite globalValueTestSuite;
-
-} // namespace ns3
-

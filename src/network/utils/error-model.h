@@ -1,6 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2007 University of Washington
+ * Copyright (c) 2013 ResiliNets, ITTC, University of Kansas 
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -52,6 +53,13 @@
  * This code has been ported from ns-2 (queue/errmodel.{cc,h}
  */
 
+/* BurstErrorModel additions
+ *
+ * Author: Truc Anh N. Nguyen   <annguyen@ittc.ku.edu>
+ *         ResiliNets Research Group   http://wiki.ittc.ku.edu/resilinets
+ *         James P.G. Sterbenz <jpgs@ittc.ku.edu>, director 
+ */
+
 #ifndef ERROR_MODEL_H
 #define ERROR_MODEL_H
 
@@ -101,12 +109,16 @@ class Packet;
  *   }
  * \endcode
  *
- * Two practical error models, a ListErrorModel and a RateErrorModel,
- * are currently implemented. 
+ * Four practical error models, a RateErrorModel, a BurstErrorModel, 
+ * a ListErrorModel, and a ReceiveListErrorModel, are currently implemented. 
  */
 class ErrorModel : public Object
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
 
   ErrorModel ();
@@ -138,13 +150,18 @@ public:
   bool IsEnabled (void) const;
 
 private:
-  /*
-   * These methods must be implemented by subclasses
+  /**
+   * Corrupt a packet according to the specified model.
+   * \param p the packet to corrupt
+   * \returns true if the packet is corrupted
    */
-  virtual bool DoCorrupt (Ptr<Packet>) = 0;
+  virtual bool DoCorrupt (Ptr<Packet> p) = 0;
+  /**
+   * Re-initialize any state
+   */
   virtual void DoReset (void) = 0;
 
-  bool m_enable;
+  bool m_enable; //!< True if the error model is enabled
 };
 
 /**
@@ -165,11 +182,18 @@ private:
 class RateErrorModel : public ErrorModel
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
 
   RateErrorModel ();
   virtual ~RateErrorModel ();
 
+  /**
+   * Error unit. The error model can be packet, Byte or bit based.
+   */
   enum ErrorUnit
   {
     ERROR_UNIT_BIT,
@@ -212,16 +236,123 @@ public:
 
 private:
   virtual bool DoCorrupt (Ptr<Packet> p);
+  /**
+   * Corrupt a packet (packet unit).
+   * \param p the packet to corrupt
+   * \returns true if the packet is corrupted
+   */
   virtual bool DoCorruptPkt (Ptr<Packet> p);
+  /**
+   * Corrupt a packet (Byte unit).
+   * \param p the packet to corrupt
+   * \returns true if the packet is corrupted
+   */
   virtual bool DoCorruptByte (Ptr<Packet> p);
+  /**
+   * Corrupt a packet (bit unit).
+   * \param p the packet to corrupt
+   * \returns true if the packet is corrupted
+   */
   virtual bool DoCorruptBit (Ptr<Packet> p);
   virtual void DoReset (void);
 
-  enum ErrorUnit m_unit;
-  double m_rate;
+  enum ErrorUnit m_unit; //!< Error rate unit
+  double m_rate; //!< Error rate
 
-  Ptr<RandomVariableStream> m_ranvar;
+  Ptr<RandomVariableStream> m_ranvar; //!< rng stream
 };
+
+
+/**
+ * \brief Determine which bursts of packets are errored corresponding to 
+ * an underlying distribution, burst rate, and burst size.
+ *
+ * This object is used to flag packets as being lost/errored or not.
+ * The two parameters that govern the behavior are the burst rate (or
+ * equivalently, the mean duration/spacing between between error events), 
+ * and the burst size (or equivalently, the number of packets being flagged 
+ * as errored at each error event).
+ *
+ * Users can optionally provide RandomVariableStream objects;
+ * the default for the decision variable is to use a Uniform(0,1) distribution;
+ * the default for the burst size (number of packets) is to use a 
+ * discrete Uniform[1,4] distribution.
+ *
+ * For every packet, the model generates a random number based on the 
+ * decision variable, and compares it with the burst error rate to 
+ * determine if a burst error event should occur.
+ * If a new error event occurs, the model to will generate a new burst size 
+ * to determine how many packets should be dropped in this particular burst
+ * error event in addition to the current packet.
+ *
+ * When a second packet arrives, the model again determines if a new error 
+ * event should occur based on a newly generated decision variable and 
+ * the burst error rate. If a new error event is determined to occur, 
+ * the model will restart with a new burst size. Otherwise, the model will
+ * resume the last error event and drop the packet provided that the 
+ * total number of packets that has been dropped does not exceed the 
+ * burst size.
+ *
+ * IsCorrupt() will not modify the packet data buffer
+ */
+class BurstErrorModel : public ErrorModel
+{
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  BurstErrorModel ();
+  virtual ~BurstErrorModel ();
+
+  /**
+   * \returns the error rate being applied by the model
+   */
+  double GetBurstRate (void) const;
+  /**
+   * \param rate the error rate to be used by the model
+   */
+  void SetBurstRate (double rate);
+
+  /**
+   * \param ranVar A random variable distribution to generate random variates
+   */
+  void SetRandomVariable (Ptr<RandomVariableStream> ranVar);
+
+  /**
+   * \param burstSz A random variable distribution to generate random burst size
+   */
+  void SetRandomBurstSize (Ptr<RandomVariableStream> burstSz);
+
+  /**
+    * Assign a fixed random variable stream number to the random variables
+    * used by this model.  Return the number of streams (possibly zero) that
+    * have been assigned.
+    *
+    * \param stream first stream index to use
+    * \return the number of stream indices assigned by this model
+    */
+  int64_t AssignStreams (int64_t stream);
+
+private:
+  virtual bool DoCorrupt (Ptr<Packet> p);
+  virtual void DoReset (void);
+
+  double m_burstRate;                         //!< the burst error event
+  Ptr<RandomVariableStream> m_burstStart;     //!< the error decision variable
+  Ptr<RandomVariableStream> m_burstSize;      //!< the number of packets being flagged as errored
+
+  /**
+   * keep track of the number of packets being errored
+   * until it reaches m_burstSize
+   */
+  uint32_t m_counter;
+  uint32_t m_currentBurstSz;                  //!< the current burst size
+
+};
+
 
 /**
  * \brief Provide a list of Packet uids to corrupt
@@ -248,6 +379,10 @@ private:
 class ListErrorModel : public ErrorModel
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
   ListErrorModel ();
   virtual ~ListErrorModel ();
@@ -267,10 +402,12 @@ private:
   virtual bool DoCorrupt (Ptr<Packet> p);
   virtual void DoReset (void);
 
+  /// Typedef: packet Uid list
   typedef std::list<uint32_t> PacketList;
+  /// Typedef: packet Uid list const iterator
   typedef std::list<uint32_t>::const_iterator PacketListCI;
 
-  PacketList m_packetList;
+  PacketList m_packetList; //!< container of Uid of packets to corrupt
 
 };
 
@@ -289,6 +426,10 @@ private:
 class ReceiveListErrorModel : public ErrorModel
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
   ReceiveListErrorModel ();
   virtual ~ReceiveListErrorModel ();
@@ -308,11 +449,13 @@ private:
   virtual bool DoCorrupt (Ptr<Packet> p);
   virtual void DoReset (void);
 
+  /// Typedef: packet sequence number list
   typedef std::list<uint32_t> PacketList;
+  /// Typedef: packet sequence number list const iterator
   typedef std::list<uint32_t>::const_iterator PacketListCI;
 
-  PacketList m_packetList;
-  uint32_t m_timesInvoked;
+  PacketList m_packetList; //!< container of sequence number of packets to corrupt
+  uint32_t m_timesInvoked; //!< number of times the error model has been invoked
 
 };
 

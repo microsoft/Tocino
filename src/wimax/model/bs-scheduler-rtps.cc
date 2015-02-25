@@ -37,9 +37,9 @@
 #include "service-flow-manager.h"
 #include "wimax-mac-queue.h"
 
-NS_LOG_COMPONENT_DEFINE ("BSSchedulerRtps");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("BSSchedulerRtps");
 
 NS_OBJECT_ENSURE_REGISTERED (BSSchedulerRtps);
 
@@ -553,7 +553,7 @@ BSSchedulerRtps::BSSchedulerRTPSConnection (uint32_t &availableSymbols)
       for (int i = 0; i < nbConnection; i++)
         {
           NS_LOG_INFO ("\t\tprevious symbolsRequired[" << i << "] = " << symbolsRequired[i]);
-          symbolsRequired[i] = (uint32_t) floor (symbolsRequired[i] * delta);
+          symbolsRequired[i] = (uint32_t) std::floor (symbolsRequired[i] * delta);
           totSymbolsRequired += symbolsRequired[i];
           NS_LOG_INFO ("\t\tnew symbolsRequired[" << i << "] = " << symbolsRequired[i]);
         }

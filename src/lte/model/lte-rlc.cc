@@ -28,10 +28,9 @@
 #include "ns3/lte-rlc-sap.h"
 // #include "ff-mac-sched-sap.h"
 
-NS_LOG_COMPONENT_DEFINE ("LteRlc");
-
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("LteRlc");
 
 
 ///////////////////////////////////////
@@ -42,7 +41,7 @@ public:
   LteRlcSpecificLteMacSapUser (LteRlc* rlc);
 
   // Interface implemented from LteMacSapUser
-  virtual void NotifyTxOpportunity (uint32_t bytes, uint8_t layer);
+  virtual void NotifyTxOpportunity (uint32_t bytes, uint8_t layer, uint8_t harqId);
   virtual void NotifyHarqDeliveryFailure ();
   virtual void ReceivePdu (Ptr<Packet> p);
 
@@ -61,9 +60,9 @@ LteRlcSpecificLteMacSapUser::LteRlcSpecificLteMacSapUser ()
 }
 
 void
-LteRlcSpecificLteMacSapUser::NotifyTxOpportunity (uint32_t bytes, uint8_t layer)
+LteRlcSpecificLteMacSapUser::NotifyTxOpportunity (uint32_t bytes, uint8_t layer, uint8_t harqId)
 {
-  m_rlc->DoNotifyTxOpportunity (bytes, layer);
+  m_rlc->DoNotifyTxOpportunity (bytes, layer, harqId);
 }
 
 void
@@ -94,18 +93,33 @@ LteRlc::LteRlc ()
   m_macSapUser = new LteRlcSpecificLteMacSapUser (this);
 }
 
+LteRlc::~LteRlc ()
+{
+  NS_LOG_FUNCTION (this);
+}
+
 TypeId LteRlc::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::LteRlc")
     .SetParent<Object> ()
     .AddTraceSource ("TxPDU",
                      "PDU transmission notified to the MAC.",
-                     MakeTraceSourceAccessor (&LteRlc::m_txPdu))
+                     MakeTraceSourceAccessor (&LteRlc::m_txPdu),
+                     "ns3::LteRlc::NotifyTxTracedCallback")
     .AddTraceSource ("RxPDU",
                      "PDU received.",
-                     MakeTraceSourceAccessor (&LteRlc::m_rxPdu))
+                     MakeTraceSourceAccessor (&LteRlc::m_rxPdu),
+                     "ns3::LteRlc::ReceiveTracedCallback")
     ;
   return tid;
+}
+
+void
+LteRlc::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+  delete (m_rlcSapProvider);
+  delete (m_macSapUser);
 }
 
 void
@@ -120,13 +134,6 @@ LteRlc::SetLcId (uint8_t lcId)
 {
   NS_LOG_FUNCTION (this << (uint32_t) lcId);
   m_lcid = lcId;
-}
-
-LteRlc::~LteRlc ()
-{
-  NS_LOG_FUNCTION (this);
-  delete (m_rlcSapProvider);
-  delete (m_macSapUser);
 }
 
 void
@@ -165,14 +172,12 @@ NS_OBJECT_ENSURE_REGISTERED (LteRlcSm);
 
 LteRlcSm::LteRlcSm ()
 {
-
   NS_LOG_FUNCTION (this);
-  Simulator::ScheduleNow (&LteRlcSm::Start, this);
 }
 
 LteRlcSm::~LteRlcSm ()
 {
-
+  NS_LOG_FUNCTION (this);
 }
 
 TypeId
@@ -183,6 +188,20 @@ LteRlcSm::GetTypeId (void)
     .AddConstructor<LteRlcSm> ()
     ;
   return tid;
+}
+
+void
+LteRlcSm::DoInitialize ()
+{
+  NS_LOG_FUNCTION (this);
+  ReportBufferStatus ();
+}
+
+void
+LteRlcSm::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+  LteRlc::DoDispose ();
 }
 
 void
@@ -210,7 +229,7 @@ LteRlcSm::DoReceivePdu (Ptr<Packet> p)
 }
 
 void
-LteRlcSm::DoNotifyTxOpportunity (uint32_t bytes, uint8_t layer)
+LteRlcSm::DoNotifyTxOpportunity (uint32_t bytes, uint8_t layer, uint8_t harqId)
 {
   NS_LOG_FUNCTION (this << bytes);
   LteMacSapProvider::TransmitPduParameters params;
@@ -218,6 +237,7 @@ LteRlcSm::DoNotifyTxOpportunity (uint32_t bytes, uint8_t layer)
   params.rnti = m_rnti;
   params.lcid = m_lcid;
   params.layer = layer;
+  params.harqProcessId = harqId;
 
   // RLC Performance evaluation
   RlcTag tag (Simulator::Now());
@@ -235,13 +255,6 @@ void
 LteRlcSm::DoNotifyHarqDeliveryFailure ()
 {
   NS_LOG_FUNCTION (this);
-}
-
-void
-LteRlcSm::Start ()
-{
-  NS_LOG_FUNCTION (this);
-  ReportBufferStatus ();
 }
 
 void

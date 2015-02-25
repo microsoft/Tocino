@@ -1,7 +1,7 @@
 ## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    obj = bld.create_ns3_module('mesh', ['internet', 'wifi', 'bridge', 'applications'])
+    obj = bld.create_ns3_module('mesh', ['internet', 'wifi', 'applications'])
 
     obj.source = [
         'model/mesh-information-element-vector.cc',
@@ -53,7 +53,7 @@ def build(bld):
         'test/flame/regression.cc',
         ]
 
-    headers = bld.new_task_gen(features=['ns3header'])
+    headers = bld(features='ns3header')
     headers.module = 'mesh'
     headers.source = [
         'model/mesh-information-element.h',
@@ -90,6 +90,6 @@ def build(bld):
         ]
 
     if bld.env['ENABLE_EXAMPLES']:
-        bld.add_subdirs('examples')
+        bld.recurse('examples')
 
     bld.ns3_python_bindings()

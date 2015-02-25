@@ -52,11 +52,11 @@ TestTocinoCallbackQueue::DoRun (void)
   Config::SetDefault("ns3::CallbackQueue::Depth", UintegerValue(4));
 
   Ptr<CallbackQueue> q = CreateObject<CallbackQueue>();
-  Ptr<Packet> p0 = new Packet(64);
-  Ptr<Packet> p1 = new Packet(64);
-  Ptr<Packet> p2 = new Packet(64);
-  Ptr<Packet> p3 = new Packet(64);
-  Ptr<Packet> p4 = new Packet(64);
+  Ptr<Packet> p0 = Create<Packet>( 64 );
+  Ptr<Packet> p1 = Create<Packet>( 64 );
+  Ptr<Packet> p2 = Create<Packet>( 64 );
+  Ptr<Packet> p3 = Create<Packet>( 64 );
+  Ptr<Packet> p4 = Create<Packet>( 64 );
   Ptr<Packet> t;
 
 

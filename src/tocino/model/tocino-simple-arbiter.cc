@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "ns3/log.h"
-#include "ns3/random-variable.h"
+#include "ns3/random-variable-stream.h"
 #include "ns3/boolean.h"
 
 #include "tocino-misc.h"
@@ -124,7 +124,7 @@ TocinoSimpleArbiter::BuildCandidateSet() const
 TocinoArbiterAllocation
 TocinoSimpleArbiter::SelectWinnerInterleaveVCs( const AllocVector& cand ) const
 {
-    UniformVariable rv;
+    Ptr<UniformRandomVariable> rv = CreateObject<UniformRandomVariable>();
 
     // try to select a different outVC than last time
     TocinoArbiterAllocation winner( DO_NOTHING );
@@ -145,12 +145,12 @@ TocinoSimpleArbiter::SelectWinnerInterleaveVCs( const AllocVector& cand ) const
 
     if( newCand.empty() )
     {
-        winner = cand[ rv.GetInteger( 0, cand.size()-1 ) ];
+        winner = cand[ rv->GetInteger( 0, cand.size()-1 ) ];
     }
     else
     {
         NS_LOG_LOGIC( "intentional VC interleaving" );
-        winner = newCand[ rv.GetInteger( 0, newCand.size()-1 ) ];
+        winner = newCand[ rv->GetInteger( 0, newCand.size()-1 ) ];
     }
 
     m_lastVC = winner.outputVC;
@@ -161,9 +161,9 @@ TocinoSimpleArbiter::SelectWinnerInterleaveVCs( const AllocVector& cand ) const
 TocinoArbiterAllocation
 TocinoSimpleArbiter::FairSelectWinner( const AllocVector& cand ) const
 {
-    UniformVariable rv;
+    Ptr<UniformRandomVariable> rv = CreateObject<UniformRandomVariable>();
         
-    return cand[ rv.GetInteger( 0, cand.size()-1 ) ];
+    return cand[ rv->GetInteger( 0, cand.size()-1 ) ];
 }
 
 void

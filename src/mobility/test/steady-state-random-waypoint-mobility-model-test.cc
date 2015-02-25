@@ -26,7 +26,7 @@
 #include "ns3/steady-state-random-waypoint-mobility-model.h"
 #include "ns3/rng-seed-manager.h"
 
-namespace ns3 {
+using namespace ns3;
 
 class SteadyStateRandomWaypointTest : public TestCase
 {
@@ -78,7 +78,7 @@ SteadyStateRandomWaypointTest::DoRun (void)
 
       // Add this mobility model to the stack.
       mobilityStack.push_back (model);
-      Simulator::Schedule (Seconds (0.0), &Object::Start, model);
+      Simulator::Schedule (Seconds (0.0), &Object::Initialize, model);
     } 
 
   Simulator::Schedule (Seconds (0.001), &SteadyStateRandomWaypointTest::DistribCompare, this);
@@ -100,7 +100,7 @@ SteadyStateRandomWaypointTest::DistribCompare ()
   for (i = mobilityStack.begin (); i != mobilityStack.end (); ++i)
     {
       model = (*i);
-      velocity = sqrt (pow (model->GetVelocity ().x, 2) + pow (model->GetVelocity ().y, 2));
+      velocity = std::sqrt (std::pow (model->GetVelocity ().x, 2) + std::pow (model->GetVelocity ().y, 2));
       sum_x += model->GetPosition ().x;
       sum_y += model->GetPosition ().y;
       sum_v += velocity;
@@ -120,7 +120,7 @@ SteadyStateRandomWaypointTest::DistribCompare ()
   for (i = mobilityStack.begin (); i != mobilityStack.end (); ++i)
     {
       model = (*i);
-      velocity = sqrt (pow (model->GetVelocity ().x, 2) + pow (model->GetVelocity ().y, 2));
+      velocity = std::sqrt (std::pow (model->GetVelocity ().x, 2) + std::pow (model->GetVelocity ().y, 2));
       tmp = model->GetPosition ().x - mean_x;
       sum_x += tmp * tmp;
       tmp = model->GetPosition ().y - mean_y;
@@ -141,8 +141,6 @@ struct SteadyStateRandomWaypointTestSuite : public TestSuite
 {
   SteadyStateRandomWaypointTestSuite () : TestSuite ("steady-state-rwp-mobility-model", UNIT)
   {
-    AddTestCase (new SteadyStateRandomWaypointTest);
+    AddTestCase (new SteadyStateRandomWaypointTest, TestCase::QUICK);
   }
 } g_steadyStateRandomWaypointTestSuite;
-
-} // namespace ns3

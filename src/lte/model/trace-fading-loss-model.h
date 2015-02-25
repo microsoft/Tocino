@@ -49,7 +49,7 @@ public:
 
   static TypeId GetTypeId ();
   
-  virtual void DoStart (void);
+  virtual void DoInitialize (void);
 
   /**
    * \brief The couple of mobility mnode that form a fading channel realization
@@ -69,14 +69,12 @@ public:
   
 private:
   /**
-   * @param txPower set of values vs frequency representing the
-   * transmission power. See SpectrumChannel for details.
-   *
-   * @param a sender mobility
-   * @param b receiver mobility
-   *
-   * @return set of values vs frequency representing the received
-   * power in the same units used for the txPower parameter.
+   * \param txPsd set of values vs frequency representing the
+   *              transmission power. See SpectrumChannel for details.
+   * \param a sender mobility
+   * \param b receiver mobility
+   * \return set of values vs frequency representing the received
+   *         power in the same units used for the txPsd parameter.
    */
   Ptr<SpectrumValue> DoCalcRxPowerSpectralDensity (Ptr<const SpectrumValue> txPsd,
                                                    Ptr<const MobilityModel> a,
@@ -123,6 +121,10 @@ private:
   uint8_t m_rbNum;
   mutable Time m_lastWindowUpdate;
   uint8_t m_timeGranularity;
+  mutable uint64_t m_currentStream;
+  mutable uint64_t m_lastStream;
+  uint64_t m_streamSetSize;
+  mutable bool m_streamsAssigned;
   
 };
 

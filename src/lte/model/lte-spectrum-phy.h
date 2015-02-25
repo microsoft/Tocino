@@ -38,6 +38,9 @@
 #include <ns3/lte-interference.h>
 #include "ns3/random-variable-stream.h"
 #include <map>
+#include <ns3/ff-mac-common.h>
+#include <ns3/lte-harq-phy.h>
+#include <ns3/lte-common.h>
 
 namespace ns3 {
 
@@ -57,16 +60,87 @@ struct TbId_t
   
 struct tbInfo_t
 {
+  uint8_t ndi;
   uint16_t size;
   uint8_t mcs;
   std::vector<int> rbBitmap;
+  uint8_t harqProcessId;
+  uint8_t rv;
+  double mi;
+  bool downlink;
   bool corrupt;
+  bool harqFeedbackSent;
 };
 
 typedef std::map<TbId_t, tbInfo_t> expectedTbs_t;
 
+
 class LteNetDevice;
 class AntennaModel;
+class LteControlMessage;
+struct LteSpectrumSignalParametersDataFrame;
+struct LteSpectrumSignalParametersDlCtrlFrame;
+struct LteSpectrumSignalParametersUlSrsFrame;
+
+
+/**
+* this method is invoked by the LteSpectrumPhy to notify the PHY that the
+* transmission of a given packet has been completed.
+*
+* @param packet the Packet whose TX has been completed.
+*/
+typedef Callback< void, Ptr<const Packet> > LtePhyTxEndCallback;
+
+/**
+* This method is used by the LteSpectrumPhy to notify the PHY that a
+* previously started RX attempt has terminated without success
+*/
+typedef Callback< void > LtePhyRxDataEndErrorCallback;
+/**
+* This method is used by the LteSpectrumPhy to notify the PHY that a
+* previously started RX attempt has been successfully completed.
+*
+* @param packet the received Packet
+*/
+typedef Callback< void, Ptr<Packet> > LtePhyRxDataEndOkCallback;
+
+
+/**
+* This method is used by the LteSpectrumPhy to notify the PHY that a
+* previously started RX of a control frame attempt has been 
+* successfully completed.
+*
+* @param packet the received Packet
+*/
+typedef Callback< void, std::list<Ptr<LteControlMessage> > > LtePhyRxCtrlEndOkCallback;
+
+/**
+* This method is used by the LteSpectrumPhy to notify the PHY that a
+* previously started RX of a control frame attempt has terminated 
+* without success.
+*/
+typedef Callback< void > LtePhyRxCtrlEndErrorCallback;
+
+/**
+* This method is used by the LteSpectrumPhy to notify the UE PHY that a
+* PSS has been received
+*/
+typedef Callback< void, uint16_t, Ptr<SpectrumValue> > LtePhyRxPssCallback;
+
+
+/**
+* This method is used by the LteSpectrumPhy to notify the PHY about
+* the status of a certain DL HARQ process
+*/
+typedef Callback< void, DlInfoListElement_s > LtePhyDlHarqFeedbackCallback;
+
+/**
+* This method is used by the LteSpectrumPhy to notify the PHY about
+* the status of a certain UL HARQ process
+*/
+typedef Callback< void, UlInfoListElement_s > LtePhyUlHarqFeedbackCallback;
+
+
 
 /**
  * \ingroup lte
@@ -88,7 +162,7 @@ public:
    */
   enum State
   {
-    IDLE, TX, RX
+    IDLE, TX, RX_DATA, RX_CTRL
   };
 
   // inherited from Object
@@ -104,6 +178,10 @@ public:
   Ptr<const SpectrumModel> GetRxSpectrumModel () const;
   Ptr<AntennaModel> GetRxAntenna ();
   void StartRx (Ptr<SpectrumSignalParameters> params);
+  void StartRxData (Ptr<LteSpectrumSignalParametersDataFrame> params);
+  void StartRxCtrl (Ptr<SpectrumSignalParameters> params);
+
+  void SetHarqPhyModule (Ptr<LteHarqPhy> harq);
 
   /**
    * set the Power Spectral Density of outgoing signals in W/Hz.
@@ -118,6 +196,12 @@ public:
    * (Watt, Pascal...) per Hz.
    */
   void SetNoisePowerSpectralDensity (Ptr<const SpectrumValue> noisePsd);
+
+  /** 
+   * reset the internal state
+   * 
+   */
+  void Reset ();
  
   /**
    * set the AntennaModel to be used
@@ -125,42 +209,105 @@ public:
    * \param a the Antenna Model
    */
   void SetAntenna (Ptr<AntennaModel> a);
-
+  
   /**
-   * Start a transmission
-   *
-   *
-   * @param pb the burst of packets to be transmitted
-   *
-   * @return true if an error occurred and the transmission was not
-   * started, false otherwise.
-   */
-  bool StartTx (Ptr<PacketBurst> pb);
+  * Start a transmission of data frame in DL and UL
+  *
+  *
+  * @param pb the burst of packets to be transmitted in PDSCH/PUSCH
+  * @param ctrlMsgList the list of LteControlMessage to send
+  * @param duration the duration of the data frame 
+  *
+  * @return true if an error occurred and the transmission was not
+  * started, false otherwise.
+  */
+  bool StartTxDataFrame (Ptr<PacketBurst> pb, std::list<Ptr<LteControlMessage> > ctrlMsgList, Time duration);
+  
+  /**
+  * Start a transmission of control frame in DL
+  *
+  *
+  * @param ctrlMsgList the burst of control messages to be transmitted
+  * @param pss the flag for transmitting the primary synchronization signal
+  *
+  * @return true if an error occurred and the transmission was not
+  * started, false otherwise.
+  */
+  bool StartTxDlCtrlFrame (std::list<Ptr<LteControlMessage> > ctrlMsgList, bool pss);
+  
+  
+  /**
+  * Start a transmission of control frame in UL
+  *
+  * @return true if an error occurred and the transmission was not
+  * started, false otherwise.
+  */
+  bool StartTxUlSrsFrame ();
 
 
   /**
    * set the callback for the end of a TX, as part of the
-   * interconnections betweenthe PHY and the MAC
+   * interconnections between the PHY and the MAC
    *
    * @param c the callback
    */
-  void SetGenericPhyTxEndCallback (GenericPhyTxEndCallback c);
+  void SetLtePhyTxEndCallback (LtePhyTxEndCallback c);
 
   /**
    * set the callback for the end of a RX in error, as part of the
-   * interconnections betweenthe PHY and the MAC
+   * interconnections between the PHY and the MAC
    *
    * @param c the callback
    */
-  void SetGenericPhyRxEndErrorCallback (GenericPhyRxEndErrorCallback c);
+  void SetLtePhyRxDataEndErrorCallback (LtePhyRxDataEndErrorCallback c);
 
   /**
    * set the callback for the successful end of a RX, as part of the
-   * interconnections betweenthe PHY and the MAC
+   * interconnections between the PHY and the MAC
    *
    * @param c the callback
    */
-  void SetGenericPhyRxEndOkCallback (GenericPhyRxEndOkCallback c);
+  void SetLtePhyRxDataEndOkCallback (LtePhyRxDataEndOkCallback c);
+  
+  /**
+  * set the callback for the successful end of a RX ctrl frame, as part 
+  * of the interconnections between the LteSpectrumPhy and the PHY
+  *
+  * @param c the callback
+  */
+  void SetLtePhyRxCtrlEndOkCallback (LtePhyRxCtrlEndOkCallback c);
+  
+  /**
+  * set the callback for the erroneous end of a RX ctrl frame, as part 
+  * of the interconnections between the LteSpectrumPhy and the PHY
+  *
+  * @param c the callback
+  */
+  void SetLtePhyRxCtrlEndErrorCallback (LtePhyRxCtrlEndErrorCallback c);
+
+  /**
+  * set the callback for the reception of the PSS as part
+  * of the interconnections between the LteSpectrumPhy and the UE PHY
+  *
+  * @param c the callback
+  */
+  void SetLtePhyRxPssCallback (LtePhyRxPssCallback c);
+
+  /**
+  * set the callback for the DL HARQ feedback as part of the 
+  * interconnections between the LteSpectrumPhy and the PHY
+  *
+  * @param c the callback
+  */
+  void SetLtePhyDlHarqFeedbackCallback (LtePhyDlHarqFeedbackCallback c);
+
+  /**
+  * set the callback for the UL HARQ feedback as part of the
+  * interconnections between the LteSpectrumPhy and the PHY
+  *
+  * @param c the callback
+  */
+  void SetLtePhyUlHarqFeedbackCallback (LtePhyUlHarqFeedbackCallback c);
 
   /**
    * \brief Set the state of the phy layer
@@ -176,24 +323,68 @@ public:
   void SetCellId (uint16_t cellId);
 
 
+  /**
+  *
+  *
+  * \param p the new LteChunkProcessor to be added to the RS power
+  *          processing chain
+  */
+  void AddRsPowerChunkProcessor (Ptr<LteChunkProcessor> p);
+  
+  /**
+  *
+  *
+  * \param p the new LteChunkProcessor to be added to the Data Channel power
+  *          processing chain
+  */
+  void AddDataPowerChunkProcessor (Ptr<LteChunkProcessor> p);
+
   /** 
-   * 
-   * 
-   * \param p the new LteSinrChunkProcessor to be added to the processing chain
-   */
-  void AddSinrChunkProcessor (Ptr<LteSinrChunkProcessor> p);
+  * 
+  * 
+  * \param p the new LteChunkProcessor to be added to the data processing chain
+  */
+  void AddDataSinrChunkProcessor (Ptr<LteChunkProcessor> p);
+
+  /**
+  *  LteChunkProcessor devoted to evaluate interference + noise power
+  *  in control symbols of the subframe
+  *
+  * \param p the new LteChunkProcessor to be added to the data processing chain
+  */
+  void AddInterferenceCtrlChunkProcessor (Ptr<LteChunkProcessor> p);
+
+  /**
+  *  LteChunkProcessor devoted to evaluate interference + noise power
+  *  in data symbols of the subframe
+  *
+  * \param p the new LteChunkProcessor to be added to the data processing chain
+  */
+  void AddInterferenceDataChunkProcessor (Ptr<LteChunkProcessor> p);
+  
+  
+  /** 
+  * 
+  * 
+  * \param p the new LteChunkProcessor to be added to the ctrl processing chain
+  */
+  void AddCtrlSinrChunkProcessor (Ptr<LteChunkProcessor> p);
   
   /** 
   * 
   * 
   * \param rnti the rnti of the source of the TB
+  * \param ndi new data indicator flag
   * \param size the size of the TB
   * \param mcs the MCS of the TB
   * \param map the map of RB(s) used
   * \param layer the layer (in case of MIMO tx)
+  * \param harqId the id of the HARQ process (valid only for DL)
+  * \param downlink true when the TB is for DL
   */
-  void AddExpectedTb (uint16_t  rnti, uint16_t size, uint8_t mcs, std::vector<int> map, uint8_t layer);
-  
+  void AddExpectedTb (uint16_t  rnti, uint8_t ndi, uint16_t size, uint8_t mcs, std::vector<int> map, uint8_t layer, uint8_t harqId, uint8_t rv, bool downlink);
+
+
   /** 
   * 
   * 
@@ -208,6 +399,13 @@ public:
   */
   void SetTransmissionMode (uint8_t txMode);
   
+
+  /** 
+   * 
+   * \return the previously set channel
+   */
+  Ptr<SpectrumChannel> GetChannel ();
+
   friend class LteUePhy;
   
  /**
@@ -223,7 +421,9 @@ public:
 private:
   void ChangeState (State newState);
   void EndTx ();
-  void EndRx ();
+  void EndRxData ();
+  void EndRxDlCtrl ();
+  void EndRxUlSrs ();
   
   void SetTxModeGain (uint8_t txMode, double gain);
   
@@ -238,7 +438,11 @@ private:
   Ptr<SpectrumValue> m_txPsd;
   Ptr<PacketBurst> m_txPacketBurst;
   std::list<Ptr<PacketBurst> > m_rxPacketBurstList;
-
+  
+  std::list<Ptr<LteControlMessage> > m_txControlMessageList;
+  std::list<Ptr<LteControlMessage> > m_rxControlMessageList;
+  
+  
   State m_state;
   Time m_firstRxStart;
   Time m_firstRxDuration;
@@ -249,11 +453,16 @@ private:
   TracedCallback<Ptr<const Packet> > m_phyRxEndOkTrace;
   TracedCallback<Ptr<const Packet> > m_phyRxEndErrorTrace;
 
-  GenericPhyTxEndCallback        m_genericPhyTxEndCallback;
-  GenericPhyRxEndErrorCallback   m_genericPhyRxEndErrorCallback;
-  GenericPhyRxEndOkCallback      m_genericPhyRxEndOkCallback;
+  LtePhyTxEndCallback        m_ltePhyTxEndCallback;
+  LtePhyRxDataEndErrorCallback   m_ltePhyRxDataEndErrorCallback;
+  LtePhyRxDataEndOkCallback      m_ltePhyRxDataEndOkCallback;
+  
+  LtePhyRxCtrlEndOkCallback     m_ltePhyRxCtrlEndOkCallback;
+  LtePhyRxCtrlEndErrorCallback  m_ltePhyRxCtrlEndErrorCallback;
+  LtePhyRxPssCallback  m_ltePhyRxPssCallback;
 
-  Ptr<LteInterference> m_interference;
+  Ptr<LteInterference> m_interferenceData;
+  Ptr<LteInterference> m_interferenceCtrl;
 
   uint16_t m_cellId;
   
@@ -262,11 +471,37 @@ private:
 
   /// Provides uniform random variables.
   Ptr<UniformRandomVariable> m_random;
-  bool m_pemEnabled; // when true (default) the phy error model is enabled
+  bool m_dataErrorModelEnabled; // when true (default) the phy error model is enabled
+  bool m_ctrlErrorModelEnabled; // when true (default) the phy error model is enabled for DL ctrl frame
   
   uint8_t m_transmissionMode; // for UEs: store the transmission mode
+  uint8_t m_layersNum;
   std::vector <double> m_txModeGain; // duplicate value of LteUePhy
+
+  Ptr<LteHarqPhy> m_harqPhyModule;
+  LtePhyDlHarqFeedbackCallback m_ltePhyDlHarqFeedbackCallback;
+  LtePhyUlHarqFeedbackCallback m_ltePhyUlHarqFeedbackCallback;
+
+
+  /**
+   * Trace information regarding PHY stats from DL Rx perspective
+   * PhyReceptionStatParameters (see lte-common.h)
+   */
+  TracedCallback<PhyReceptionStatParameters> m_dlPhyReception;
+
   
+  /**
+   * Trace information regarding PHY stats from UL Rx perspective
+   * PhyReceptionStatParameters (see lte-common.h)
+   */
+  TracedCallback<PhyReceptionStatParameters> m_ulPhyReception;
+
+  EventId m_endTxEvent;
+  EventId m_endRxDataEvent;
+  EventId m_endRxDlCtrlEvent;
+  EventId m_endRxUlSrsEvent;
+  
+
 };
 
 

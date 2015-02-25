@@ -23,6 +23,13 @@ the impact of these changes on users by documenting these changes in a
 single place (this file), and not by providing a temporary or permanent
 backward-compatibility software layer.  </p>
 <p>
+A related file is the RELEASE_NOTES file in the top level directory.
+This file complements RELEASE_NOTES by focusing on API and behavioral
+changes that users upgrading from one release to the next may encounter.
+RELEASE_NOTES attempts to comprehensively list all of the changes
+that were made.  There is generally some overlap in the information 
+contained in RELEASE_NOTES and this file.  </p>
+<p>
 The goal is that users who encounter a problem when trying to use older
 code with newer code should be able to consult this file to find
 guidance as to how to fix the problem.  For instance, if a method name
@@ -42,6 +49,669 @@ our best but can guarantee that there will be things that fall through
 the cracks, unfortunately.  If you, as a user, can suggest improvements
 to this file based on your experience, please contribute a patch or drop
 us a note on ns-developers mailing list.</p>
+
+<hr>
+<h1>Changes from ns-3.21 to ns-3.22</h1>
+<h2>New API:</h2>
+<ul>
+  <li> New classes were added for the PARF and APARF WiFi power and rate control mechanisms. 
+  </li>
+  <li> Support for WiFi 802.11n MPDU aggregation has been added.
+  </li>
+  <li> Additional support for modeling of vehicular WiFi networks has been added, including the channel-access coordination feature of IEEE 1609.4.  In addition, a Basic Safety Message (BSM) packet generator and related statistics-gathering classes have been added to the wave module. 
+  </li>
+  <li> A complete LTE release bearer procedure is now implemented which can be invoked by calling the new helper method LteHelper::DeActivateDedicatedEpsBearer ().
+  </li>
+  <li> It is now possible to print the Neighbor Cache (ARP and NDISC) by using
+       the RoutingProtocolHelper
+  </li>
+  <li> A TimeProbe class has been added to the data collection framework in 
+       the stats module, enabling TracedValues emitting values of type 
+       ns3::Time to be handled by the framework.
+  </li>
+  <li> A new attribute 'ClockGranularity' was added to the TcpSocketBase class,
+to control modeling of RTO calculation.
+  </li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+  <li> Several deprecated classes and class methods were removed, including EmuNetDevice, RandomVariable and derived classes, Packet::PeekData(), Ipv6AddressHelper::NewNetwork(Ipv6Address, Ipv6Prefix), Ipv6InterfaceContainer::SetRouter(), Ipv4Route::GetOutputTtl(), TestCase::AddTestCase(TestCase*), and TestCase::GetErrorStatus().
+  </li>
+  <li> Print methods involving routing tables and neighbor caches, in classes Ipv4RoutingHelper and Ipv6RoutingHelper, were converted to static methods.
+  </li>  
+  <li>PointerValue attribute types in class UanChannel (NoiseModel), UanPhyGen (PerModel and SinrModel), UanPhyDual (PerModelPhy1, PerModelPhy2, SinrModelPhy1, and SinrModelPhy2), and SimpleNetDevice (TxQueue), were changed from PointerValue type to StringValue type, making them configurable via the Config subsystem. 
+  </li>
+  <li> WifiPhy::CalculateTxDuration() and WifiPhy::GetPayloadDurationMicroSeconds () now take an additional frequency parameter.
+  </li>
+  <li> The attribute 'Recievers' in class YansWifiPhy was misspelled, so
+       this has been corrected to 'Receivers'.
+  </li>
+  <li> We have now documented the callback function signatures
+       for all TracedSources, using an extra (fourth) argument to
+       TypeId::AddTraceSource to pass the fully-qualified name
+       of the signature typedef.  To ensure that future TraceSources
+       are similarly documented, the three argument version of 
+       AddTraceSource has been deprecated.
+  </li>	
+  <li> The "MinRTO" attribute of the RttEstimator class was moved to the TcpSocketBase class.  The "Gain" attribute of the RttMeanDeviation class was replaced 
+by new "Alpha" and "Beta" attributes.  
+  </li>	
+  <li> Attributes of the TcpTxBuffer and TcpRxBuffer class are now accessible through the TcpSocketBase class.
+  </li>	
+  <li> The LrWpanHelper class has a new constructor allowing users to configure a MultiModelSpectrumChannel as an option, and also provides Set/Get API to allow users to access the underlying channel object. 
+  </li>
+</ul>
+
+<h2>Changes to build system:</h2>
+<ul>
+  <li> waf was upgraded to version 1.7.16
+  </li>
+</ul>
+
+<h2>Changed behavior:</h2>
+This section is for behavioral changes to the models that were not due to a bug fix.
+<ul>
+  <li> The default value of the `Speed` attribute of ConstantSpeedPropagationDelayModel was changed from 300,000,000 m/s to 299,792,458 m/s (speed of light in a vacuum), causing propagation delays using this model to vary slightly.
+  </li>
+  <li> The LrWpanHelper object was previously instantiating only a LogDistancePropagationLossModel on a SingleModelSpectrumChannel, but no PropagationDelayModel.  The constructor now adds by default a ConstantSpeedPropagationDelayModel.
+  </li>
+  <li> The Nix-vector routing implementation now uses a lazy flush mechanism,
+       which dramatically speeds up the creation of large topologies.
+  </li>
+</ul>
+
+<hr>
+<h1>Changes from ns-3.20 to ns-3.21</h1>
+<h2>New API:</h2>
+<ul>
+  <li> New "const double& SpectrumValue:: operator[] (size_t index) const".
+  </li>
+  <li> A new TraceSource has been added to TCP sockets: SlowStartThreshold.
+  </li>
+  <li> New method CommmandLine::AddValue (name, attibutePath) to provide a
+       shorthand argument "name" for the Attribute "path".  This also has
+       the effect of including the help string for the Attribute in the
+       Usage message.
+  </li>
+  <li> The GSoC 2014 project in the LTE module has brought some additional APIs:
+    <ul>
+      <li>a new abstract class LteFfrAlgorithm, which every future
+          implementation of frequency reuse algorithm should inherit from</li>
+      <li>a new SAPs: one between MAC Scheduler and FrAlgorithm, one between
+	  RRC and FrAlgorithm</li>
+      <li>new attribute to enable Uplink Power Control in LteUePhy</li>
+      <li>new LteUePowerControl class, an implementation of Uplink Power Control, which is 
+          configurable by attributes. ReferenceSignalPower is sent by eNB in SIB2. 
+          Uplink Power Control in Closed Loop Accumulative Mode is enabled by default</li>
+      <li>seven different Frequency Reuse Algorithms (each has its own attributes): </li>
+        <ul>
+          <li>LteFrNoOpAlgorithm</li>
+          <li>LteFrHardAlgorithm</li>
+          <li>LteFrStrictAlgorithm</li>
+          <li>LteFrSoftAlgorithm</li>
+          <li>LteFfrSoftAlgorithm</li>
+          <li>LteFfrEnhancedAlgorithm</li>
+          <li>LteFfrDistributedAlgorithm</li>
+        </ul>
+      <li>attribute in LteFfrAlgorithm to set FrCellTypeId which is used in automatic 
+          Frequency Reuse algorithm configuration</li>
+      <li>LteHelper has been updated with new methods related to frequency reuse algorithm: 
+          SetFfrAlgorithmType and SetFfrAlgorithmAttribute</li>
+    </ul>
+  </li>
+  <li> A new SimpleNetDeviceHelper can now be used to install SimpleNetDevices.
+  </li>
+  <li> New PacketSocketServer and PacketSocketClient apps, meant to be used in tests.
+  </li>
+  <li> Tcp Timestamps and Window Scale options have been added and are enabled by default (controllable by attribute).
+  </li>
+  <li> A new CoDel queue model has been added to the 'internet' module.  
+  </li>
+  <li> New test macros NS_TEST_ASSERT_MSG_GT_OR_EQ() and NS_TEST_EXPECT_MSG_GT_OR_EQ() have been added.
+  </li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+  <li> "Icmpv6L4Protocol::ForgeEchoRequest" is now returning a packet with the proper IPv6 header.
+  </li>
+  <li> The TCP socket Attribute "SlowStartThreshold" has been renamed "InitialSlowStartThreshold" to
+       clarify that the effect is only on the initial value.
+  </li>
+  <li> all schedulers were updated to interact with FR entity via FFR-SAP. Only PF, PSS, CQA, 
+       FD-TBFQ, TD-TBFQ schedulers supports Frequency Reuse functionality. In the beginning 
+       of scheduling process, schedulers ask FR entity for avaiable RBGs and then ask if UE 
+       can be scheduled on RB</li>
+  <li> eNB RRC interacts with FFR entity via RRC-FFR SAP</li>
+  <li> new DL-CQI generation approach was implemented. Now DL-CQI is computed from control channel as signal
+       and data channel (if received) as interference. New attribute in LteHelper was added to specify 
+       DL-CQI generation approach. New approach is default one in LteHelper </li>
+  <li> RadioEnvironmentMap can be generated for Data or Control channel and for specified RbId;
+       Data or Control channel and RbId can be configured by new attributes in RadioEnvironmentMapHelper </li>
+  <li> lte-sinr-chunk-processor refactored to lte-chunk-processor. Removed all lte-xxx-chunk-processor 
+       implementations</li>
+  <li> BindToNetDevice affects also sockets using IPv6.</li>
+  <li> BindToNetDevice now calls implicitly Bind (). To bind a socket to a NetDevice and to a specific address,
+       the correct sequence is Bind (address) - BindToNetDevice (device). The opposite will raise an error.</li>
+</ul>
+
+<h2>Changes to build system:</h2>
+<ul>
+<li> None for this release. </li>
+</ul>
+
+<h2>Changed behavior:</h2>
+<ul>
+<li> Behavior will be changed due to the list of bugs fixed (listed in RELEASE_NOTES); users are requested to review that list as well.
+</ul>
+
+<hr>
+<h1>Changes from ns-3.19 to ns-3.20</h1>
+<h2>New API:</h2>
+<ul>
+  <li> Models have been added for low-rate, wireless personal area networks
+(LR-WPAN) as specified by IEEE standard 802.15.4 (2006).  The current 
+emphasis is on the unslotted mode of 802.15.4 operation for use in Zigbee, 
+and the scope is limited to enabling a single mode (CSMA/CA) with basic 
+data transfer capabilities. Association with PAN coordinators is not yet 
+supported, nor the use of extended addressing. Interference is modeled as 
+AWGN but this is currently not thoroughly tested.  The NetDevice Tx queue 
+is not limited, i.e., packets are never dropped due to queue becoming full. 
+They may be dropped due to excessive transmission retries or channel access 
+failure.  </li>
+  <li> A new IPv6 routing protocol has been added: RIPng. This protocol is
+  an Interior Gateway Protocol and it is available in the Internet module. </li>
+  <li> A new LTE MAC downlink scheduling algorithm named Channel and QoS 
+  Aware (CQA) Scheduler is provided by the new "ns3::CqaFfMacScheduler" object.
+  </li>
+  <li> Units may be attached to Time objects, to facilitate specific output
+  formats (see Time::As()) </li>
+  <li> FlowMonitor "SerializeToXml" functions are now directly available
+  from the helper.  </li>
+  <li> Access to OLSR's HNA table has been enabled </li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+  <li> The SixLowPan model can now use uncompressed IPv6 headers. An option to
+  define the minimum compressed packet size has been added.  </li>
+  <li> MinDistance wsa replaced by MinLoss in FriisPropagationLossModel, to
+  better handle conditions outside of the assumed far field region. </li>
+  <li> In the DSR model, the attribute DsrOptionRerrHeader::ErrorType" has
+  been removed. </li>
+</ul>
+
+<h2>Changes to build system:</h2>
+<ul>
+  <li> Python 3.3 is now supported for Python bindings for ns-3.  Python 3.3 
+  support for API scanning is not supported.  Python 3.2 is not supported.</li>
+  <li>  Enable selection of high precision int64x64_t implementation
+  at configure time, for debugging purposes.</li>
+  <li> Optimized builds are now enabling signed overflow optimization 
+  (-fstrict-overflow) and for gcc 4.8.2 and greater, also warning for cases 
+  where an optimizization may occur due to compiler assumption that 
+  overflow will not occur. </li>
+</ul>
+
+<h2>Changed behavior:</h2>
+<ul>
+  <li> The Internet FlowMonitor can now track IPv6 packets.  </li>
+  <li> Ipv6Extension::m_dropTrace has been removed. Ipv6L3Protocol::m_dropTrace
+  is now fired when appropriate.  </li>
+  <li> IPv4 identification field value is now dependent on the protocol 
+  field.  </li>
+  <li> Point-to-point trace sources now contain PPP headers </li>
+</ul>
+
+<hr>
+<h1>Changes from ns-3.18.1 to ns-3.19</h1>
+
+<h2>New API:</h2>
+<ul>
+  <li> A new wifi extension for vehicular simulation support is available in the
+    src/wave directory.  The current code represents an interim capability to 
+    realize an IEEE 802.11p-compliant device, but without the WAVE extensions 
+    (which are planned for a later patch).  The WaveNetDevice modelled herein 
+    enforces that a WAVE-compliant physical layer (at 5.9 GHz) is selected, and 
+    does not require any association between devices (similar to an adhoc WiFi 
+    MAC), but is otherwise similar (at this time) to a WifiNetDevice.  WAVE 
+    capabililties of switching between control and service channels, or using 
+    multiple radios, are not yet modelled.
+  </li>
+  <li>New SixLowPanNetDevice class providing a shim between 
+    IPv6 and real NetDevices. The new module implements 6LoWPAN:
+    "Transmission of IPv6 Packets over IEEE 802.15.4 Networks" (see
+    <a href="http://www.ietf.org/rfc/rfc4944.txt">RFC 4944</a> and
+    <a href="http://www.ietf.org/rfc/rfc6262.txt">RFC 6262</a>), 
+    resulting in a heavy header compression for IPv6 packets.
+    The module is intended to be used on 802.15.4 NetDevices, but
+    it can be used over other NetDevices. See the manual for
+    further discussion.
+  </li>
+  <li> LteHelper has been updated with some new APIs:
+    <ul>
+      <li>new overloaded Attach methods to enable UE to automatically determine
+          the eNodeB to attach to (using initial cell selection);</li>
+      <li>new methods related to handover algorithm: SetHandoverAlgorithmType
+          and SetHandoverAlgorithmAttribute;</li>
+      <li>a new attribute AnrEnabled to activate/deactivate Automatic Neighbour
+          Relation (ANR) function; and</li>
+      <li>a new method SetUeDeviceAttribute for configuring LteUeNetDevice.</li>
+    </ul>
+  </li>
+  <li> The GSoC 2013 project in the LTE module has brought some additional APIs:
+    <ul>
+      <li>a new abstract class LteHandoverAlgorithm, which every future
+          implementation of automatic handover trigger should inherit from;</li>
+      <li>new classes LteHandoverAlgorithm and LteAnr as sub-modules of
+          LteEnbNetDevice class; both interfacing with the LteEnbRrc sub-module
+          through Handover Management SAP and ANR SAP;</li>
+      <li>new attributes in LteEnbNetDevice and LteUeNetDevice classes related
+          to Closed Subscriber Group (CSG) functionality in initial cell
+          selection;</li>
+      <li>new attributes in LteEnbRrc for configuring UE measurements' filtering
+          coefficient (i.e., quantity configuration);</li>
+      <li>a new public method AddUeMeasReportConfig in LteEnbRrc for setting up
+          custom UE measurements' reporting configuration; measurement reports
+          can then be captured from the RecvMeasurementReport trace source;
+          and</li>
+      <li>new trace sources in LteUeRrc to capture more events, such as System
+          Information messages (MIB, SIB1, SIB2), initial cell selection, random
+          access, and handover.</li>
+    </ul>
+  </li>
+  <li>A new parallel scheduling algorithm based on null messages, a common 
+  parallel DES scheduling algorithm, has been added.  The null message 
+  scheduler has better scaling properties when running on some scenarios
+  with large numbers of nodes since it does not require a global 
+  communication.
+  </li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+    <li> It is now possible to use Ipv6PacketInfoTag from UDP applications in the
+      same way as with Ipv4PacketInfoTag. See Doxygen for current limitations in
+  	  using Ipv[4,6]PacketInfoTag to set IP properties.</li>
+    <li>A change is introduced for the usage of the EpcHelper
+      class. Previously, the EpcHelper class included both the API
+      definition and its (only) implementation; as such, users would
+      instantiate and use the EpcHelper class directly in their
+      simulation programs. From now on,
+      EpcHelper is just the base class defining the API, and the
+      implementation has been moved to derived classes; as such,
+      users are now expected to use one of the derived classes in
+      their simulation program. The implementation previously
+      provided by the EpcHelper class has been moved to the new
+      derived class PointToPointEpcHelper.</li>
+  <li> The automatic handover trigger and ANR functions in LTE module have been
+    moved from LteEnbRrc class to separate classes. As a result, the related
+    attributes, e.g., ServingCellHandoverThreshold, NeighbourCellHandoverOffset,
+    EventA2Threshold, and EventA4Threshold have been removed from LteEnbRrc
+    class. The equivalent attributes are now in A2A4RsrqHandoverAlgorithm and
+    LteAnr classes.</li>
+  <li> Master Information Block (MIB) and System Information Block Type 1 (SIB1)
+    are now transmitted as LTE control messages, so they are no longer part of
+    RRC protocol.</li>
+  <li> UE RRC state model in LTE module has been considerably modified and is
+    not backward compatible with the previous state model.</li>
+  <li> Additional time units (Year, Day, Hour, Minute) were added to the time
+  value class that represents simulation time; the largest unit prior to 
+  this addition was Second.
+  </li>
+  <li> SimpleNetDevice and SimpleChannel are not so simple anymore. SimpleNetDevice can be now a
+       Broadcast or PointToPoint NetDevice, it can have a limited bandwidth and it uses an output
+       queue.       
+  </li>
+</ul>
+
+<h2>Changes to build system:</h2>
+
+<h2>Changed behavior:</h2>
+<ul>
+  <li> For the TapBridge device, in UseLocal mode there is a MAC learning function. TapBridge has been waiting for the first packet received from tap interface to set the address of the bridged device to the source address of the first packet. This has caused problems with WiFi.  The new behavior is that after connection to the tap interface, ns-3 learns the MAC address of that interface with a system call and immediately sets the address of the bridged device to the learned one.  See <a href="https://www.nsnam.org/bugzilla/show_bug.cgi?id=1777">bug 1777</a> for more details.</li>
+  <li> TapBridge device now correctly implements IsLinkUp() method.</li>
+  <li> IPv6 addresses and routing tables are printed like in Linux "route -A inet6" command.</li>
+  <li> A change in Ipv[4,6]Interface enforces the correct behaviour of IP 
+    when a device do not support the minimum MTU requirements.
+    This is set to 68 and 1280 octects respectively.  IP simulations that
+    may have run over devices with smaller MTUs than 68 or 1280, respectively,
+    will no longer be able to use such devices.</li>
+</ul>
+
+<hr>
+<h1>Changes from ns-3.18 to ns-3.18.1</h1>
+<h2>New API:</h2>
+<ul>
+  <li> It is now possible to randomize the time of the first beacon from an
+  access point.  Use an attribute "EnableBeaconJitter" to enable/disable
+  this feature.
+  </li>
+  <li> A new FixedRoomPositionAllocator helper class is available; it
+  allows one to generate a random position uniformly distributed in the
+  volume of a chosen room inside a chosen building.
+  </li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+  <li> Logging wildcards:  allow "***" as synonym for "*=**" to turn on all logging.
+  </li>
+  <li> The log component list ("NS_LOG=print-list") is now printed alphabetically.
+  </li>
+  <li> Some deprecated IEEE 802.11p code has been removed from the wifi module
+  </li>
+</ul>
+
+<h2>Changes to build system:</h2>
+<ul>
+  <li> The Python API scanning system (./waf --apiscan) has been fixed (bug 1622)
+  </li> 
+  <li> Waf has been upgraded from 1.7.11 to 1.7.13
+  </li> 
+</ul>
+
+<h2>Changed behavior:</h2>
+<ul>
+  <li> Wifi simulations have additional jitter on AP beaconing (see above) and some bug fixes have been applied to wifi module (see RELEASE_NOTES)
+  </li> 
+</ul>
+
+<hr>
+<h1>Changes from ns-3.17 to ns-3.18</h1>
+
+<h2>New API:</h2>
+<ul>
+  <li>New features have been added to the LTE module:
+  <ul>
+    <li>PHY support for UE measurements (RSRP and RSRQ)</li>
+    <li>RRC support for UE measurements (configuration, execution, reporting)</li>
+    <li>Automatic Handover trigger based on RRC UE measurement reports</li>
+  </ul>
+  <li>Data collection components have been added in the 'src/stats' module.
+      Data collection includes a Probe class that attaches to ns-3 trace
+      sources to filter their output, and two Aggregator classes for 
+      marshaling probed data into text files or gnuplot plots.  The ns-3
+      tutorial has been extended to illustrate basic functionality. </li>
+  <li>In 'src/wifi', several changes were made to enable partial 802.11n support:
+    <ul>
+      <li>A new helper (HtWifiMacHelper) was added to set up a high throughput (HT) MAC entity</li>
+      <li>New attributes were added to help the user setup a high throughpt (HT) PHY entity. These attributes can be set using the YansWifiPhyHelper</li>
+      <li>A new standard value has been added that enables the new 11n data rates.</li>
+      <li>New 11n preambles has been added (Mixed format and greenfield). To be able to change Tx duration according to the preamble used, a new class TxVector has been added to carry the transmission parameters (mode, preamble, stbc,..).  Several functions have been updated to allow the passage of TxVector instead of WifiMode in MacLow, WifiRemoteStationManager, WifiPhy, YansWifiPhy,.. </li>
+      <li>A new information element has been added:  HTCapabilities. This information element is added to the MAC frame header if the node is an HT node. This HTCapabilites information element is used to advertise the HT capabilites of the node to other nodes in the network</li>
+    </ul>
+  <li>InternetStackHelper has two new functions:<tt>SetIpv4ArpJitter (bool enable)</tt>
+      and <tt>SetIpv6NsRsJitter (bool enable)</tt> to enable/disable
+      the random jitter on the tranmission of IPv4 ARP Request and IPv6 NS/RS. </li>
+  <li>Bounds on valid time inputs for time attributes can now be enabled.  
+      See <tt>attribute-test-suite.cc</tt> for an example.</li>
+  <li>New generic hash function interface provided in the simulation core.  
+      Two hash functions are provided: murmur3 (default), and the venerable 
+      FNV1a.  See the Hash Functions section in the ns-3 manual.</li>
+  <li>New Mac16Address has been added. It can be used with IPv6 to make
+      an Autoconfigured address.</li>
+  <li>Mac64Address support has been extended. It can now be used with 
+      IPv6 to make an Autoconfigured address.</li>
+  <li>IPv6 can now detect and use Path-MTU. See 
+      <tt>examples/ipv6/fragmentation-ipv6-two-MTU.cc</tt> for an example.</li>
+  <li>Radvd application has a new Helper. See the updated 
+      <tt>examples/ipv6/radvd.cc</tt> for an example.</li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+  <li> The Ipv6InterfaceContainer functions to set a node in forwarding state (i.e., a router) 
+  and to install a default router in a group of nodes have been extensively changed.
+  The old function <tt>void Ipv6InterfaceContainer::SetRouter (uint32_t i, bool router)</tt>
+  is now DEPRECATED.
+  </li>
+  <li> The documentation's IPv6 addresses (2001:db8::/32, RFC 3849) are now
+  dropped by routers.
+  </li>
+  <li> The 'src/tools' module has been removed, and most files migrated to
+  'src/stats'.  For users of these programs (the statistics-processing 
+  in average.h, or the gnuplot support), the main change is likely to be
+  replacing the inclusion of "tools-module.h" with "stats-module.h".
+  Users of the event garbage collector, previously in tools, will now 
+  include it from the core module.
+  </li>
+  <li> The Ipv6 UnicastForwardCallback and  MulticastForwardCallback 
+  have a new parameter, the NetDevice the packet has been received from.
+  Existing Ipv6RoutingProtocols should update their RouteInput function
+  accordingly, e.g., from <tt>ucb (rtentry, p, header);</tt> to <tt>ucb (idev, rtentry, p, header);</tt>
+  </li>
+  <li> The previous buildings module relied on a specific MobilityModel called
+    BuildingsMobilityModel, which supported buildings but only allowed
+    static positions. This mobility model has been removed. Now, the
+    Buildings module instead relies on a new class called
+    MobilityBuildingInfo which can be aggregated to any MobilityModel. This
+    allows having moving nodes in presence of buildings with any of
+    the existing MobilityModels. 
+  </li>
+  <li>All functions in WifiRemoteStationManager named GetXxxMode have been changed to GetXxxTxVector </li>
+</ul>
+
+<h2>Changes to build system:</h2>
+<ul>
+  <li> Make references to bug id's in doxygen comments with
+    <tt>\bugid{num}</tt>, where <tt>num</tt> is the bug id number.  This
+    form will generate a link to the bug in the bug database.
+  </li>
+</ul>
+
+<h2>Changed behavior:</h2>
+<ul>
+  <li> Now it is possible to request printing command line arguments to the
+desired output stream using PrintHelp or operator &lt;&lt;
+<pre>
+  CommandLine cmd;
+  cmd.Parse (argc, argv);
+...
+
+  std::cerr << cmd;
+</pre>
+or
+<pre>
+  cmd.PrintHelp (std::cerr);
+</pre>
+  </li>
+  <li>Command line boolean arguments specified with no integer value (e.g. <tt>"--boolArg"</tt>) will toggle the value from the default, instead of always setting the value to true.
+  </li>
+  <li>IPv4's ARP Request and IPv6's NS/RS are now transmitted with a random delay.
+      The delay is, by default, a uniform random variable in time between 0 and 10ms.
+      This is aimed at preventing reception errors due to collisions during wifi broadcasts when the sending behavior is synchronized (e.g. due to applications starting at the same time on several different nodes).
+      This behaviour can be modified by using ArpL3Protocol's 
+      <tt>RequestJitter</tt> and Icmpv6L4Protocol's <tt>SolicitationJitter</tt>
+      attributes or by using the new InternetStackHelper functions.
+  </li>
+  <li>AODV Hellos are disabled by default. The performance with Hellos enabled and disabled are almost identical. With Hellos enabled, AODV will suppress hellos from transmission, if any recent broadcast such as RREQ was transmitted. The attribute <tt>ns3::aodv::RoutingProtocol::EnableHello</tt> can be used to enable/disable Hellos.
+</ul>
+
+<hr>
+<h1>Changes from ns-3.16 to ns-3.17</h1>
+
+<h2>New API:</h2>
+<ul>
+  <li>New TCP Westwood and Westwood+ models
+  <li>New FdNetDevice class providing a special NetDevice that is able to read
+      and write traffic from a file descriptor.  Three helpers are provided
+      to associate the file descriptor with different underlying devices:  
+    <ul> 
+    <li> EmuFdNetDeviceHelper (to associate the |ns3| device with a physical 
+         device in the host machine).  This helper is intended to
+         eventually replace the EmuNetDevice in src/emu. </li>
+    <li> TapFdNetDeviceHelper (to associate the ns-3 device with the file 
+         descriptor from a tap device in the host machine) </li>
+    <li> PlanteLabFdNetDeviceHelper (to automate the creation of tap devices 
+         in PlanetLab nodes, enabling |ns3| simulations that can send and 
+         receive traffic though the Internet using PlanetLab resource.</li>
+    </ul> 
+  </li>
+  <li>In Ipv4ClickRouting, the following APIs were added:
+    <ul>
+      <li>Ipv4ClickRouting::SetDefines(), accessible through ClickInternetStackHelper::SetDefines(), for the user to set Click defines from the ns-3 simulation file.</li>
+      <li>SIMCLICK_GET_RANDOM_INT click-to-simulator command for ns-3 to drive Click's random number generation.</li>
+    </ul>
+  </li>  
+  <li>LTE module
+    <ul>
+      <li> New user-visible LTE API
+      <ul>
+        <li>Two new methods have been added to LteHelper to enable the X2-based handover functionality: AddX2Interface, which setups the X2 interface between two eNBs, and HandoverRequest, which is  a convenience method that schedules an explicit handover event to be executed at a given point in the simulation. </li>
+        <li>the new LteHelper method EnablePhyTraces can now be used to enable the new PHY traces</li>
+      </ul>
+      </li> 
+      <li> New internal LTE API 
+      <ul>
+        <li>New LTE control message classes DlHarqFeedbackLteControlMessage, 
+         RachPreambleLteControlMessage, RarLteControlMessage, MibLteControlMessage</li>
+        <li>New class UeManager
+        <li>New LteRadioBearerInfo subclasses LteSignalingRadioBearerInfo, 
+         LteDataRadioBearerInfo</li>
+        <li>New LteSinrChunkProcessor subclasses LteRsReceivedPowerChunkProcessor, 
+         LteInterferencePowerChunkProcessor</li>
+      </ul>
+      </li>
+    </ul>
+  </li>
+  <li>New DSR API
+  <ul>
+    <li>Added PassiveBuffer class to save maintenance packet entry for passive acknowledgment option</li>
+    <li>Added FindSourceEntry function in RreqTable class to keep track of route request entry received from same source node</li>
+    <li>Added NotifyDataReciept function in DsrRouting class to notify the data receipt of the next hop from link layer.  This is used for the link layer acknowledgment.</li>
+  </ul>
+  </li>
+  <li>New Tag, PacketSocketTag, to carry the destination address of a packet and the packet type</li>
+  <li>New Tag, DeviceNameTag, to carry the ns3 device name from where a packet is coming</li>
+  <li>New Error Model, BurstError model, to determine which bursts of packets are errored corresponding to an underlying distribution, burst rate, and burst size</li>
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+  <li>ns3::Object and subclasses DoStart has been renamed to DoInitialize</li>
+  <li>ns3::Object and subclasses Start has been renamed to Initialize</li>
+  <li>EnergySource StartDeviceModels renamed to InitializeDeviceModels</li>
+  <li>A typo was fixed in an LTE variable name. The variable ns3::AllocationRetentionPriority::preemprionVulnerability was changed to preemptionVulnerability.</li>
+  <li>Changes in TestCase API
+  <ul>
+    <li>TestCase has new enumeration TestDuration containing QUICK, EXTENSIVE, TAKES_FOREVER</li>
+    <li>TestCase constructor now requires TestDuration, old constructor marked deprecated</li>
+ </ul>
+ </li>
+  <li>Changes in LTE API
+  <ul>
+    <li> User-visible LTE API 
+    <ul>
+      <li>The previous LteHelper method ActivateEpsBearer has been now replaced by two alternative methods: ActivateDataRadioBearer (to be used when the EPC model is not used) and ActivateDedicatedEpsBearer (to be used when the EPC model is used). In the case where the EPC model is used, the default EPS bearer is not automatically activated without the need for a specific method to be called.</li>
+    </ul>
+    </li> 
+    <li> Internal LTE API 
+    <ul>
+      <li>EpcHelper added methods AddUe, AddX2Interface.  Method AddEnb now requires a cellId.  Signature of ActivateEpsBearer changed to void ActivateEpsBearer (Ptr<NetDevice> ueLteDevice, uint64_t imsi, Ptr<EpcTft> tft, EpsBearer bearer)</li>
+      <li>LteHelper added methods EnableDlPhyTraces, EnableUlPhyTraces, EnableDlTxPhyTraces, EnableUlTxPhyTraces, EnableDlRxPhyTraces, EnableUlRxPhyTraces</li>
+      <li>LteHelper removed methods EnableDlRlcTraces, EnableUlRlcTraces, EnableDlPdcpTraces, EnableUlPdcpTraces</li>
+      <li>RadioBearerStatsCalculator added methods (Set/Get)StartTime, (Set/Get)Epoch, RescheduleEndEpoch, EndEpoch</li>
+      <li>RadioBearerStatsCalculator removed methods StartEpoch, CheckEpoch</li>
+      <li>RadioBearerStatsCalculator methods UlTxPdu, DlRxPdu now require a cellId</li>
+      <li>EpcEnbApplication constructor now requires Ipv4Addresses enbS1uAddress and sgwS1uAddress as well as cellId</li>
+      <li>EpcEnbApplication added methods SetS1SapUser, GetS1SapProvider, SetS1apSapMme and GetS1apSapEnb</li>
+      <li>EpcEnbApplication removed method ErabSetupRequest</li> 
+      <li>EpcSgwPgwApplication added methods SetS11SapMme, GetS11SapSgw, AddEnb, AddUe, SetUeAddress</li>
+      <li>lte-common.h new structs PhyTransmissionStatParameters and PhyReceptionStatParameters used in TracedCallbacks</li>
+      <li>LteControlMessage new message types DL_HARQ, RACH_PREAMBLE, RAR, MIB</li>
+      <li>LteEnbCmacSapProvider new methods RemoveUe, GetRachConfig, AllocateNcRaPreamble, AllocateTemporaryCellRnti</li>
+      <li>LteEnbPhy new methods GetLteEnbCphySapProvider, SetLteEnbCphySapUser, GetDlSpectrumPhy, GetUlSpectrumPhy, CreateSrsReport</li>
+      <li>LteEnbPhy methods DoSendMacPdu, DoSetTransmissionMode, DoSetSrsConfigurationIndex, DoGetMacChTtiDelay, DoSendLteControlMessage, AddUePhy, DeleteUePhy made private</li>
+      <li>LteEnbPhySapProvider removed methods SetBandwidth, SetTransmissionMode, SetSrsConfigurationIndex, SetCellId</li>
+      <li>LteEnbPhySapUser added methods ReceiveRachPreamble, UlInfoListElementHarqFeeback, DlInfoListElementHarqFeeback</li>
+      <li>LtePdcp added methods (Set/Get)Status</li>
+      <li>LtePdcp DoTransmitRrcPdu renamed DoTransmitPdcpSdu</li>
+      <li>LteUeRrc new enum State.  New methods SetLteUeCphySapProvider, GetLteUeCphySapUser, SetLteUeRrcSapUser, GetLteUeRrcSapProvider, GetState, GetDlEarfcn, GetDlBandwidth, GetUlBandwidth, GetCellId, SetUseRlcSm .  GetRnti made const.</li> 
+      <li>LteUeRrc removed methods ReleaseRadioBearer, GetLcIdVector, SetForwardUpCallback, DoRrcConfigurationUpdateInd</li>
+      <li>LtePdcpSapProvider struct TransmitRrcPduParameters renamed TransmitPdcpSduParameters.  Method TransmitRrcPdu renamed TransmitPdcpSdu </li>
+      <li>LtePdcpSapUser struct ReceiveRrcPduParameters renamed ReceivePdcpSduParameters.  Method ReceiveRrcPdu renamed TransmitPdcpSdu</li>
+      <li>LtePdcpSpecificLtePdcpSapProvider method TransmitRrcPdu renamed TransmitPdcpSdu</li>
+      <li>LtePdcpSpecificLtePdcpSapUser method ReceiveRrcPdu  renamed ReceivePdcpSdu. Method ReceiveRrcPdu renamed ReceivePdcpSdu</li>
+      <li>LtePhy removed methods DoSetBandwidth and DoSetEarfcn</li>
+      <li>LtePhy added methods ReportInterference and ReportRsReceivedPower</li>
+      <li>LteSpectrumPhy added methods SetHarqPhyModule, Reset, SetLtePhyDlHarqFeedbackCallback, SetLtePhyUlHarqFeedbackCallback,  AddRsPowerChunkProcessor, AddInterferenceChunkProcessor</li>
+      <li>LteUeCphySapProvider removed methods ConfigureRach, StartContentionBasedRandomAccessProcedure, StartNonContentionBasedRandomAccessProcedure</li>
+      <li>LteUeMac added method AssignStreams</li>
+      <li>LteUeNetDevice methods GetMac, GetRrc, GetImsi  made const</li>
+      <li>LteUeNetDevice new method GetNas</li>
+      <li>LteUePhy new methods GetLteUeCphySapProvider, SetLteUeCphySapUser, GetDlSpectrumPhy, GetUlSpectrumPhy, ReportInterference, ReportRsReceivedPower, ReceiveLteDlHarqFeedback</li>
+      <li>LteUePhy DoSendMacPdu, DoSendLteControlMessage, DoSetTransmissionMode, DoSetSrsConfigurationIndex made private</li>
+      <li>LteUePhySapProvider removed methods SetBandwidth, SetTransmissionMode, SetSrsConfigurationIndex</li>
+      <li>LteUePhySapProvider added method SendRachPreamble</li>  
+    </ul>
+   </li>    
+  </ul>
+  <li>AnimationInterface method EnableIpv4RouteTracking returns reference to calling AnimationInterface object</li>
+  <li>To make the API more uniform across the various
+  PropagationLossModel classes, the Set/GetLambda methods of the
+  FriisPropagationLossModel and TwoRayGroundPropagationLossModel
+  classes have been changed to Set/GetFrequency, and now a Frequency
+  attribute is exported which replaces the pre-existing Lambda
+  attribute. Any previous user code setting a value for Lambda should
+  be changed to set instead a value of Frequency = C / Lambda, with C
+  = 299792458.0. </li>
+</ul>
+<h2>Changes to build system:</h2>
+<ul>
+  <li>Waf shipped with ns-3 has been upgraded to version 1.7.10 and custom
+  pkg-config generator has been replaced by Waf's builtin tool.
+  </li>
+</ul>
+
+<h2>Changed behavior:</h2>
+<ul>
+  <li>DSR link layer notification has changed.  The model originally used 
+  "TxErrHeader" in Ptr<WifiMac> to indicate the transmission
+  error of a specific packet in link layer; however, it was not working
+  correctly.  The model now uses a different path to implement
+  the link layer notification mechanism; specifically, looking into the 
+  trace file to find packet receive events.  If the model finds one 
+  receive event for the data packet, it is used as the indicator for 
+  successful data delivery.</li>
+</ul>
+
+<hr>
+<h1>Changes from ns-3.15 to ns-3.16</h1>
+
+<h2>New API:</h2>
+<ul>
+<li>In the Socket class, the following functions were added: 
+ <ul>
+  <li>(Set/Get)IpTos - sets IP Type of Service field in the IP headers.</li>
+  <li>(Set/Is)IpRecvTos - tells the socket to pass information about IP ToS up the stack (by adding SocketIpTosTag to the packet).</li>
+  <li>(Set/Get)IpTtl - sets IP Time to live field in the IP headers.</li>
+  <li>(Set/Is)RecvIpTtl - tells the socket to pass information about IP TTL up the stack (by adding SocketIpTtlTag to the packet).</li>
+  <li>(Set/Is)Ipv6Tclass - sets Traffic Class field in the IPv6 headers.</li>
+  <li>(Set/Is)Ipv6RecvTclass - tells the socket to pass information about IPv6 TCLASS up the stack (by adding SocketIpv6TclassTag to the packet).</li>
+  <li>(Set/Get)Ipv6HopLimit - sets Hop Limit field in the IPv6 headers.</li>
+  <li>(Set/Is)Ipv6RecvHopLimit - tells the socket to pass information about IPv6 HOPLIMIT up the stack (by adding SocketIpv6HoplimitTag to the packet).</li>
+ </ul>  
+A user can call these functions to set/get the corresponding socket option. See examples/socket/socket-options-ipv4.cc and examples/socket/socket-options-ipv6.cc for examples.
+</ul>
+
+<h2>Changes to existing API:</h2>
+<ul>
+<li>In the MobilityHelper class, the functions EnableAscii () and EnableAsciiAll () were changed to use output stream wrappers rather than standard C++ ostreams. The purpose of this change was to make them behave analogously to other helpers in ns-3 that generate ascii traces.  Now, the file stream that is open in MobilityHelper is closed nicely upon asserts and program exits.</li>
+</ul>
+
+<h2>Changes to build system:</h2>
+<ul>
+<li>It's now possible to use distcc when building ns-3. See tutorial for details.</li>
+</ul>
+
+<h2>Changed behavior:</h2>
+<ul>
+<li>Sending a packet through Ipv4RawSocket now supports checksum in the Ipv4Header. It is still not possible to manually put in arbitrary checksum as the checksum is automatically calculated at Ipv4L3Protocol. The user has to enable checksum globally for this to work. Simply calling Ipv4Header::EnableChecksum() for a single Ipv4Header will not work.</li>
+<li>Now MultiModelSpectrumChannel allows a SpectrumPhy instance to change SpectrumModel at runtime by issuing a call to MultiModelSpectrumChannel::AddRx (). Previously, MultiModelSpectrumChannel required each SpectrumPhy instance to stick with the same SpectrumModel for the whole simulation. 
+</li>
+</ul>
 
 <hr>
 <h1>Changes from ns-3.14 to ns-3.15</h1>
@@ -876,16 +1546,16 @@ For example, before:
 <pre>
 void
 SimpleChannel::Send (Ptr&lt;Packet&gt; p, uint16_t protocol, 
-		     Mac48Address to, Mac48Address from,
-		     Ptr&lt;SimpleNetDevice&gt; sender)
+         Mac48Address to, Mac48Address from,
+         Ptr&lt;SimpleNetDevice&gt; sender)
 {
   for (std::vector&lt;Ptr&lt;SimpleNetDevice&gt; &gt;::const_iterator i = m_devices.begin (); i != m_devices.end (); ++i)
     {
       Ptr&lt;SimpleNetDevice&gt; tmp = *i;
       if (tmp == sender)
-	{
-	  continue;
-	}
+  {
+    continue;
+  }
       Simulator::ScheduleNow (&SimpleNetDevice::Receive, tmp, p->Copy (), protocol, to, from);
     }
 }
@@ -894,16 +1564,16 @@ After:
 <pre>
 void
 SimpleChannel::Send (Ptr&lt;Packet&gt; p, uint16_t protocol, 
-		     Mac48Address to, Mac48Address from,
-		     Ptr&lt;SimpleNetDevice&gt; sender)
+         Mac48Address to, Mac48Address from,
+         Ptr&lt;SimpleNetDevice&gt; sender)
 {
   for (std::vector&lt;Ptr&lt;SimpleNetDevice&gt; &gt;::const_iterator i = m_devices.begin (); i != m_devices.end (); ++i)
     {
       Ptr&lt;SimpleNetDevice&gt; tmp = *i;
       if (tmp == sender)
-	{
-	  continue;
-	}
+  {
+    continue;
+  }
       Simulator::ScheduleWithContext (tmp->GetNode ()->GetId (), Seconds (0),
                                       &SimpleNetDevice::Receive, tmp, p->Copy (), protocol, to, from);
     }

@@ -1,6 +1,6 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
+ * Copyright (c) 2011-2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -42,8 +42,7 @@ public:
   LtePdcp ();
   virtual ~LtePdcp ();
   static TypeId GetTypeId (void);
-
-  void Start ();
+  virtual void DoDispose ();
 
   /**
    *
@@ -69,7 +68,7 @@ public:
   /**
    *
    *
-   * \param s the PDCP SAP Provider interface offered to the RRC by this LTE_PDCP
+   * \return the PDCP SAP Provider interface offered to the RRC by this LTE_PDCP
    */
   LtePdcpSapProvider* GetLtePdcpSapProvider ();
 
@@ -83,14 +82,62 @@ public:
   /**
    *
    *
-   * \param s the RLC SAP User interface offered to the RLC by this LTE_PDCP
+   * \return the RLC SAP User interface offered to the RLC by this LTE_PDCP
    */
   LteRlcSapUser* GetLteRlcSapUser ();
 
+  static const uint16_t MAX_PDCP_SN = 4096;
+
+  /**
+   * Status variables of the PDCP
+   * 
+   */
+  struct Status
+  {
+    uint16_t txSn; ///< TX sequence number
+    uint16_t rxSn; ///< RX sequence number
+  };
+
+  /** 
+   * 
+   * \return the current status of the PDCP
+   */
+  Status GetStatus ();
+
+  /**
+   * Set the status of the PDCP
+   * 
+   * \param s 
+   */
+  void SetStatus (Status s);
+
+  /**
+   * TracedCallback for PDU transmission event.
+   *
+   * \param [in] rnti The C-RNTI identifying the UE.
+   * \param [in] lcid The logical channel id corresponding to
+   *             the sending RLC instance.
+   * \param [in] size Packet size.
+   */
+  typedef void (* PduTxTracedCallback)
+    (const uint16_t rnti, const uint8_t lcid, const uint32_t size);
+
+  /**
+   * TracedCallback signature for PDU receive event.
+   *
+   * \param [in] rnti The C-RNTI identifying the UE.
+   * \param [in] lcid The logical channel id corresponding to
+   *             the sending RLC instance.
+   * \param [in] size Packet size.
+   * \param [in] delay Delay since packet sent, in ns..
+   */
+  typedef void (* PduRxTracedCallback)
+    (const uint16_t rnti, const uint8_t lcid,
+     const uint32_t size, const uint64_t delay);
 
 protected:
   // Interface provided to upper RRC entity
-  virtual void DoTransmitRrcPdu (Ptr<Packet> p);
+  virtual void DoTransmitPdcpSdu (Ptr<Packet> p);
 
   LtePdcpSapUser* m_pdcpSapUser;
   LtePdcpSapProvider* m_pdcpSapProvider;

@@ -27,9 +27,9 @@
 
 #include "itu-r-1411-nlos-over-rooftop-propagation-loss-model.h"
 
-NS_LOG_COMPONENT_DEFINE ("ItuR1411NlosOverRooftopPropagationLossModel");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("ItuR1411NlosOverRooftopPropagationLossModel");
 
 NS_OBJECT_ENSURE_REGISTERED (ItuR1411NlosOverRooftopPropagationLossModel);
 
@@ -40,6 +40,7 @@ ItuR1411NlosOverRooftopPropagationLossModel::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::ItuR1411NlosOverRooftopPropagationLossModel")
 
     .SetParent<PropagationLossModel> ()
+    .AddConstructor<ItuR1411NlosOverRooftopPropagationLossModel> ()
 
     .AddAttribute ("Frequency",
                    "The Frequency  (default is 2.106 GHz).",
@@ -97,6 +98,14 @@ ItuR1411NlosOverRooftopPropagationLossModel::GetTypeId (void)
   return tid;
 }
 
+ItuR1411NlosOverRooftopPropagationLossModel::ItuR1411NlosOverRooftopPropagationLossModel ()
+  : PropagationLossModel ()
+{
+}
+
+ItuR1411NlosOverRooftopPropagationLossModel::~ItuR1411NlosOverRooftopPropagationLossModel ()
+{
+}
 
 double
 ItuR1411NlosOverRooftopPropagationLossModel::GetLoss (Ptr<MobilityModel> a, Ptr<MobilityModel> b) const
@@ -136,7 +145,7 @@ ItuR1411NlosOverRooftopPropagationLossModel::GetLoss (Ptr<MobilityModel> a, Ptr<
       double kf = 0.0;
       if (hb > m_rooftopHeight)
         {
-          Lbsh = -18 * log10 (1 + Dhb);
+          Lbsh = -18 * std::log10 (1 + Dhb);
           ka = (fmhz > 2000 ? 71.4 : 54.0);
           kd = 18.0;
         }
@@ -166,12 +175,12 @@ ItuR1411NlosOverRooftopPropagationLossModel::GetLoss (Ptr<MobilityModel> a, Ptr<
           kf = -4 + 1.5 * (fmhz / 925.0 - 1);
         }
 
-      Lmsd = Lbsh + ka + kd*log10 (distance / 1000.0) + kf*log10 (fmhz) - 9.0 * log10 (m_buildingSeparation);
+      Lmsd = Lbsh + ka + kd * std::log10 (distance / 1000.0) + kf * std::log10 (fmhz) - 9.0 * std::log10 (m_buildingSeparation);
     }
   else
     {
-      double theta = atan (Dhb / m_buildingSeparation);
-      double rho = sqrt (Dhb * Dhb + m_buildingSeparation * m_buildingSeparation);
+      double theta = std::atan (Dhb / m_buildingSeparation);
+      double rho = std::sqrt (Dhb * Dhb + m_buildingSeparation * m_buildingSeparation);
       double Qm = 0.0;
       if ((hb > m_rooftopHeight - 1.0) && (hb < m_rooftopHeight + 1.0))
         {
@@ -179,17 +188,17 @@ ItuR1411NlosOverRooftopPropagationLossModel::GetLoss (Ptr<MobilityModel> a, Ptr<
         }
       else if (hb > m_rooftopHeight)
         {
-          Qm = 2.35 * pow (Dhb / distance * sqrt (m_buildingSeparation / m_lambda), 0.9);
+          Qm = 2.35 * pow (Dhb / distance * std::sqrt (m_buildingSeparation / m_lambda), 0.9);
         }
       else
         {
-          Qm = m_buildingSeparation / (2 * M_PI * distance) * sqrt (m_lambda / rho) * (1 / theta - (1 / (2 * M_PI + theta)));
+          Qm = m_buildingSeparation / (2 * M_PI * distance) * std::sqrt (m_lambda / rho) * (1 / theta - (1 / (2 * M_PI + theta)));
         }
-      Lmsd = -10 * log10 (Qm * Qm);
+      Lmsd = -10 * std::log10 (Qm * Qm);
     }
-  double Lbf = 32.4 + 20 * log10 (distance / 1000) + 20 * log10 (fmhz);
+  double Lbf = 32.4 + 20 * std::log10 (distance / 1000) + 20 * std::log10 (fmhz);
   double Dhm = m_rooftopHeight - hm;
-  double Lrts = -8.2 - 10 * log10 (m_streetsWidth) + 10 * log10 (fmhz) + 20 * log10 (Dhm) + Lori;
+  double Lrts = -8.2 - 10 * std::log10 (m_streetsWidth) + 10 * std::log10 (fmhz) + 20 * std::log10 (Dhm) + Lori;
   NS_LOG_LOGIC (this << " Lbf " << Lbf << " Lrts " << Lrts << " Dhm" << Dhm << " Lmsd "  << Lmsd);
   double loss = 0.0;
   if (Lrts + Lmsd > 0)

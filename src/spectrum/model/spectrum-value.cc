@@ -20,19 +20,12 @@
  */
 
 #include <ns3/spectrum-value.h>
-#include <math.h>
+#include <ns3/math.h>
 #include <ns3/log.h>
-
-#ifdef __FreeBSD__
-#define log2(x) (log (x) / M_LN2)
-#endif
-
-
-NS_LOG_COMPONENT_DEFINE ("SpectrumValue");
-
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("SpectrumValue");
 
 SpectrumValue::SpectrumValue ()
 {
@@ -47,6 +40,12 @@ SpectrumValue::SpectrumValue (Ptr<const SpectrumModel> sof)
 
 double&
 SpectrumValue:: operator[] (size_t index)
+{
+  return m_values.at (index);
+}
+
+const double&
+SpectrumValue:: operator[] (size_t index) const
 {
   return m_values.at (index);
 }
@@ -285,7 +284,7 @@ SpectrumValue::Pow (double exp)
 
   while (it1 != m_values.end ())
     {
-      *it1 = pow (*it1, exp);
+      *it1 = std::pow (*it1, exp);
       ++it1;
     }
 }
@@ -299,7 +298,7 @@ SpectrumValue::Exp (double base)
 
   while (it1 != m_values.end ())
     {
-      *it1 = pow (base, *it1);
+      *it1 = std::pow (base, *it1);
       ++it1;
     }
 }
@@ -313,7 +312,7 @@ SpectrumValue::Log10 ()
 
   while (it1 != m_values.end ())
     {
-      *it1 = log10 (*it1);
+      *it1 = std::log10 (*it1);
       ++it1;
     }
 }
@@ -340,7 +339,7 @@ SpectrumValue::Log ()
 
   while (it1 != m_values.end ())
     {
-      *it1 = log (*it1);
+      *it1 = std::log (*it1);
       ++it1;
     }
 }
@@ -355,7 +354,7 @@ Norm (const SpectrumValue& x)
       s += (*it1) * (*it1);
       ++it1;
     }
-  return sqrt (s);
+  return std::sqrt (s);
 }
 
 

@@ -1,7 +1,7 @@
 ## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    network = bld.create_ns3_module('network', ['core'])
+    network = bld.create_ns3_module('network', ['core', 'stats'])
     network.source = [
         'model/address.cc',
         'model/application.cc',
@@ -23,7 +23,9 @@ def build(bld):
         'model/tag.cc',
         'model/tag-buffer.cc',
         'model/trailer.cc',
-	'utils/address-utils.cc',
+        'utils/address-utils.cc',
+        'utils/ascii-file.cc',
+        'utils/crc32.cc',
         'utils/data-rate.cc',
         'utils/drop-tail-queue.cc',
         'utils/error-model.cc',
@@ -34,6 +36,7 @@ def build(bld):
         'utils/inet6-socket-address.cc',
         'utils/ipv4-address.cc',
         'utils/ipv6-address.cc',
+        'utils/mac16-address.cc',
         'utils/mac48-address.cc',
         'utils/mac64-address.cc',
         'utils/llc-snap-header.cc',
@@ -50,17 +53,24 @@ def build(bld):
         'utils/red-queue.cc',
         'utils/simple-channel.cc',
         'utils/simple-net-device.cc',
+        'utils/packet-socket-client.cc',
+        'utils/packet-socket-server.cc',
+        'utils/packet-data-calculators.cc',
+        'utils/packet-probe.cc',
         'helper/application-container.cc',
         'helper/net-device-container.cc',
         'helper/node-container.cc',
         'helper/packet-socket-helper.cc',
         'helper/trace-helper.cc',
+        'helper/delay-jitter-estimation.cc',
+        'helper/simple-net-device-helper.cc',
         ]
 
     network_test = bld.create_ns3_module_test_library('network')
     network_test.source = [
         'test/buffer-test.cc',
         'test/drop-tail-queue-test-suite.cc',
+        'test/error-model-test-suite.cc',
         'test/ipv6-address-test-suite.cc',
         'test/packetbb-test-suite.cc',
         'test/packet-test-suite.cc',
@@ -68,9 +78,10 @@ def build(bld):
         'test/pcap-file-test-suite.cc',
         'test/red-queue-test-suite.cc',
         'test/sequence-number-test-suite.cc',
+        'test/packet-socket-apps-test-suite.cc',
         ]
 
-    headers = bld.new_task_gen(features=['ns3header'])
+    headers = bld(features='ns3header')
     headers.module = 'network'
     headers.source = [
         'model/address.h',
@@ -93,7 +104,10 @@ def build(bld):
         'model/tag.h',
         'model/tag-buffer.h',
         'model/trailer.h',
-      	'utils/address-utils.h',
+        'utils/address-utils.h',
+        'utils/ascii-file.h',
+        'utils/ascii-test.h',
+        'utils/crc32.h',
         'utils/data-rate.h',
         'utils/drop-tail-queue.h',
         'utils/error-model.h',
@@ -105,6 +119,7 @@ def build(bld):
         'utils/ipv4-address.h',
         'utils/ipv6-address.h',
         'utils/llc-snap-header.h',
+        'utils/mac16-address.h',
         'utils/mac48-address.h',
         'utils/mac64-address.h',
         'utils/output-stream-wrapper.h',
@@ -123,15 +138,21 @@ def build(bld):
         'utils/sgi-hashmap.h',
         'utils/simple-channel.h',
         'utils/simple-net-device.h',
+        'utils/packet-socket-client.h',
+        'utils/packet-socket-server.h',
         'utils/pcap-test.h',
+        'utils/packet-data-calculators.h',
+        'utils/packet-probe.h',
         'helper/application-container.h',
         'helper/net-device-container.h',
         'helper/node-container.h',
         'helper/packet-socket-helper.h',
         'helper/trace-helper.h',
+        'helper/delay-jitter-estimation.h',
+        'helper/simple-net-device-helper.h',
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):
-        bld.add_subdirs('examples')
+        bld.recurse('examples')
 
     bld.ns3_python_bindings()

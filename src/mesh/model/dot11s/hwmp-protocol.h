@@ -99,7 +99,7 @@ public:
 private:
   friend class HwmpProtocolMac;
 
-  virtual void DoStart ();
+  virtual void DoInitialize ();
 
   HwmpProtocol& operator= (const HwmpProtocol &);
   HwmpProtocol (const HwmpProtocol &);
@@ -261,8 +261,10 @@ private:
   ///\}
   /// Packet Queue
   std::vector<QueuedPacket> m_rqueue;
-  ///\name HWMP-protocol parameters (attributes of GetTypeId)
-  ///\{
+  
+  /// \name HWMP-protocol parameters
+  /// These are all Aattributes
+  /// \{
   uint16_t m_maxQueueSize;
   uint8_t m_dot11MeshHWMPmaxPREQretries;
   Time m_dot11MeshHWMPnetDiameterTraversalTime;
@@ -280,6 +282,7 @@ private:
   bool m_doFlag;
   bool m_rfFlag;
   ///\}
+  
   /// Random variable for random start time
   Ptr<UniformRandomVariable> m_coefficient;
   Callback <std::vector<Mac48Address>, uint32_t> m_neighboursCallback;

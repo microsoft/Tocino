@@ -19,8 +19,11 @@
  */
 
 #include "device-energy-model.h"
+#include "ns3/log.h"
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("DeviceEnergyModel");
 
 NS_OBJECT_ENSURE_REGISTERED (DeviceEnergyModel);
 
@@ -35,15 +38,18 @@ DeviceEnergyModel::GetTypeId (void)
 
 DeviceEnergyModel::DeviceEnergyModel ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 DeviceEnergyModel::~DeviceEnergyModel ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 double
 DeviceEnergyModel::GetCurrentA (void) const
 {
+  NS_LOG_FUNCTION (this);
   return DoGetCurrentA ();
 }
 
@@ -54,6 +60,7 @@ DeviceEnergyModel::GetCurrentA (void) const
 double
 DeviceEnergyModel::DoGetCurrentA (void) const
 {
+  NS_LOG_FUNCTION (this);
   return 0.0;
 }
 

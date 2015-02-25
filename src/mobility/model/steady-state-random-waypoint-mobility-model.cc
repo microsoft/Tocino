@@ -73,6 +73,11 @@ SteadyStateRandomWaypointMobilityModel::GetTypeId (void)
                    "Maximum Y value of traveling region, [m]",
                    DoubleValue (1),
                    MakeDoubleAccessor (&SteadyStateRandomWaypointMobilityModel::m_maxY),
+                   MakeDoubleChecker<double> ())
+    .AddAttribute ("Z",
+                   "Z value of traveling region (fixed), [m]",
+                   DoubleValue (0.0),
+                   MakeDoubleAccessor (&SteadyStateRandomWaypointMobilityModel::m_z),
                    MakeDoubleChecker<double> ());
 
   return tid;
@@ -93,14 +98,14 @@ SteadyStateRandomWaypointMobilityModel::SteadyStateRandomWaypointMobilityModel (
 }
 
 void
-SteadyStateRandomWaypointMobilityModel::DoStart (void)
+SteadyStateRandomWaypointMobilityModel::DoInitialize (void)
 {
-  SteadyStateStart ();
-  MobilityModel::DoStart ();
+  DoInitializePrivate ();
+  MobilityModel::DoInitialize ();
 }
 
 void
-SteadyStateRandomWaypointMobilityModel::SteadyStateStart (void)
+SteadyStateRandomWaypointMobilityModel::DoInitializePrivate (void)
 {
   alreadyStarted = true;
   // Configure random variables based on attributes
@@ -162,7 +167,7 @@ SteadyStateRandomWaypointMobilityModel::SteadyStateStart (void)
             {
               // there is an error in equation 20 in the Tech. Report MCS-03-04
               // this error is corrected in the TMC 2004 paper and below
-              pause = Seconds (m_maxPause - sqrt ((1 - u)*(m_maxPause*m_maxPause - m_minPause*m_minPause)));
+              pause = Seconds (m_maxPause - std::sqrt ((1 - u)*(m_maxPause*m_maxPause - m_minPause*m_minPause)));
             }
         }
       else // if pause is constant
@@ -188,10 +193,10 @@ SteadyStateRandomWaypointMobilityModel::SteadyStateStart (void)
           NS_ASSERT (r <= 1);
         }
       double u2 = m_u_r->GetValue (0, 1);
-      m_helper.SetPosition (Vector (m_minX + u2*x1 + (1 - u2)*x2, m_minY + u2*y1 + (1 - u2)*y2, 0));
+      m_helper.SetPosition (Vector (m_minX + u2*x1 + (1 - u2)*x2, m_minY + u2*y1 + (1 - u2)*y2, m_z));
       NS_ASSERT (!m_event.IsRunning ());
       m_event = Simulator::ScheduleNow (&SteadyStateRandomWaypointMobilityModel::SteadyStateBeginWalk, this, 
-                                        Vector (m_minX + x2, m_minY + y2, 0));
+                                        Vector (m_minX + x2, m_minY + y2, m_z));
     }
   NotifyCourseChange ();
 }

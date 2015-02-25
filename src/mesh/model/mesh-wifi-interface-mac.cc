@@ -36,9 +36,9 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/qos-tag.h"
 
-NS_LOG_COMPONENT_DEFINE ("MeshWifiInterfaceMac");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("MeshWifiInterfaceMac");
 
 NS_OBJECT_ENSURE_REGISTERED (MeshWifiInterfaceMac);
 
@@ -127,8 +127,9 @@ MeshWifiInterfaceMac::DoDispose ()
   RegularWifiMac::DoDispose ();
 }
 void
-MeshWifiInterfaceMac::DoStart ()
+MeshWifiInterfaceMac::DoInitialize ()
 {
+  NS_LOG_FUNCTION (this);
   m_coefficient->SetAttribute ("Max", DoubleValue (m_randomStart.GetSeconds ()));
   if (m_beaconEnable)
     {
@@ -193,8 +194,8 @@ MeshWifiInterfaceMac::SwitchFrequencyChannel (uint16_t new_id)
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (m_phy != 0); // need PHY to set/get channel
-  /* TODO
-   *
+  /**
+   * \todo
    * Correct channel switching is:
    *
    * 1. Interface down, e.g. to stop packets from layer 3
@@ -513,7 +514,7 @@ void
 MeshWifiInterfaceMac::Statistics::Print (std::ostream & os) const
 {
   os << "<Statistics "
-  // TODO txBeacons
+  /// \todo txBeacons
   "rxBeacons=\"" << recvBeacons << "\" "
   "txFrames=\"" << sentFrames << "\" "
   "txBytes=\"" << sentBytes << "\" "

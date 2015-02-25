@@ -19,40 +19,55 @@
  */
 #include "pointer.h"
 #include "object-factory.h"
+#include "log.h"
 #include <sstream>
 
+/**
+ * \file
+ * \ingroup attribute_Pointer
+ * Pointer attribute value implementations.
+ */
+
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Pointer");
 
 PointerValue::PointerValue ()
   : m_value ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 PointerValue::PointerValue (Ptr<Object> object)
   : m_value (object)
 {
+  NS_LOG_FUNCTION (object);
 }
 
 void
 PointerValue::SetObject (Ptr<Object> object)
 {
+  NS_LOG_FUNCTION (object);
   m_value = object;
 }
 
 Ptr<Object>
 PointerValue::GetObject (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_value;
 }
 
 Ptr<AttributeValue>
 PointerValue::Copy (void) const
 {
+  NS_LOG_FUNCTION (this);
   return Create<PointerValue> (*this);
 }
 std::string
 PointerValue::SerializeToString (Ptr<const AttributeChecker> checker) const
 {
+  NS_LOG_FUNCTION (this << checker);
   std::ostringstream oss;
   oss << m_value;
   return oss.str ();
@@ -64,6 +79,7 @@ PointerValue::DeserializeFromString (std::string value, Ptr<const AttributeCheck
   // We assume that the string you want to deserialize contains
   // a description for an ObjectFactory to create an object and then assign it to the
   // member variable.
+  NS_LOG_FUNCTION (this << value << checker);
   ObjectFactory factory;
   std::istringstream iss;
   iss.str(value);

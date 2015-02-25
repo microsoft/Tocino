@@ -22,16 +22,16 @@
 
 #include "ns3/log.h"
 #include "ns3/test.h"
-#include <ns3/buildings-mobility-model.h>
+#include <ns3/mobility-building-info.h>
+#include <ns3/constant-position-mobility-model.h>
 #include <ns3/building.h>
 #include <ns3/buildings-helper.h>
 #include <ns3/mobility-helper.h>
 #include <ns3/simulator.h>
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("BuildingsHelperTest");
-
-namespace ns3 {
-
 
 struct PositionInBuilding
 {
@@ -133,13 +133,13 @@ BuildingsHelperOneTestCase::DoRun ()
 {
   NS_LOG_FUNCTION (this << BuildNameString (m_pib, m_bd));
   MobilityHelper mobility;
-  mobility.SetMobilityModel ("ns3::BuildingsMobilityModel");
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
   NodeContainer nodes;
   nodes.Create (1);
   mobility.Install (nodes);
   
-  Ptr<BuildingsMobilityModel> bmm = nodes.Get (0)->GetObject<BuildingsMobilityModel> ();
+  Ptr<ConstantPositionMobilityModel> bmm = nodes.Get (0)->GetObject<ConstantPositionMobilityModel> ();
   bmm->SetPosition (m_pib.pos);
 
   NS_LOG_LOGIC ("create building");
@@ -148,19 +148,20 @@ BuildingsHelperOneTestCase::DoRun ()
   b->SetNFloors (m_bd.nf);
   b->SetNRoomsX (m_bd.nrx);
   b->SetNRoomsY (m_bd.nry);
-  
+  Ptr<MobilityBuildingInfo> buildingInfo = CreateObject<MobilityBuildingInfo> (b);
+  bmm->AggregateObject (buildingInfo); // operation usually done by BuildingsHelper::Install
   BuildingsHelper::MakeMobilityModelConsistent ();
 
   
-  NS_TEST_ASSERT_MSG_EQ (bmm->IsIndoor (), m_pib.indoor, "indoor/outdoor mismatch");
+  NS_TEST_ASSERT_MSG_EQ (buildingInfo->IsIndoor (), m_pib.indoor, "indoor/outdoor mismatch");
   if (m_pib.indoor)
     {
-      NS_LOG_LOGIC (" got bid=" << bmm->GetBuilding ()->GetId () << ", f=" << (uint32_t) bmm->GetFloorNumber () << ", rx=" << (uint32_t) bmm->GetRoomNumberX () << ", roomY=" << (uint32_t) bmm->GetRoomNumberY ());
+      NS_LOG_LOGIC (" got bid=" << buildingInfo->GetBuilding ()->GetId () << ", f=" << (uint32_t) buildingInfo->GetFloorNumber () << ", rx=" << (uint32_t) buildingInfo->GetRoomNumberX () << ", roomY=" << (uint32_t) buildingInfo->GetRoomNumberY ());
       // only one building in this test, so Id will be 0
-      NS_TEST_ASSERT_MSG_EQ (bmm->GetBuilding ()->GetId (), 0, "Building ID mismatch");
-      NS_TEST_ASSERT_MSG_EQ ((uint32_t) bmm->GetFloorNumber (), m_pib.fn, "floor number mismatch");
-      NS_TEST_ASSERT_MSG_EQ ((uint32_t) bmm->GetRoomNumberX (), m_pib.rx, "x room number mismatch");
-      NS_TEST_ASSERT_MSG_EQ ((uint32_t) bmm->GetRoomNumberY (), m_pib.ry, "y room number mismatch");
+      NS_TEST_ASSERT_MSG_EQ (buildingInfo->GetBuilding ()->GetId (), 0, "Building ID mismatch");
+      NS_TEST_ASSERT_MSG_EQ ((uint32_t) buildingInfo->GetFloorNumber (), m_pib.fn, "floor number mismatch");
+      NS_TEST_ASSERT_MSG_EQ ((uint32_t) buildingInfo->GetRoomNumberX (), m_pib.rx, "x room number mismatch");
+      NS_TEST_ASSERT_MSG_EQ ((uint32_t) buildingInfo->GetRoomNumberY (), m_pib.ry, "y room number mismatch");
     }
 
   Simulator::Destroy ();  
@@ -203,25 +204,25 @@ BuildingsHelperTestSuite::BuildingsHelperTestSuite ()
   p1.rx = 1;
   p1.ry = 1;
   p1.fn = 1;
-  AddTestCase (new BuildingsHelperOneTestCase (p1, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p1, b1), TestCase::QUICK);
 
   Vector vp2 (1.5, 0.5, 0.5);
   PositionInBuilding p2;
   p2.pos = vp2;
   p2.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p2, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p2, b1), TestCase::QUICK);
 
   Vector vp3 (1.5, 2.5, 0.5);
   PositionInBuilding p3;
   p3.pos = vp3;
   p3.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p3, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p3, b1), TestCase::QUICK);
 
   Vector vp4 (1.5, 1.5, 5);
   PositionInBuilding p4;
   p4.pos = vp4;
   p4.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p4, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p4, b1), TestCase::QUICK);
 
   Vector vp5 (2.5, 1.6, 3.5);
   PositionInBuilding p5;
@@ -231,31 +232,31 @@ BuildingsHelperTestSuite::BuildingsHelperTestSuite ()
   p5.rx = 1;
   p5.ry = 1;
   p5.fn = 1;
-  AddTestCase (new BuildingsHelperOneTestCase (p5, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p5, b1), TestCase::QUICK);
 
   Vector vp6 (0.9999, 1.5, 1.5);
   PositionInBuilding p6;
   p6.pos = vp6;
   p6.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p6, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p6, b1), TestCase::QUICK);
 
   Vector vp7 (3.0001, 1.5, 2.5);
   PositionInBuilding p7;
   p7.pos = vp7;
   p7.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p7, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p7, b1), TestCase::QUICK);
 
   Vector vp8 (1.001, 1.001, -0.01);
   PositionInBuilding p8;
   p8.pos = vp8;
   p8.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p8, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p8, b1), TestCase::QUICK);
 
   Vector vp9 (1.5, 1.5, 4.001);
   PositionInBuilding p9;
   p9.pos = vp9;
   p9.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (p9, b1));
+  AddTestCase (new BuildingsHelperOneTestCase (p9, b1), TestCase::QUICK);
 
 
 
@@ -279,7 +280,7 @@ BuildingsHelperTestSuite::BuildingsHelperTestSuite ()
   q1.rx = 1;
   q1.ry = 2;
   q1.fn = 3;
-  AddTestCase (new BuildingsHelperOneTestCase (q1, b2));
+  AddTestCase (new BuildingsHelperOneTestCase (q1, b2), TestCase::QUICK);
 
   Vector vq2 (0.2, 0.3, 0.2);
   PositionInBuilding q2;
@@ -289,40 +290,37 @@ BuildingsHelperTestSuite::BuildingsHelperTestSuite ()
   q2.rx = 3;
   q2.ry = 5;
   q2.fn = 1;
-  AddTestCase (new BuildingsHelperOneTestCase (q2, b2));
+  AddTestCase (new BuildingsHelperOneTestCase (q2, b2), TestCase::QUICK);
 
   Vector vq3 (0.6, -1.75, 1.5);
   PositionInBuilding q3;
   q3.pos = vq3;
   q3.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (q3, b2));
+  AddTestCase (new BuildingsHelperOneTestCase (q3, b2), TestCase::QUICK);
 
   Vector vq4 (-1.01, 0.3, 1.99);
   PositionInBuilding q4;
   q4.pos = vq4;
   q4.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (q4, b2));
+  AddTestCase (new BuildingsHelperOneTestCase (q4, b2), TestCase::QUICK);
 
   Vector vq5 (-0.8, 0.7, 0.01);
   PositionInBuilding q5;
   q5.pos = vq5;
   q5.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (q5, b2));
+  AddTestCase (new BuildingsHelperOneTestCase (q5, b2), TestCase::QUICK);
 
   Vector vq6 (0.2, 0.3, -0.2);
   PositionInBuilding q6;
   q6.pos = vq6;
   q6.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (q6, b2));
+  AddTestCase (new BuildingsHelperOneTestCase (q6, b2), TestCase::QUICK);
 
   Vector vq7 (0.2, 0.3, 2.001);
   PositionInBuilding q7;
   q7.pos = vq7;
   q7.indoor = false;
-  AddTestCase (new BuildingsHelperOneTestCase (q7, b2));     
+  AddTestCase (new BuildingsHelperOneTestCase (q7, b2), TestCase::QUICK);     
 }
 
 static BuildingsHelperTestSuite buildingsHelperAntennaTestSuiteInstance;
-
-} // namespace ns3
-

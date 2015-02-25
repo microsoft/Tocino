@@ -26,7 +26,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace ns3 {
+using namespace ns3;
 
 class IsotropicAntennaModelTestCase : public TestCase
 {
@@ -77,21 +77,16 @@ public:
 IsotropicAntennaModelTestSuite::IsotropicAntennaModelTestSuite ()
   : TestSuite ("isotropic-antenna-model", UNIT)
 {
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (0, 0),           0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (0, M_PI),        0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (0, M_PI_2),      0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI, 0),        0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI, M_PI),     0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI, M_PI_2),   0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI_2, 0),      0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI_2, M_PI),   0.0));
-  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI_2, M_PI_2), 0.0));
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (0, 0),           0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (0, M_PI),        0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (0, M_PI_2),      0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI, 0),        0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI, M_PI),     0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI, M_PI_2),   0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI_2, 0),      0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI_2, M_PI),   0.0), TestCase::QUICK);
+  AddTestCase (new IsotropicAntennaModelTestCase (Angles (M_PI_2, M_PI_2), 0.0), TestCase::QUICK);
 
 };
 
 static IsotropicAntennaModelTestSuite staticIsotropicAntennaModelTestSuiteInstance;
-
-
-
-
-} // namespace ns3

@@ -115,15 +115,6 @@ TocinoNetDevice::DoDispose()
 {
     NS_ASSERT( AllQuiet() );
    
-    NS_LOG_LOGIC( "m_outgoingFlits reached "
-            << m_outgoingFlitsMaxSize
-            << " entries" );
-
-    for (unsigned i = 0; i < m_transmitters.size(); i++)
-    {
-        m_transmitters[i]->ReportStatistics();
-    }
-
     for (unsigned i = 0; i < m_receivers.size(); i++)
     {
         delete m_receivers[i];
@@ -694,6 +685,19 @@ TocinoNetDevice::DumpState() const
     for (unsigned i = 0; i < m_nPorts; i++)
     {
         m_receivers[i]->DumpState();
+    }
+}
+
+void
+TocinoNetDevice::ReportStatistics() const
+{
+    NS_LOG_LOGIC( "m_outgoingFlits reached "
+            << m_outgoingFlitsMaxSize
+            << " entries" );
+
+    for (unsigned i = 0; i < m_transmitters.size(); i++)
+    {
+        m_transmitters[i]->ReportStatistics();
     }
 }
 

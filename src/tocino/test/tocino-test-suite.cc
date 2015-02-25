@@ -31,23 +31,23 @@ TocinoTestSuite::Add3DTorusTestCases( bool doTorus, bool doVLB )
 {
     const uint32_t RADIX = 3;
 
-    AddTestCase( new TestTocino3DTorusCornerToCorner( RADIX, doTorus, doVLB ) );
-    AddTestCase( new TestTocino3DTorusIncast( RADIX, doTorus, doVLB ) );
-    AddTestCase( new TestTocino3DTorusAllToAll( RADIX, doTorus, doVLB ) );
+    AddTestCase( new TestTocino3DTorusCornerToCorner( RADIX, doTorus, doVLB ), QUICK );
+    AddTestCase( new TestTocino3DTorusIncast( RADIX, doTorus, doVLB ), QUICK );
+    AddTestCase( new TestTocino3DTorusAllToAll( RADIX, doTorus, doVLB ), QUICK );
 }
 
 TocinoTestSuite::TocinoTestSuite ()
     : TestSuite ("tocino", UNIT)
 {
-    AddTestCase( new TestTocinoCallbackQueue );
-    AddTestCase( new TestTocinoFlitHeader );
-    AddTestCase( new TestTocinoFlitter );
-    AddTestCase( new TestTocinoFlowControl );
-    AddTestCase( new TestTocinoLoopback );
-    AddTestCase( new TestTocinoPointToPoint );
-    AddTestCase( new TestTocinoMultihop );
-    AddTestCase( new TestTocinoRing );
-    AddTestCase( new TestTocinoDeadlock );
+    AddTestCase( new TestTocinoCallbackQueue, QUICK );
+    AddTestCase( new TestTocinoFlitHeader, QUICK );
+    AddTestCase( new TestTocinoFlitter, QUICK );
+    AddTestCase( new TestTocinoFlowControl, QUICK );
+    AddTestCase( new TestTocinoLoopback, QUICK );
+    AddTestCase( new TestTocinoPointToPoint, QUICK );
+    AddTestCase( new TestTocinoMultihop, QUICK );
+    AddTestCase( new TestTocinoRing, QUICK );
+    AddTestCase( new TestTocinoDeadlock, QUICK );
     Add3DTorusTestCases( false, false );
     Add3DTorusTestCases( true, false );
     Add3DTorusTestCases( false, true );

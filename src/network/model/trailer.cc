@@ -1,11 +1,15 @@
 #include "trailer.h"
+#include "ns3/log.h"
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Trailer");
 
 NS_OBJECT_ENSURE_REGISTERED (Trailer);
 
 Trailer::~Trailer ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 TypeId

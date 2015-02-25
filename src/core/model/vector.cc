@@ -19,16 +19,27 @@
  */
 #include "vector.h"
 #include "fatal-error.h"
+#include "log.h"
 #include <cmath>
 #include <sstream>
 
+/**
+ * \file
+ * \ingroup attribute_Vector
+ * ns3::Vector, ns3::Vector2D and ns3::Vector3D attribute value implementations.
+ */
+
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Vector");
 
 ATTRIBUTE_HELPER_CPP (Vector3D);
 ATTRIBUTE_HELPER_CPP (Vector2D);
+  
 // compatibility for mobility code
 Ptr<const AttributeChecker> MakeVectorChecker (void)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   return MakeVector3DChecker ();
 }
 
@@ -38,6 +49,7 @@ Vector3D::Vector3D (double _x, double _y, double _z)
     y (_y),
     z (_z)
 {
+  NS_LOG_FUNCTION (this << _x << _y << _z);
 }
 
 Vector3D::Vector3D ()
@@ -45,23 +57,27 @@ Vector3D::Vector3D ()
     y (0.0),
     z (0.0)
 {
+  NS_LOG_FUNCTION (this);
 }
 
 Vector2D::Vector2D (double _x, double _y)
   : x (_x),
     y (_y)
 {
+  NS_LOG_FUNCTION (this << _x << _y);
 }
 
 Vector2D::Vector2D ()
   : x (0.0),
     y (0.0)
 {
+  NS_LOG_FUNCTION (this);
 }
 
 double
 CalculateDistance (const Vector3D &a, const Vector3D &b)
 {
+  NS_LOG_FUNCTION (a << b);
   double dx = b.x - a.x;
   double dy = b.y - a.y;
   double dz = b.z - a.z;
@@ -71,6 +87,7 @@ CalculateDistance (const Vector3D &a, const Vector3D &b)
 double 
 CalculateDistance (const Vector2D &a, const Vector2D &b)
 {
+  NS_LOG_FUNCTION (a << b);
   double dx = b.x - a.x;
   double dy = b.y - a.y;
   double distance = std::sqrt (dx * dx + dy * dy);

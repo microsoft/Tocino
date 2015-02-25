@@ -37,9 +37,9 @@
 #include "ns3/icmpv4-l4-protocol.h"
 #include "ns3/loopback-net-device.h"
 
-NS_LOG_COMPONENT_DEFINE ("Ipv4L3ClickProtocol");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Ipv4L3ClickProtocol");
 
 const uint16_t Ipv4L3ClickProtocol::PROT_NUMBER = 0x0800;
 
@@ -330,7 +330,7 @@ Ipv4L3ClickProtocol::SetupLoopback (void)
   // First check whether an existing LoopbackNetDevice exists on the node
   for (uint32_t i = 0; i < m_node->GetNDevices (); i++)
     {
-      if (device = DynamicCast<LoopbackNetDevice> (m_node->GetDevice (i)))
+      if ((device = DynamicCast<LoopbackNetDevice> (m_node->GetDevice (i))))
         {
           break;
         }
@@ -428,6 +428,29 @@ Ipv4L3ClickProtocol::RemoveAddress (uint32_t i, uint32_t addressIndex)
       if (m_routingProtocol != 0)
         {
           m_routingProtocol->NotifyRemoveAddress (i, address);
+        }
+      return true;
+    }
+  return false;
+}
+
+bool
+Ipv4L3ClickProtocol::RemoveAddress (uint32_t i, Ipv4Address address)
+{
+  NS_LOG_FUNCTION (this << i << address);
+
+  if (address == Ipv4Address::GetLoopback())
+    {
+      NS_LOG_WARN ("Cannot remove loopback address.");
+      return false;
+    }
+  Ptr<Ipv4Interface> interface = GetInterface (i);
+  Ipv4InterfaceAddress ifAddr = interface->RemoveAddress (address);
+  if (ifAddr != Ipv4InterfaceAddress ())
+    {
+      if (m_routingProtocol != 0)
+        {
+          m_routingProtocol->NotifyRemoveAddress (i, ifAddr);
         }
       return true;
     }
@@ -609,9 +632,9 @@ Ipv4L3ClickProtocol::AddIpv4Interface (Ptr<Ipv4Interface>interface)
   return index;
 }
 
-// XXX when should we set ip_id?   check whether we are incrementing
-// m_identification on packets that may later be dropped in this stack
-// and whether that deviates from Linux
+/// \todo when should we set ip_id?   check whether we are incrementing
+/// m_identification on packets that may later be dropped in this stack
+/// and whether that deviates from Linux
 Ipv4Header
 Ipv4L3ClickProtocol::BuildHeader (
   Ipv4Address source,

@@ -28,14 +28,15 @@
 #include <ns3/double.h>
 #include <ns3/building.h>
 #include <ns3/enum.h>
-
+#include <ns3/constant-position-mobility-model.h>
+#include <ns3/mobility-building-info.h>
 #include "buildings-pathloss-test.h"
 
 
+
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("BuildingsPathlossTest");
-
-namespace ns3 {
-
 
 /**
  * Test 1.1 BuildingsPathlossModel Pathloss compound test
@@ -55,56 +56,56 @@ BuildingsPathlossTestSuite::BuildingsPathlossTestSuite ()
 
   double freq = 869e6;  // E_UTRA BAND #5 see table 5.5-1 of 36.101
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, LargeCity, 137.93, "OH Urban Large city"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, LargeCity, 137.93, "OH Urban Large city"), TestCase::QUICK);
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, SmallCity, 137.88, "OH Urban small city"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, SmallCity, 137.88, "OH Urban small city"), TestCase::QUICK);
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, SubUrbanEnvironment, LargeCity, 128.03, "loss OH SubUrban"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, SubUrbanEnvironment, LargeCity, 128.03, "loss OH SubUrban"), TestCase::QUICK);
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, OpenAreasEnvironment, LargeCity, 110.21, "loss OH OpenAreas"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, OpenAreasEnvironment, LargeCity, 110.21, "loss OH OpenAreas"), TestCase::QUICK);
 
   // Test #2 COST231 Model (1500 < freq < 2000~2170 MHz) (Macro<->UE)
 
   freq = 2.1140e9; // E_UTRA BAND #1 see table 5.5-1 of 36.101
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, LargeCity, 148.55, "COST231 Urban Large city"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, LargeCity, 148.55, "COST231 Urban Large city"), TestCase::QUICK);
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, SmallCity, 150.64, "COST231 Urban small city and suburban"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, SmallCity, 150.64, "COST231 Urban small city and suburban"), TestCase::QUICK);
 
   // Test #3 2.6 GHz model (Macro<->UE)
 
   freq = 2.620e9; // E_UTRA BAND #7 see table 5.5-1 of 36.101
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, SmallCity, 121.83, "2.6GHz model"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 2, UrbanEnvironment, SmallCity, 121.83, "2.6GHz model"), TestCase::QUICK);
 
   // Test #4 ITU1411 LOS model (Macro<->UE)
 
   freq = 2.1140e9; // E_UTRA BAND #1 see table 5.5-1 of 36.101
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 3, UrbanEnvironment, LargeCity, 81.00, "ITU1411 LOS"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 3, UrbanEnvironment, LargeCity, 81.00, "ITU1411 LOS"), TestCase::QUICK);
 
   // Test #5 ITU1411 NLOS model (Macro<->UE)
 
   freq = 2.1140e9; // E_UTRA BAND #1 see table 5.5-1 of 36.101
 
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 4, UrbanEnvironment, LargeCity, 143.69, "ITU1411 NLOS"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 4, UrbanEnvironment, LargeCity, 143.69, "ITU1411 NLOS"), TestCase::QUICK);
 
   // Test #6 ITUP1238 (HeNB <-> UE)
 
   freq = 2.1140e9; // E_UTRA BAND #1 see table 5.5-1 of 36.101
-  AddTestCase (new BuildingsPathlossTestCase (freq, 5, 6, UrbanEnvironment, LargeCity, 88.3855, "ITUP1238"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 5, 6, UrbanEnvironment, LargeCity, 88.3855, "ITUP1238"), TestCase::QUICK);
 
   // Test #7 Outdoor -> Indoor OkumuraHata (Macro<->UE)
 
   freq = 2.1140e9; // E_UTRA BAND #1 see table 5.5-1 of 36.101
   // The loss is as in test #2 (large city) plus the building penetration loss
   // which for ConcreteWithWindows is equal to 7 dB -> 148.55 + 7 = 155.55
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 7, UrbanEnvironment, LargeCity, 155.55, "Okumura Hata Outdoor -> Indoor"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 7, UrbanEnvironment, LargeCity, 155.55, "Okumura Hata Outdoor -> Indoor"), TestCase::QUICK);
 
   // Test #8 Outdoor -> Indoor ITU1411 (Macro<->UE)
   freq = 2.1140e9; // E_UTRA BAND #1 see table 5.5-1 of 36.101
   // The loss is as in test #4 plus the building penetration loss
   // which for ConcreteWithWindows is equal to 7 dB -> 81.000 + 7 = 88.000
-  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 8, UrbanEnvironment, LargeCity, 88.000, "ITU1411 LOS Outdoor -> Indoor"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 1, 8, UrbanEnvironment, LargeCity, 88.000, "ITU1411 LOS Outdoor -> Indoor"), TestCase::QUICK);
 
   // Test #9 Indoor -> Outdoor LOS (HeNB <-> UE)
 
@@ -112,7 +113,7 @@ BuildingsPathlossTestSuite::BuildingsPathlossTestSuite ()
   // The loss is similar of test #4 plus the building penetration loss
   // which for ConcreteWithWindows is equal to 7 dB and the height gain
   // (2 floors x 2 dB/floor = 4) -> 81.838 + 7 - 4 = 84.838
-  AddTestCase (new BuildingsPathlossTestCase (freq, 9, 10, UrbanEnvironment, LargeCity, 84.838, "ITU1411 LOS Indoor -> Outdoor"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 9, 10, UrbanEnvironment, LargeCity, 84.838, "ITU1411 LOS Indoor -> Outdoor"), TestCase::QUICK);
 
   // Test #10 Indoor -> Outdoor NLOS (HeNB <-> UE)
 
@@ -120,7 +121,7 @@ BuildingsPathlossTestSuite::BuildingsPathlossTestSuite ()
   // The loss is similar as in test #4 plus the building penetration loss
   // which for ConcreteWithWindows is equal to 7 dB and the height gain
   // (2 floors x 2 dB/floor = 4) -> 180.90 + 7 - 4 = 183.90
-  AddTestCase (new BuildingsPathlossTestCase (freq, 9, 11, UrbanEnvironment, LargeCity, 183.90, "ITU1411 NLOS Indoor -> Outdoor"));
+  AddTestCase (new BuildingsPathlossTestCase (freq, 9, 11, UrbanEnvironment, LargeCity, 183.90, "ITU1411 NLOS Indoor -> Outdoor"), TestCase::QUICK);
 
 
 }
@@ -201,62 +202,62 @@ BuildingsPathlossTestCase::CreateMobilityModel (uint16_t index)
   double hb = 30;
   double henbHeight = 10.0;
 
-  Ptr<BuildingsMobilityModel> mm;
+  Ptr<MobilityModel> mm;
   
   switch (index)
     {
     case 1:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (0.0, 0.0, hb));
       break;
 
     case 2:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (2000, 0.0, hm));
       break;
 
     case 3:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (100, 0.0, hm));
       break;
 
     case 4:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (900, 0.0, hm));
       break;
 
     case 5:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (-5, 0.0, hm));
       break;
 
     case 6:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (-5, 30, henbHeight));
       break;
 
     case 7:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (-2000, 0.0, hm));
       break;
 
     case 8:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (-100, 0.0, hm));
       break;
 
     case 9:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (0, 0.0, hm));
       break;
 
     case 10:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (-100, 0.0, henbHeight));
       break;
 
     case 11:
-      mm = CreateObject<BuildingsMobilityModel> ();
+      mm = CreateObject<ConstantPositionMobilityModel> ();
       mm->SetPosition (Vector (-500, 0.0, henbHeight));
       break;
 
@@ -264,10 +265,8 @@ BuildingsPathlossTestCase::CreateMobilityModel (uint16_t index)
       mm = 0;
       break;
     }
+  Ptr<MobilityBuildingInfo> buildingInfo = CreateObject<MobilityBuildingInfo> ();
+  mm->AggregateObject (buildingInfo); // operation usually done by BuildingsHelper::Install
   BuildingsHelper::MakeConsistent (mm); 
   return mm;
 }
-
-
-
-} // namespace ns3

@@ -36,9 +36,9 @@
 #include "amsdu-subframe-header.h"
 #include "mgt-headers.h"
 
-NS_LOG_COMPONENT_DEFINE ("AdhocWifiMac");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("AdhocWifiMac");
 
 NS_OBJECT_ENSURE_REGISTERED (AdhocWifiMac);
 
@@ -68,6 +68,7 @@ AdhocWifiMac::~AdhocWifiMac ()
 void
 AdhocWifiMac::SetAddress (Mac48Address address)
 {
+  NS_LOG_FUNCTION (this << address);
   // In an IBSS, the BSSID is supposed to be generated per Section
   // 11.1.3 of IEEE 802.11. We don't currently do this - instead we
   // make an IBSS STA a bit like an AP, with the BSSID for frames
@@ -86,10 +87,7 @@ AdhocWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
     {
       // In ad hoc mode, we assume that every destination supports all
       // the rates we support.
-      for (uint32_t i = 0; i < m_phy->GetNModes (); i++)
-        {
-          m_stationManager->AddSupportedMode (to, m_phy->GetMode (i));
-        }
+      m_stationManager->AddAllSupportedModes (to);
       m_stationManager->RecordDisassociated (to);
     }
 
@@ -152,7 +150,7 @@ AdhocWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
 void
 AdhocWifiMac::SetLinkUpCallback (Callback<void> linkUp)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << &linkUp);
   RegularWifiMac::SetLinkUpCallback (linkUp);
 
   // The approach taken here is that, from the point of view of a STA

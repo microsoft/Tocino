@@ -45,25 +45,54 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-NS_LOG_COMPONENT_DEFINE ("NscTcpL4Protocol");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("NscTcpL4Protocol");
 
 NS_OBJECT_ENSURE_REGISTERED (NscTcpL4Protocol);
 
 /* see http://www.iana.org/assignments/protocol-numbers */
 const uint8_t NscTcpL4Protocol::PROT_NUMBER = 6;
 
+/**
+ * \ingroup nsctcp
+ * \brief Nsc interface implementation class.
+ */
 class NscInterfaceImpl : public ISendCallback, public IInterruptCallback 
 {
 public:
+  /**
+   * Constructor
+   * \param prot the NSC TCP protocol
+   */
   NscInterfaceImpl (Ptr<NscTcpL4Protocol> prot);
 private:
+  /**
+   * \brief Invoked by NSCs 'ethernet driver' to re-inject a packet into ns-3.
+   *
+   * A packet is an octet soup consisting of an IP Header, TCP Header
+   * and user payload, if any
+   *
+   * \param data the data
+   * \param datalen the data length
+   */
   virtual void send_callback (const void *data, int datalen);
+  /**
+   * \brief Called by the NSC stack whenever something of interest has happened
+   *
+   * Examples: when data arrives on a socket, a listen socket
+   * has a new connection pending, etc.
+   */
   virtual void wakeup ();
+  /**
+   * \brief Called by the Linux stack RNG initialization
+   *
+   * Its also used by the cradle code to add a timestamp to
+   * printk/printf/debug output.
+   */
   virtual void gettime (unsigned int *, unsigned int *);
 private:
-  Ptr<NscTcpL4Protocol> m_prot;
+  Ptr<NscTcpL4Protocol> m_prot; //!< the NSC TCP protocol
 };
 
 NscInterfaceImpl::NscInterfaceImpl (Ptr<NscTcpL4Protocol> prot)
@@ -112,9 +141,16 @@ NscTcpL4Protocol::GetTypeId (void)
   return tid;
 }
 
+/**
+ * \brief External Random number generator
+ *
+ * \todo make it random...
+ *
+ * \returns a random number
+ */
 int external_rand ()
 {
-  return 1;   // TODO
+  return 1;
 }
 
 NscTcpL4Protocol::NscTcpL4Protocol ()
@@ -339,7 +375,7 @@ NscTcpL4Protocol::Receive (Ptr<Packet> packet,
 }
 
 IpL4Protocol::RxStatus
-NscTcpL4Protocol::Receive(Ptr<Packet>, Ipv6Address&, Ipv6Address&, Ptr<Ipv6Interface>)
+NscTcpL4Protocol::Receive(Ptr<Packet>, Ipv6Header const &, Ptr<Ipv6Interface>)
 {
   return IpL4Protocol::RX_ENDPOINT_UNREACH;
 }
@@ -384,7 +420,7 @@ void NscTcpL4Protocol::send_callback (const void* data, int datalen)
 
 void NscTcpL4Protocol::wakeup ()
 {
-  // TODO
+  // \todo
   // this should schedule a timer to read from all tcp sockets now... this is
   // an indication that data might be waiting on the socket
 
@@ -450,7 +486,7 @@ void NscTcpL4Protocol::AddInterface (void)
           // IP address of the subnet but this was found to fail for
           // some use cases in /30 subnets.
 
-          // XXX
+          // \todo \bugid{1398} NSC's limitation to single-interface nodes
           m_nscStack->add_default_gateway (addrOss.str ().c_str ());
         }
     }

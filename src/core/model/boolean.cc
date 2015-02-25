@@ -19,25 +19,38 @@
  */
 #include "boolean.h"
 #include "fatal-error.h"
+#include "log.h"
+
+/**
+ * \file
+ * \ingroup attribute_Boolean
+ * Boolean attribute value implementaations.
+ */
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Boolean");
 
 BooleanValue::BooleanValue ()
   : m_value (false)
 {
+  NS_LOG_FUNCTION (this);
 }
 BooleanValue::BooleanValue (bool value)
   : m_value (value)
 {
+  NS_LOG_FUNCTION (this << value);
 }
 void
 BooleanValue::Set (bool value)
 {
+  NS_LOG_FUNCTION (this << value);
   m_value = value;
 }
 bool
 BooleanValue::Get (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_value;
 }
 BooleanValue::operator bool () const
@@ -61,11 +74,15 @@ std::ostream & operator << (std::ostream &os, const BooleanValue &value)
 Ptr<AttributeValue> 
 BooleanValue::Copy (void) const
 {
+  NS_LOG_FUNCTION (this);
+
   return Create<BooleanValue> (*this);
 }
 std::string 
 BooleanValue::SerializeToString (Ptr<const AttributeChecker> checker) const
 {
+  NS_LOG_FUNCTION (this << checker);
+
   if (m_value)
     {
       return "true";
@@ -78,6 +95,8 @@ BooleanValue::SerializeToString (Ptr<const AttributeChecker> checker) const
 bool 
 BooleanValue::DeserializeFromString (std::string value, Ptr<const AttributeChecker> checker)
 {
+  NS_LOG_FUNCTION (this << value << checker);
+
   if (value == "true" ||
       value == "1" ||
       value == "t")

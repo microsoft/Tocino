@@ -27,10 +27,9 @@
 #include "lte-test-rlc-um-transmitter.h"
 #include "lte-test-entities.h"
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("LteRlcUmTransmitterTest");
-
-namespace ns3 {
-
 
 /**
  * TestSuite 4.1.1 RLC UM: Only transmitter
@@ -44,10 +43,10 @@ LteRlcUmTransmitterTestSuite::LteRlcUmTransmitterTestSuite ()
 
   // NS_LOG_INFO ("Creating LteRlcUmTransmitterTestSuite");
 
-  AddTestCase (new LteRlcUmTransmitterOneSduTestCase ("One SDU, one PDU"));
-  AddTestCase (new LteRlcUmTransmitterSegmentationTestCase ("Segmentation"));
-  AddTestCase (new LteRlcUmTransmitterConcatenationTestCase ("Concatenation"));
-  AddTestCase (new LteRlcUmTransmitterReportBufferStatusTestCase ("ReportBufferStatus primitive"));
+  AddTestCase (new LteRlcUmTransmitterOneSduTestCase ("One SDU, one PDU"), TestCase::QUICK);
+  AddTestCase (new LteRlcUmTransmitterSegmentationTestCase ("Segmentation"), TestCase::QUICK);
+  AddTestCase (new LteRlcUmTransmitterConcatenationTestCase ("Concatenation"), TestCase::QUICK);
+  AddTestCase (new LteRlcUmTransmitterReportBufferStatusTestCase ("ReportBufferStatus primitive"), TestCase::QUICK);
 
 }
 
@@ -298,7 +297,3 @@ LteRlcUmTransmitterReportBufferStatusTestCase::DoRun (void)
   Simulator::Run ();
   Simulator::Destroy ();
 }
-
-} // namespace ns3
-
-

@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Author: Jaume Nin <jnin@cttc.es>
+ *         Nicola Baldo <nbaldo@cttc.es>
  */
 
 #ifndef RADIO_BEARER_STATS_CALCULATOR_H_
@@ -33,24 +34,38 @@
 
 namespace ns3
 {
-
+/// Container: (IMSI, LCID) pair, uint32_t
 typedef std::map<ImsiLcidPair_t, uint32_t> Uint32Map;
+/// Container: (IMSI, LCID) pair, uint64_t
 typedef std::map<ImsiLcidPair_t, uint64_t> Uint64Map;
+/// Container: (IMSI, LCID) pair, uint32_t calculator
 typedef std::map<ImsiLcidPair_t, Ptr<MinMaxAvgTotalCalculator<uint32_t> > > Uint32StatsMap;
+/// Container: (IMSI, LCID) pair, uint64_t calculator
 typedef std::map<ImsiLcidPair_t, Ptr<MinMaxAvgTotalCalculator<uint64_t> > > Uint64StatsMap;
+/// Container: (IMSI, LCID) pair, double
 typedef std::map<ImsiLcidPair_t, double> DoubleMap;
+/// Container: (IMSI, LCID) pair, LteFlowId_t
 typedef std::map<ImsiLcidPair_t, LteFlowId_t> FlowIdMap;
 
 /**
- * Calculation of statistics from the RLC layer for uplink and downlink, the data is dumped into a file periodically. Metrics considered are:
+ * \ingroup lte
+ *
+ * This class is an ns-3 trace sink that performs the calculation of
+ * PDU statistics for uplink and downlink. Statistics are generated
+ * on a per radio bearer basis. This class can be used for 
+ * RLC PDU stats or PDCP PDU stats by connecting to the appropriate
+ * trace sources at the RLC or PDCP layer.
+ * 
+ * The statistics are calculated at consecutive time windows and
+ * periodically written to a file. The calculated statistics are:
+ *
  *   - Number of transmitted PDUs
  *   - Number of received PDUs
  *   - Number of transmitted bytes
  *   - Number of received bytes
- *   - Average, min, max and standard deviation of RLC to RLC delay
- *   - Average, min, max and standard deviation of RLC PDU size
- *   TODO: Actual statistics calculation implies checking the time every time a packet is send or received so it is not very efficient. The epoch
- *   implementation should be replaced by a timer to avoid this overhead.
+ *   - Average, min, max and standard deviation of PDU delay (delay is
+ *     calculated from the generation of the PDU to its reception)
+ *   - Average, min, max and standard deviation of PDU size
  */
 class RadioBearerStatsCalculator : public LteStatsCalculator
 {
@@ -71,31 +86,36 @@ public:
   virtual
   ~RadioBearerStatsCalculator ();
 
+  // Inherited from ns3::Object
   /**
-   * Inherited from ns3::Object
+   *  Register this type.
+   *  \return The object TypeId.
    */
   static TypeId GetTypeId (void);
   void DoDispose ();
 
   /**
    * Get the name of the file where the uplink statistics will be stored.
+   * @return the name of the file where the uplink statistics will be stored
    */
   std::string GetUlOutputFilename (void);
 
   /**
    * Get the name of the file where the downlink statistics will be stored.
+   * @return the name of the file where the downlink statistics will be stored
    */
   std::string GetDlOutputFilename (void);
 
   /**
    * Set the name of the file where the uplink PDCP statistics will be stored.
    *
-   * \param outputFilename string with the name of the file
+   * @param outputFilename string with the name of the file
    */
   void SetUlPdcpOutputFilename (std::string outputFilename);
 
   /**
    * Get the name of the file where the uplink PDCP statistics will be stored.
+   * @return the name of the file where the uplink PDCP statistics will be stored
    */
   std::string GetUlPdcpOutputFilename (void);
 
@@ -108,18 +128,45 @@ public:
 
   /**
    * Get the name of the file where the downlink PDCP statistics will be stored.
+   * @return the name of the file where the downlink PDCP statistics will be stored
    */
   std::string GetDlPdcpOutputFilename (void);
 
+
+  /** 
+   * 
+   * \param t the value of the StartTime attribute
+   */
+  void SetStartTime (Time t);
+
+  /** 
+   * 
+   * \return the value of the StartTime attribute
+   */
+  Time GetStartTime () const;
+
+  /** 
+   * 
+   * \param e the epoch duration
+   */
+  void SetEpoch (Time e);
+
+  /** 
+   * 
+   * \return the epoch duration
+   */
+  Time GetEpoch () const;
+
   /**
    * Notifies the stats calculator that an uplink transmission has occurred.
+   * @param cellId CellId of the attached Enb
    * @param imsi IMSI of the UE who transmitted the PDU
    * @param rnti C-RNTI of the UE who transmitted the PDU
    * @param lcid LCID through which the PDU has been transmitted
    * @param packetSize size of the PDU in bytes
    */
   void
-  UlTxPdu (uint64_t imsi, uint16_t rnti, uint8_t lcid, uint32_t packetSize);
+  UlTxPdu (uint16_t cellId, uint64_t imsi, uint16_t rnti, uint8_t lcid, uint32_t packetSize);
 
   /**
    * Notifies the stats calculator that an uplink reception has occurred.
@@ -146,6 +193,7 @@ public:
 
   /**
    * Notifies the stats calculator that an downlink reception has occurred.
+   * @param cellId CellId of the attached Enb
    * @param imsi IMSI of the UE who received the PDU
    * @param rnti C-RNTI of the UE who received the PDU
    * @param lcid LCID through which the PDU has been transmitted
@@ -153,7 +201,7 @@ public:
    * @param delay RLC to RLC delay in nanoseconds
    */
   void
-  DlRxPdu (uint64_t imsi, uint16_t rnti, uint8_t lcid, uint32_t packetSize, uint64_t delay);
+  DlRxPdu (uint16_t cellId, uint64_t imsi, uint16_t rnti, uint8_t lcid, uint32_t packetSize, uint64_t delay);
 
   /**
    * Gets the number of transmitted uplink packets.
@@ -300,37 +348,69 @@ public:
   GetDlPduSizeStats (uint64_t imsi, uint8_t lcid);
 
 private:
+  /**
+   * Called after each epoch to write collected
+   * statistics to output files. During first call
+   * it opens output files and write columns descriptions.
+   * During next calls it opens output files in append mode.
+   */
   void
   ShowResults (void);
+
+  /**
+   * Writes collected statistics to UL output file and
+   * closes UL output file.
+   * @param outFile ofstream for UL statistics
+   */
   void
   WriteUlResults (std::ofstream& outFile);
+
+  /**
+   * Writes collected statistics to DL output file and
+   * closes DL output file.
+   * @param outFile ofstream for DL statistics
+   */
   void
   WriteDlResults (std::ofstream& outFile);
+
+  /**
+   * Erases collected statistics
+   */
   void
   ResetResults (void);
 
-  void
-  StartEpoch (void);
-  void
-  CheckEpoch (void);
+  /**
+   * Reschedules EndEpoch event. Usually used after
+   * execution of SetStartTime() or SetEpoch()
+   */
+  void RescheduleEndEpoch ();
 
-  FlowIdMap m_flowId;
+  /**
+   * Function called in every endEpochEvent. It calls
+   * ShowResults() to write statistics to output files
+   * and ResetResults() to clear collected statistics.
+   */
+  void EndEpoch (void);
 
-  Uint32Map m_dlCellId;
-  Uint32Map m_dlTxPackets;
-  Uint32Map m_dlRxPackets;
-  Uint64Map m_dlTxData;
-  Uint64Map m_dlRxData;
-  Uint64StatsMap m_dlDelay;
-  Uint32StatsMap m_dlPduSize;
+  EventId m_endEpochEvent; //!< Event id for next end epoch event
 
-  Uint32Map m_ulCellId;
-  Uint32Map m_ulTxPackets;
-  Uint32Map m_ulRxPackets;
-  Uint64Map m_ulTxData;
-  Uint64Map m_ulRxData;
-  Uint64StatsMap m_ulDelay;
-  Uint32StatsMap m_ulPduSize;
+  FlowIdMap m_flowId; //!< List of FlowIds, ie. (RNTI, LCID) by (IMSI, LCID) pair
+
+  Uint32Map m_dlCellId; //!< List of DL CellIds by (IMSI, LCID) pair
+  Uint32Map m_dlTxPackets; //!< Number of DL TX Packets by (IMSI, LCID) pair
+  Uint32Map m_dlRxPackets; //!< Number of DL RX Packets by (IMSI, LCID) pair
+  Uint64Map m_dlTxData; //!< Amount of DL TX Data by (IMSI, LCID) pair
+  Uint64Map m_dlRxData; //!< Amount of DL RX Data by (IMSI, LCID) pair
+  Uint64StatsMap m_dlDelay; //!< DL delay by (IMSI, LCID) pair
+  Uint32StatsMap m_dlPduSize; //!< DL PDU Size by (IMSI, LCID) pair
+
+  Uint32Map m_ulCellId; //!< List of UL CellIds by (IMSI, LCID) pair
+  Uint32Map m_ulTxPackets; //!< Number of UL TX Packets by (IMSI, LCID) pair
+  Uint32Map m_ulRxPackets; //!< Number of UL RX Packets by (IMSI, LCID) pair
+  Uint64Map m_ulTxData; //!< Amount of UL TX Data by (IMSI, LCID) pair
+  Uint64Map m_ulRxData; //!< Amount of UL RX Data by (IMSI, LCID) pair
+  Uint64StatsMap m_ulDelay; //!< UL delay by (IMSI, LCID) pair
+  Uint32StatsMap m_ulPduSize; //!< UL PDU Size by (IMSI, LCID) pair
 
   /**
    * Start time of the on going epoch
@@ -351,9 +431,20 @@ private:
    * true if any output is pending
    */
   bool m_pendingOutput;
+
+  /**
+   * Protocol type, by default RLC
+   */
   std::string m_protocolType;
 
+  /**
+   * Name of the file where the downlink PDCP statistics will be saved
+   */
   std::string m_dlPdcpOutputFilename;
+
+  /**
+   * Name of the file where the uplink PDCP statistics will be saved
+   */
   std::string m_ulPdcpOutputFilename;
 
 };

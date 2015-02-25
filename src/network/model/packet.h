@@ -36,6 +36,9 @@
 
 namespace ns3 {
 
+// Forward declaration
+class Address;
+  
 /**
  * \ingroup network
  * \defgroup packet Packet
@@ -43,7 +46,7 @@ namespace ns3 {
 
 /**
  * \ingroup packet
- * \brief Iterator over the set of tags in a packet
+ * \brief Iterator over the set of byte tags in a packet
  *
  * This is a java-style iterator.
  */
@@ -51,7 +54,7 @@ class ByteTagIterator
 {
 public:
   /**
-   * Identifies a tag and a set of bytes within a packet
+   * \brief Identifies a byte tag and a set of bytes within a packet
    * to which the tag applies.
    */
   class Item
@@ -64,31 +67,39 @@ public:
     /**
      * \returns the index of the first byte tagged by this tag.
      *
-     * The index is an offset from the start of the packet.
+     * \brief The index is an offset from the start of the packet.
      */
     uint32_t GetStart (void) const;
     /**
      * \returns the index of the last byte tagged by this tag.
      *
-     * The index is an offset from the start of the packet.
+     * \brief The index is an offset from the start of the packet.
      */
     uint32_t GetEnd (void) const;
     /**
+     * \brief Read the requested tag and store it in the user-provided tag instance.
+     *
      * \param tag the user tag to which the data should be copied.
      *
-     * Read the requested tag and store it in the user-provided
-     * tag instance. This method will crash if the type of the
-     * tag provided by the user does not match the type of
-     * the underlying tag.
+     * This method will crash if the type of the tag provided
+     * by the user does not match the type of the underlying tag.
      */
     void GetTag (Tag &tag) const;
 private:
     friend class ByteTagIterator;
+    /**
+     * \brief Constructor
+     * \param tid the ns3::TypeId associated to this tag.
+     * \param start the index of the first byte tagged by this tag.
+     * \param end the index of the last byte tagged by this tag.
+     * \param buffer the buffer associated with this tag.
+     */
     Item (TypeId tid, uint32_t start, uint32_t end, TagBuffer buffer);
-    TypeId m_tid;
-    uint32_t m_start;
-    uint32_t m_end;
-    TagBuffer m_buffer;
+
+    TypeId m_tid;       //!< the ns3::TypeId associated to this tag.
+    uint32_t m_start;   //!< the index of the first byte tagged by this tag.
+    uint32_t m_end;     //!< the index of the last byte tagged by this tag.
+    TagBuffer m_buffer; //!< the buffer associated with this tag.
   };
   /**
    * \returns true if calling Next is safe, false otherwise.
@@ -100,13 +111,17 @@ private:
   Item Next (void);
 private:
   friend class Packet;
+  /**
+   * Copy Constructor
+   * \param i object to copy
+   */
   ByteTagIterator (ByteTagList::Iterator i);
-  ByteTagList::Iterator m_current;
+  ByteTagList::Iterator m_current; //!< actual position over the set of byte tags in a packet
 };
 
 /**
  * \ingroup packet
- * \brief Iterator over the set of 'packet' tags in a packet
+ * \brief Iterator over the set of packet tags in a packet
  *
  * This is a java-style iterator.
  */
@@ -114,7 +129,7 @@ class PacketTagIterator
 {
 public:
   /**
-   * Identifies a tag within a packet.
+   * Identifies a packet tag within a packet.
    */
   class Item 
   {
@@ -124,18 +139,22 @@ public:
      */
     TypeId GetTypeId (void) const;
     /**
+     * Read the requested tag and store it in the user-provided tag instance.
+     *
      * \param tag the user tag to which the data should be copied.
      *
-     * Read the requested tag and store it in the user-provided
-     * tag instance. This method will crash if the type of the
-     * tag provided by the user does not match the type of
-     * the underlying tag.
+     * This method will crash if the type of the tag provided
+     * by the user does not match the type of the underlying tag.
      */
     void GetTag (Tag &tag) const;
 private:
     friend class PacketTagIterator;
+    /**
+     * Constructor
+     * \param data the data to copy.
+     */
     Item (const struct PacketTagList::TagData *data);
-    const struct PacketTagList::TagData *m_data;
+    const struct PacketTagList::TagData *m_data; //!< the tag data
   };
   /**
    * \returns true if calling Next is safe, false otherwise.
@@ -147,8 +166,12 @@ private:
   Item Next (void);
 private:
   friend class Packet;
+  /**
+   * Constructor
+   * \param head head of the items
+   */
   PacketTagIterator (const struct PacketTagList::TagData *head);
-  const struct PacketTagList::TagData *m_current;
+  const struct PacketTagList::TagData *m_current;  //!< actual position over the set of tags in a packet
 };
 
 /**
@@ -197,22 +220,32 @@ private:
  * Implementing a new type of Tag requires roughly the same amount of
  * work and this work is described in the ns3::Tag API documentation.
  *
- * The performance aspects of the Packet API are discussed in 
- * \ref packetperf
+ * The performance aspects copy-on-write semantics of the
+ * Packet API are discussed in \ref packetperf
  */
 class Packet : public SimpleRefCount<Packet>
 {
 public:
 
   /**
-   * Create an empty packet with a new uid (as returned
+   * \brief Create an empty packet with a new uid (as returned
    * by getUid).
    */
   Packet ();
+  /**
+   * \brief Copy constructor
+   * \param o object to copy
+   */
   Packet (const Packet &o);
+  /**
+   * \brief Basic assignment
+   * \param o object to copy
+   * \return the copied object
+   */
   Packet &operator = (const Packet &o);
   /**
-   * Create a packet with a zero-filled payload.
+   * \brief Create a packet with a zero-filled payload.
+   *
    * The memory necessary for the payload is not allocated:
    * it will be allocated at any later point if you attempt
    * to fragment this packet or to access the zero-filled
@@ -223,7 +256,9 @@ public:
    */
   Packet (uint32_t size);
   /**
-   * Create a new packet from the serialized buffer. This new packet 
+   * \brief Create a new packet from the serialized buffer.
+   *
+   * This new packet
    * is identical to the serialized packet contained in the buffer 
    * and is magically deserialized for you
    * 
@@ -234,8 +269,10 @@ public:
    */
   Packet (uint8_t const*buffer, uint32_t size, bool magic);
   /**
-   * Create a packet with payload filled with the content
-   * of this buffer. The input data is copied: the input
+   * \brief Create a packet with payload filled with the content
+   * of this buffer.
+   *
+   * The input data is copied: the input
    * buffer is untouched.
    *
    * \param buffer the data to store in the packet.
@@ -243,8 +280,10 @@ public:
    */
   Packet (uint8_t const*buffer, uint32_t size);
   /**
-   * Create a new packet which contains a fragment of the original
-   * packet. The returned packet shares the same uid as this packet.
+   * \brief Create a new packet which contains a fragment of the original
+   * packet.
+   *
+   * The returned packet shares the same uid as this packet.
    *
    * \param start offset from start of packet to start of fragment to create
    * \param length length of fragment to create
@@ -252,12 +291,16 @@ public:
    */
   Ptr<Packet> CreateFragment (uint32_t start, uint32_t length) const;
   /**
-   * \returns the size in bytes of the packet (including the zero-filled
-   *          initial payload)
+   * \brief Returns the the size in bytes of the packet (including the zero-filled
+   * initial payload).
+   *
+   * \returns the size in bytes of the packet
    */
   inline uint32_t GetSize (void) const;
   /**
-   * Add header to this packet. This method invokes the
+   * \brief Add header to this packet.
+   *
+   * This method invokes the
    * Header::GetSerializedSize and Header::Serialize
    * methods to reserve space in the buffer and request the 
    * header to serialize itself in the packet buffer.
@@ -266,7 +309,8 @@ public:
    */
   void AddHeader (const Header & header);
   /**
-   * Deserialize and remove the header from the internal buffer.
+   * \brief Deserialize and remove the header from the internal buffer.
+   *
    * This method invokes Header::Deserialize.
    *
    * \param header a reference to the header to remove from the internal buffer.
@@ -274,7 +318,8 @@ public:
    */
   uint32_t RemoveHeader (Header &header);
   /**
-   * Deserialize but does _not_ remove the header from the internal buffer.
+   * \brief Deserialize but does _not_ remove the header from the internal buffer.
+   * s
    * This method invokes Header::Deserialize.
    *
    * \param header a reference to the header to read from the internal buffer.
@@ -282,7 +327,9 @@ public:
    */
   uint32_t PeekHeader (Header &header) const;
   /**
-   * Add trailer to this packet. This method invokes the
+   * \brief Add trailer to this packet.
+   *
+   * This method invokes the
    * Trailer::GetSerializedSize and Trailer::Serialize
    * methods to reserve space in the buffer and request the trailer 
    * to serialize itself in the packet buffer.
@@ -291,7 +338,8 @@ public:
    */
   void AddTrailer (const Trailer &trailer);
   /**
-   * Remove a deserialized trailer from the internal buffer.
+   * \brief Remove a deserialized trailer from the internal buffer.
+   *
    * This method invokes the Deserialize method.
    *
    * \param trailer a reference to the trailer to remove from the internal buffer.
@@ -299,7 +347,8 @@ public:
    */
   uint32_t RemoveTrailer (Trailer &trailer);
   /**
-   * Deserialize but does _not_ remove a trailer from the internal buffer.
+   * \brief Deserialize but does _not_ remove a trailer from the internal buffer.
+   *
    * This method invokes the Trailer::Deserialize method.
    *
    * \param trailer a reference to the trailer to read from the internal buffer.
@@ -308,27 +357,33 @@ public:
   uint32_t PeekTrailer (Trailer &trailer);
 
   /**
-   * Concatenate the input packet at the end of the current
-   * packet. This does not alter the uid of either packet.
+   * \brief Concatenate the input packet at the end of the current
+   * packet.
+   *
+   * This does not alter the uid of either packet.
    *
    * \param packet packet to concatenate
    */
   void AddAtEnd (Ptr<const Packet> packet);
   /**
+   * \brief Add a zero-filled padding to the packet.
+   *
    * \param size number of padding bytes to add.
    */
   void AddPaddingAtEnd (uint32_t size);
   /** 
-   * Remove size bytes from the end of the current packet
-   * It is safe to remove more bytes that what is present in
+   * \brief Remove size bytes from the end of the current packet.
+   *
+   * It is safe to remove more bytes than are present in
    * the packet.
    *
    * \param size number of bytes from remove
    */
   void RemoveAtEnd (uint32_t size);
   /** 
-   * Remove size bytes from the start of the current packet.
-   * It is safe to remove more bytes that what is present in
+   * \brief Remove size bytes from the start of the current packet.
+   *
+   * It is safe to remove more bytes than are present in
    * the packet.
    *
    * \param size number of bytes from remove
@@ -336,18 +391,8 @@ public:
   void RemoveAtStart (uint32_t size);
 
   /**
-   * If you try to change the content of the buffer
-   * returned by this method, you will die.
-   * Note that this method is now deprecated and will be removed in
-   * the next version of ns-3. If you need to get access to the content
-   * of the byte buffer of a packet, you need to call
-   * ns3::Packet::CopyData to perform an explicit copy.
+   * \brief Copy the packet contents to a byte buffer.
    *
-   * \returns a pointer to the internal buffer of the packet.
-   */
-  uint8_t const *PeekData (void) const NS_DEPRECATED;
-
-  /**
    * \param buffer a pointer to a byte buffer where the packet data 
    *        should be copied.
    * \param size the size of the byte buffer. 
@@ -358,6 +403,8 @@ public:
   uint32_t CopyData (uint8_t *buffer, uint32_t size) const;
 
   /**
+   * \brief Copy the packet contents to an output stream.
+   *
    * \param os pointer to output stream in which we want
    *        to write the packet data.
    * \param size the maximum number of bytes we want to write
@@ -366,6 +413,8 @@ public:
   void CopyData (std::ostream *os, uint32_t size) const;
 
   /**
+   * \brief performs a COW copy of the packet.
+   *
    * \returns a COW copy of the packet.
    *
    * The returns packet will behave like an independent copy of
@@ -375,6 +424,8 @@ public:
   Ptr<Packet> Copy (void) const;
 
   /**
+   * \brief Returns the packet's Uid.
+   *
    * A packet is allocated a new uid when it is created
    * empty or with zero-filled payload.
    *
@@ -394,6 +445,8 @@ public:
   uint64_t GetUid (void) const;
 
   /**
+   * \brief Print the packet contents.
+   *
    * \param os output stream in which the data should be printed.
    *
    * Iterate over the headers and trailers present in this packet, 
@@ -404,16 +457,31 @@ public:
   void Print (std::ostream &os) const;
 
   /**
-   * \returns an iterator which points to the first 'item'
-   * stored in this buffer. Note that this iterator will point
+   * \brief Return a string representation of the packet
+   *
+   * An empty string is returned if you haven't called EnablePrinting ()
+   *
+   * \return String representation
+   */
+  std::string ToString (void) const;
+
+  /**
+   * \brief Returns an iterator which points to the first 'item'
+   * stored in this buffer.
+   *
+   * Note that this iterator will point
    * to an empty array of items if you don't call EnablePrinting
    * or EnableChecking before.
+   *
+   * \returns an iterator
    *
    * \sa EnablePrinting EnableChecking
    */
   PacketMetadata::ItemIterator BeginItem (void) const;
 
   /**
+   * \brief Enable printing packets metadata.
+   *
    * By default, packets do not keep around enough metadata to
    * perform the operations requested by the Print methods. If you
    * want to be able the Packet::Print method, 
@@ -422,6 +490,8 @@ public:
    */
   static void EnablePrinting (void);
   /**
+   * \brief Enable packets metadata checking.
+   *
    * The packet metadata is also used to perform extensive
    * sanity checks at runtime when performing operations on a 
    * Packet. For example, this metadata is used to verify that
@@ -432,30 +502,32 @@ public:
   static void EnableChecking (void);
 
   /**
-   * For packet serializtion, the total size is checked 
+   * \brief Returns number of bytes required for packet
+   * serialization.
+   *
+   * \returns number of bytes required for packet
+   * serialization
+   *
+   * For packet serialization, the total size is checked
    * in order to determine the size of the buffer 
    * required for serialization
-   *
-   * \returns number of bytes required for packet 
-   * serialization
    */
   uint32_t GetSerializedSize (void) const;
 
-  /*
+  /**
+   * \brief Serialize a packet, tags, and metadata into a byte buffer.
+   *
    * \param buffer a raw byte buffer to which the packet will be serialized
    * \param maxSize the max size of the buffer for bounds checking
    *
-   * A packet is completely serialized and placed into the raw byte buffer
-   *
-   * \returns zero if buffer size was too small
+   * \returns one if all data were serialized, zero if buffer size was too small.
    */
   uint32_t Serialize (uint8_t* buffer, uint32_t maxSize) const;
 
   /**
-   * \param tag the new tag to add to this packet
+   * \brief Tag each byte included in this packet with a new byte tag.
    *
-   * Tag each byte included in this packet with the
-   * new tag.
+   * \param tag the new tag to add to this packet
    *
    * Note that adding a tag is a const operation which is pretty 
    * un-intuitive. The rationale is that the content and behavior of
@@ -470,11 +542,15 @@ public:
    */
   void AddByteTag (const Tag &tag) const;
   /**
+   * \brief Retiurns an iterator over the set of byte tags included in this packet
+   *
    * \returns an iterator over the set of byte tags included in this packet.
    */
   ByteTagIterator GetByteTagIterator (void) const;
   /**
-   * \param tag the tag to search in this packet
+   * \brief Finds the first tag matching the parameter Tag type
+   *
+   * \param tag the byte tag type to search in this packet
    * \returns true if the requested tag type was found, false otherwise.
    *
    * If the requested tag type is found, it is copied in the user's 
@@ -483,55 +559,65 @@ public:
   bool FindFirstMatchingByteTag (Tag &tag) const;
 
   /**
-   * Remove all the tags stored in this packet.
+   * \brief Remove all byte tags stored in this packet.
    */
   void RemoveAllByteTags (void);
 
   /**
    * \param os output stream in which the data should be printed.
    *
-   * Iterate over the tags present in this packet, and
+   * \brief Iterate over the byte tags present in this packet, and
    * invoke the Print method of each tag stored in the packet.
    */
   void PrintByteTags (std::ostream &os) const;
 
   /**
-   * \param tag the tag to store in this packet
+   * \brief Add a packet tag.
    *
-   * Add a tag to this packet. This method calls the
-   * Tag::GetSerializedSize and, then, Tag::Serialize.
+   * \param tag the packet tag type to add.
    *
    * Note that this method is const, that is, it does not
    * modify the state of this packet, which is fairly
-   * un-intuitive.
+   * un-intuitive.  See AddByteTag"()" discussion.
    */
   void AddPacketTag (const Tag &tag) const;
   /**
-   * \param tag the tag to remove from this packet
+   * \brief Remove a packet tag.
+   *
+   * \param tag the packet tag type to remove from this packet.
+   *        The tag parameter is set to the value of the tag found.
    * \returns true if the requested tag is found, false
    *          otherwise.
-   *
-   * Remove a tag from this packet. This method calls
-   * Tag::Deserialize if the tag is found.
    */
   bool RemovePacketTag (Tag &tag);
   /**
+   * \brief Replace the value of a packet tag.
+   *
+   * \param tag the packet tag type to replace.  To get the old
+   *        value of the tag, use PeekPacketTag first.
+   * \returns true if the requested tag is found, false otherwise.
+   *        If the tag isn't found, Add is performed instead (so
+   *        the packet is guaranteed to have the new tag value
+   *        either way).
+   */
+  bool ReplacePacketTag (Tag & tag);
+  /**
+   * \brief Search a matching tag and call Tag::Deserialize if it is found.
+   *
    * \param tag the tag to search in this packet
    * \returns true if the requested tag is found, false
    *          otherwise.
-   *
-   * Search a matching tag and call Tag::Deserialize if it is found.
    */
   bool PeekPacketTag (Tag &tag) const;
   /**
-   * Remove all packet tags.
+   * \brief Remove all packet tags.
    */
   void RemoveAllPacketTags (void);
 
   /**
-   * \param os the stream in which we want to print data.
+   * \brief Print the list of packet tags.
    *
-   * Print the list of 'packet' tags.
+   * \param os the stream on which to print the tags.
    *
    * \sa Packet::AddPacketTag, Packet::RemovePacketTag, Packet::PeekPacketTag,
    *  Packet::RemoveAllPacketTags
@@ -539,37 +625,92 @@ public:
   void PrintPacketTags (std::ostream &os) const;
 
   /**
+   * \brief Returns an object which can be used to iterate over the list of
+   *  packet tags.
+   *
    * \returns an object which can be used to iterate over the list of
    *  packet tags.
    */
   PacketTagIterator GetPacketTagIterator (void) const;
 
-  /* Note: These functions support a temporary solution 
+  /**
+   * \brief Set the packet nix-vector.
+   *
+   * Note: This function supports a temporary solution
    * to a specific problem in this generic class, i.e. 
    * how to associate something specific like nix-vector 
    * with a packet.  This design methodology 
    * should _not_ be followed, and is only here as an 
-   * impetus to fix this general issue. */
-  void SetNixVector (Ptr<NixVector>);
+   * impetus to fix this general issue.
+   *
+   * \param nixVector the nix vector
+   */
+  void SetNixVector (Ptr<NixVector> nixVector);
+  /**
+   * \brief Get the packet nix-vector.
+   *
+   * See the comment on SetNixVector
+   *
+   * \returns the Nix vector
+   */
   Ptr<NixVector> GetNixVector (void) const; 
 
+  /**
+   * TracedCallback signature for Ptr<Packet>
+   *
+   * \param [in] packet The packet.
+   */
+  typedef void (* TracedCallback) (const Ptr<const Packet> packet);
+  
+  /**
+   * TracedCallback signature for packet and address.
+   *
+   * \param [in] packet The packet.
+   * \param [in] address The address.
+   */
+  typedef void (* PacketAddressTracedCallback)
+    (const Ptr<const Packet> packet, const Address &address);
+  
+  /**
+   * TracedCallback signature for changes in packet size.
+   *
+   * \param [in] oldSize The previous packet's size.
+   * \param [in] newSize The actual packet's size.
+   */
+  typedef void (* PacketSizeTracedCallback)
+    (const uint32_t oldSize, const uint32_t newSize);
+
 private:
+  /**
+   * \brief Constructor
+   * \param buffer the packet buffer
+   * \param byteTagList the ByteTag list
+   * \param packetTagList the packet's Tag list
+   * \param metadata the packet's metadata
+   */
   Packet (const Buffer &buffer, const ByteTagList &byteTagList, 
           const PacketTagList &packetTagList, const PacketMetadata &metadata);
 
   uint32_t Deserialize (uint8_t const*buffer, uint32_t size);
 
-  Buffer m_buffer;
-  ByteTagList m_byteTagList;
-  PacketTagList m_packetTagList;
-  PacketMetadata m_metadata;
+  Buffer m_buffer;                //!< the packet buffer (it's actual contents)
+  ByteTagList m_byteTagList;      //!< the ByteTag list
+  PacketTagList m_packetTagList;  //!< the packet's Tag list
+  PacketMetadata m_metadata;      //!< the packet's metadata
 
   /* Please see comments above about nix-vector */
-  Ptr<NixVector> m_nixVector;
+  Ptr<NixVector> m_nixVector; //!< the packet's Nix vector
 
-  static uint32_t m_globalUid;
+  static uint32_t m_globalUid; //!< Global counter of packets Uid
 };
 
+/**
+ * \brief Stream insertion operator.
+ *
+ * \param os the stream
+ * \param packet the packet
+ * \returns a reference to the stream
+ */
 std::ostream& operator<< (std::ostream& os, const Packet &packet);
 
 /**
@@ -590,6 +731,7 @@ std::ostream& operator<< (std::ostream& os, const Packet &packet);
  *   - ns3::Packet::AddTrailer
  *   - both versions of ns3::Packet::AddAtEnd
  *   - ns3::Packet::RemovePacketTag
+ *   - ns3::Packet::ReplacePacketTag
  *
  * Non-dirty operations:
  *   - ns3::Packet::AddPacketTag
@@ -613,6 +755,10 @@ std::ostream& operator<< (std::ostream& os, const Packet &packet);
  */
 
 } // namespace ns3
+
+/****************************************************
+ *  Implementation of inline methods for performance
+ ****************************************************/
 
 namespace ns3 {
 

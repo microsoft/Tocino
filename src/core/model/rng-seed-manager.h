@@ -1,3 +1,22 @@
+/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/*
+ * Copyright (c) 2012 Mathieu Lacage
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation;
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
 #ifndef RNG_SEED_MANAGER_H
 #define RNG_SEED_MANAGER_H
 
@@ -12,7 +31,7 @@ public:
    * \brief set the seed
    * it will duplicate the seed value 6 times
    * \code
-   * SeedManger::SetSeed(15);
+   * RngSeedManger::SetSeed(15);
    * UniformVariable x(2,3);     //these will give the same output everytime
    * ExponentialVariable y(120); //as long as the seed stays the same
    * \endcode
@@ -36,9 +55,9 @@ public:
    * \brief Set the run number of simulation
    *
    * \code
-   * SeedManager::SetSeed(12);
+   * RngSeedManager::SetSeed(12);
    * int N = atol(argv[1]); //read in run number from command line
-   * SeedManager::SetRun(N);
+   * RngSeedManager::SetRun(N);
    * UniformVariable x(0,10);
    * ExponentialVariable y(2902);
    * \endcode

@@ -27,12 +27,11 @@
 #include <ns3/uinteger.h>
 #include <ns3/log.h>
 #include <ns3/assert.h>
-#include <math.h>
-
-NS_LOG_COMPONENT_DEFINE ("Building");
+#include <cmath>
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("Building");
 
 NS_OBJECT_ENSURE_REGISTERED (Building);
 

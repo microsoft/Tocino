@@ -32,24 +32,18 @@
 #include "ns3/double.h"
 #include "ns3/uinteger.h"
 
+#include <cfloat>
 #include <utility>
 #include <set>
 #include <map>
 #include <vector>
 #include <algorithm>
 
-NS_LOG_COMPONENT_DEFINE ("UanMacRcGw");
-
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("UanMacRcGw");
+
 NS_OBJECT_ENSURE_REGISTERED (UanMacRcGw);
-
-bool
-operator < (UanAddress &a, UanAddress &b)
-{
-  return a.GetAsInt () < b.GetAsInt ();
-}
-
 
 UanMacRcGw::UanMacRcGw ()
   : UanMac (),
@@ -112,71 +106,63 @@ UanMacRcGw::GetTypeId (void)
     .SetParent<UanMac> ()
     .AddConstructor<UanMacRcGw> ()
     .AddAttribute ("MaxReservations",
-                   "Maximum number of reservations to accept per cycle",
+                   "Maximum number of reservations to accept per cycle.",
                    UintegerValue (10),
                    MakeUintegerAccessor (&UanMacRcGw::m_maxRes),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("NumberOfRates",
-                   "Number of rates per Phy layer",
+                   "Number of rates per Phy layer.",
                    UintegerValue (1023),
                    MakeUintegerAccessor (&UanMacRcGw::m_numRates),
                    MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("RetryRate",
-                   "Number of retry rates per second at non-gateway nodes",
-                   DoubleValue (1 / 10.0),
-                   MakeDoubleAccessor (&UanMacRcGw::m_retryRate),
-                   MakeDoubleChecker<double> ())
     .AddAttribute ("MaxPropDelay",
-                   "Maximum propagation delay between gateway and non-gateway nodes",
+                   "Maximum propagation delay between gateway and non-gateway nodes.",
                    TimeValue (Seconds (2)),
                    MakeTimeAccessor (&UanMacRcGw::m_maxDelta),
                    MakeTimeChecker ())
     .AddAttribute ("SIFS",
-                   "Spacing between frames to account for timing error and processing delay",
+                   "Spacing between frames to account for timing error and processing delay.",
                    TimeValue (Seconds (0.2)),
                    MakeTimeAccessor (&UanMacRcGw::m_sifs),
                    MakeTimeChecker ())
     .AddAttribute ("NumberOfNodes",
-                   "Number of non-gateway nodes in this gateway's neighborhood",
+                   "Number of non-gateway nodes in this gateway's neighborhood.",
                    UintegerValue (10),
                    MakeUintegerAccessor (&UanMacRcGw::m_numNodes),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("MinRetryRate",
-                   "Smallest allowed RTS retry rate",
+                   "Smallest allowed RTS retry rate.",
                    DoubleValue (0.01),
                    MakeDoubleAccessor (&UanMacRcGw::m_minRetryRate),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("RetryStep",
-                   "Retry rate increment",
+                   "Retry rate increment.",
                    DoubleValue (0.01),
                    MakeDoubleAccessor (&UanMacRcGw::m_retryStep),
                    MakeDoubleChecker<double> ())
-    .AddAttribute ("NumberOfRetryRates",
-                   "Number of retry rates",
-                   UintegerValue (100),
-                   MakeUintegerAccessor (&UanMacRcGw::m_numRetryRates),
-                   MakeUintegerChecker<uint16_t> ())
     .AddAttribute ("TotalRate",
-                   "Total available channel rate in bps (for a single channel, without splitting reservation channel)",
+                   "Total available channel rate in bps (for a single channel, without splitting reservation channel).",
                    UintegerValue (4096),
                    MakeUintegerAccessor (&UanMacRcGw::m_totalRate),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("RateStep",
-                   "Increments available for rate assignment in bps",
+                   "Increments available for rate assignment in bps.",
                    UintegerValue (4),
                    MakeUintegerAccessor (&UanMacRcGw::m_rateStep),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("FrameSize",
-                   "Size of data frames in bytes",
+                   "Size of data frames in bytes.",
                    UintegerValue (1000),
                    MakeUintegerAccessor (&UanMacRcGw::m_frameSize),
                    MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("RX",
-                     "A packet was destined for and received at this MAC layer",
-                     MakeTraceSourceAccessor (&UanMacRcGw::m_rxLogger))
+                     "A packet was destined for and received at this MAC layer.",
+                     MakeTraceSourceAccessor (&UanMacRcGw::m_rxLogger),
+                     "ns3::UanMac::PacketModeTracedCallback")
     .AddTraceSource ("Cycle",
-                     "Trace cycle statistics",
-                     MakeTraceSourceAccessor (&UanMacRcGw::m_cycleLogger))
+                     "Trace cycle statistics.",
+                     MakeTraceSourceAccessor (&UanMacRcGw::m_cycleLogger),
+                     "ns3::UanMacRcGw::CycleCallback")
 
   ;
 
@@ -383,7 +369,7 @@ UanMacRcGw::StartCycle (void)
   double winSize = (double)(totalBytes) * 8.0 / dataRate + m_sifs.GetSeconds () * totalFrames + pDelay;
   if (numRts == 0)
     {
-      winSize = (optA * exp (1.0) + 0.5) * 2.0 * 8.0 * m_rtsSize / (thAlpha * m_totalRate) + 2 * m_maxDelta.GetSeconds ();
+      winSize = (optA * std::exp (1.0) + 0.5) * 2.0 * 8.0 * m_rtsSize / (thAlpha * m_totalRate) + 2 * m_maxDelta.GetSeconds ();
     }
   double effWinSize = winSize - m_rtsSize * 8 / ctlRate  - 2 * m_maxDelta.GetSeconds ();
 
@@ -447,7 +433,9 @@ UanMacRcGw::StartCycle (void)
       ctsh.SetDelayToTx (arrivalTime);
       cts->AddHeader (ctsh);
 
-      NS_LOG_DEBUG (Simulator::Now ().GetSeconds () << " GW Scheduling reception for " << (uint32_t) req.numFrames << " frames at " << (Simulator::Now () + arrivalTime).GetSeconds () << "  (delaytiltx of " << arrivalTime.GetSeconds () << ")  Total length is " << req.length << " with txtime " << req.length * 8 / dataRate << " seconds");
+      NS_LOG_DEBUG (Simulator::Now ().GetSeconds () <<
+                    " GW Scheduling reception for " << (uint32_t) req.numFrames <<
+                    " frames at " << (Simulator::Now () + arrivalTime).GetSeconds () << "  (delaytiltx of " << arrivalTime.GetSeconds () << ")  Total length is " << req.length << " with txtime " << req.length * 8 / dataRate << " seconds");
     }
 
   UanHeaderRcCtsGlobal ctsg;
@@ -559,7 +547,7 @@ UanMacRcGw::ComputeAlpha (uint32_t totalFrames, uint32_t totalBytes, uint32_t n,
 {
 
   double alpha;
-  double lrae = m_rtsSize * 8.0*a*std::exp (1.0);
+  double lrae = m_rtsSize * 8.0 * a * std::exp (1.0);
   if (totalFrames == 0)
     {
 
@@ -574,11 +562,11 @@ UanMacRcGw::ComputeAlpha (uint32_t totalFrames, uint32_t totalBytes, uint32_t n,
 
       double gamma = (w - u + v) / (2 * (u - totalFrames * m_sifs.GetSeconds () * m_totalRate));
 
-      alpha = -gamma + sqrt (gamma * gamma + v / (u - totalFrames * m_sifs.GetSeconds () * m_totalRate));
+      alpha = -gamma + std::sqrt (gamma * gamma + v / (u - totalFrames * m_sifs.GetSeconds () * m_totalRate));
 
       if (alpha < 0 || alpha > 1)
         {
-          alpha = -gamma - sqrt (gamma * gamma + v / (u - totalFrames * m_sifs.GetSeconds () * m_totalRate));
+          alpha = -gamma - std::sqrt (gamma * gamma + v / (u - totalFrames * m_sifs.GetSeconds () * m_totalRate));
         }
     }
   NS_ASSERT_MSG (alpha > 0 && alpha < 1, "Error computing alpha.  Alpha out of valid range!");
@@ -654,7 +642,8 @@ UanMacRcGw::CompExpMinIndex (uint32_t n, uint32_t k)
   double sum = 0;
   for (uint32_t i = 1; i <= n - k + 1; i++)
     {
-      double p = (double) NchooseK (n - i, k - 1) / NchooseK (n, k);
+      double nChK = NchooseK (n, k);
+      double p = (nChK > 0) ? (NchooseK (n - i, k - 1) / nChK) : DBL_MAX;
       sum += p * i;
     }
   return (uint32_t)(sum + 0.5);

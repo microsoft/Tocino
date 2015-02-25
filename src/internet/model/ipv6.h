@@ -38,6 +38,7 @@ class Node;
 class NetDevice;
 class Packet;
 class Ipv6RoutingProtocol;
+class IpL4Protocol;
 
 /**
  * \ingroup internet
@@ -79,6 +80,10 @@ class Ipv6RoutingProtocol;
 class Ipv6 : public Object
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
 
   /**
@@ -218,6 +223,15 @@ public:
   virtual bool RemoveAddress (uint32_t interface, uint32_t addressIndex) = 0;
 
   /**
+   * \brief Remove the given address on named Ipv6 interface
+   *
+   * \param interface Interface number of an IPv6 interface
+   * \param address the address to remove
+   * \returns true if the operation succeeded
+   */
+  virtual bool RemoveAddress (uint32_t interface, Ipv6Address address) = 0;
+
+  /**
    * \brief Set metric on specified Ipv6 interface.
    *
    * \param interface The interface number of an IPv6 interface
@@ -242,6 +256,13 @@ public:
    *          to the underlying IPv6 interface
    */
   virtual uint16_t GetMtu (uint32_t interface) const = 0;
+
+  /**
+   * \brief Set the Path MTU for the specified IPv6 destination address.
+   * \param dst Ipv6 destination address
+   * \param pmtu the Path MTU
+   */
+  virtual void SetPmtu (Ipv6Address dst, uint32_t pmtu) = 0;
 
   /**
    * \brief If the specified interface index is in "up" state.
@@ -284,6 +305,21 @@ public:
   virtual void SetForwarding (uint32_t interface, bool val) = 0;
 
   /**
+   * \brief Choose the source address to use with destination address.
+   * \param interface interface index
+   * \param dest IPv6 destination address
+   * \return IPv6 source address to use
+   */
+  virtual Ipv6Address SourceAddressSelection (uint32_t interface, Ipv6Address dest) = 0;
+
+  /**
+   * \brief Get L4 protocol by protocol number.
+   * \param protocolNumber protocol number
+   * \return corresponding Ipv6L4Protocol or 0 if not found
+   */
+  virtual Ptr<IpL4Protocol> GetProtocol (int protocolNumber) const = 0;
+
+  /**
    * \brief Register the IPv6 Extensions.
    */
   virtual void RegisterExtensions () = 0;
@@ -311,6 +347,18 @@ private:
    * \return forwarding state (enabled or not)
    */
   virtual bool GetIpForward (void) const = 0;
+
+  /**
+   * \brief Set IPv6 MTU discover state.
+   * \param mtuDiscover IPv6 MTU discover enabled or not
+   */
+  virtual void SetMtuDiscover (bool mtuDiscover) = 0;
+
+  /**
+   * \brief Get IPv6 MTU discover state.
+   * \return MTU discover state (enabled or not)
+   */
+  virtual bool GetMtuDiscover (void) const = 0;
 };
 
 } // namespace ns3 

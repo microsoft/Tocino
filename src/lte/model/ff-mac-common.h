@@ -21,6 +21,11 @@
 #ifndef FF_MAC_COMMON_H
 #define FF_MAC_COMMON_H
 
+#include <ns3/simple-ref-count.h>
+#include <ns3/ptr.h>
+#include <vector>
+
+
 /**
  * Constants. See section 4.4
  */
@@ -49,6 +54,7 @@
 #define MAX_SR_LIST           30
 #define MAX_MAC_CE_LIST       30
 
+namespace ns3 {
 
 enum Result_e
 {
@@ -143,13 +149,22 @@ struct UlDciListElement_s
 };
 
 /**
+* \brief Base class for storing the values of vendor specific parameters
+*/
+struct VendorSpecificValue : public SimpleRefCount<VendorSpecificValue>
+{ 
+  virtual ~VendorSpecificValue ();
+
+};
+
+/**
  * \brief See section 4.3.3 vendorSpecifiListElement
  */
 struct VendorSpecificListElement_s
 {
   uint32_t m_type;
   uint32_t m_length;
-  void    *m_value;
+  Ptr<VendorSpecificValue> m_value;
 };
 
 /**
@@ -222,12 +237,29 @@ struct BuildDataListElement_s
 };
 
 /**
+ * \brief Substitutive structure for specifying BuildRarListElement_s::m_grant field
+ */
+struct UlGrant_s
+{
+  uint16_t m_rnti;
+  uint8_t m_rbStart;
+  uint8_t m_rbLen;
+  uint16_t m_tbSize;
+  uint8_t m_mcs;
+  bool m_hopping;
+  int8_t m_tpc;
+  bool m_cqiRequest;
+  bool m_ulDelay;
+}; 
+
+/**
  * \brief See section 4.3.10 buildRARListElement
  */
 struct BuildRarListElement_s
 {
   uint16_t  m_rnti;
-  uint32_t  m_grant;
+  //uint32_t  m_grant; // Substituted with type UlGrant_s
+  UlGrant_s m_grant;
   struct DlDciListElement_s m_dci;
 };
 
@@ -464,5 +496,6 @@ struct PagingInfoListElement_s
   uint8_t   m_pagingSubframe;
 };
 
+} // namespace ns3
 
 #endif /* FF_MAC_COMMON_H */

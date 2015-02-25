@@ -19,39 +19,57 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  * TimeStep support by Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
  */
+
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <sstream>
+
 #include "ns3/nstime.h"
+#include "ns3/int64x64.h"
 #include "ns3/test.h"
 
-namespace ns3 {
+using namespace ns3;
 
 class TimeSimpleTestCase : public TestCase
 {
 public:
-  TimeSimpleTestCase (enum Time::Unit resolution);
+  TimeSimpleTestCase ();
 private:
   virtual void DoSetup (void);
   virtual void DoRun (void);
   virtual void DoTeardown (void);
-  enum Time::Unit m_originalResolution;
-  enum Time::Unit m_resolution;
 };
 
-TimeSimpleTestCase::TimeSimpleTestCase (enum Time::Unit resolution)
-  : TestCase ("Sanity check of common time operations"),
-    m_resolution (resolution)
+TimeSimpleTestCase::TimeSimpleTestCase ()
+  : TestCase ("Sanity check of common time operations")
 {
 }
 
 void
 TimeSimpleTestCase::DoSetup (void)
 {
-  m_originalResolution = Time::GetResolution ();
 }
 
 void
 TimeSimpleTestCase::DoRun (void)
 {
-  Time::SetResolution (m_resolution);
+  NS_TEST_ASSERT_MSG_EQ_TOL (Years (1.0).GetYears (), 1.0, Years (1).GetYears (),
+                             "is 1 really 1 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Years (10.0).GetYears (), 10.0, Years (1).GetYears (),
+                             "is 10 really 10 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Days (1.0).GetDays (), 1.0, Days (1).GetDays (),
+                             "is 1 really 1 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Days (10.0).GetDays (), 10.0, Days (1).GetDays (),
+                             "is 10 really 10 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Hours (1.0).GetHours (), 1.0, Hours (1).GetHours (),
+                             "is 1 really 1 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Hours (10.0).GetHours (), 10.0, Hours (1).GetHours (),
+                             "is 10 really 10 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Minutes (1.0).GetMinutes (), 1.0, Minutes (1).GetMinutes (),
+                             "is 1 really 1 ?");
+  NS_TEST_ASSERT_MSG_EQ_TOL (Minutes (10.0).GetMinutes (), 10.0, Minutes (1).GetMinutes (),
+                             "is 10 really 10 ?");
   NS_TEST_ASSERT_MSG_EQ_TOL (Seconds (1.0).GetSeconds (), 1.0, TimeStep (1).GetSeconds (), 
                              "is 1 really 1 ?");
   NS_TEST_ASSERT_MSG_EQ_TOL (Seconds (10.0).GetSeconds (), 10.0, TimeStep (1).GetSeconds (), 
@@ -70,12 +88,18 @@ TimeSimpleTestCase::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (FemtoSeconds (1).GetFemtoSeconds (), 1, 
                          "is 1fs really 1fs ?");
 #endif
+
+  Time ten = NanoSeconds (10);
+  int64_t tenValue = ten.GetInteger ();
+  Time::SetResolution (Time::PS);
+  int64_t tenKValue = ten.GetInteger ();
+  NS_TEST_ASSERT_MSG_EQ (tenValue * 1000, tenKValue,
+                         "change resolution to PS");
 }
 
 void 
 TimeSimpleTestCase::DoTeardown (void)
 {
-  Time::SetResolution (m_originalResolution);
 }
 
 class TimesWithSignsTestCase : public TestCase
@@ -133,15 +157,90 @@ TimesWithSignsTestCase::DoTeardown (void)
 {
 }
 
+
+class TimeIntputOutputTestCase : public TestCase
+{
+public:
+  TimeIntputOutputTestCase ();
+private:
+  virtual void DoRun (void);
+  void Check (const std::string & str);
+};
+
+TimeIntputOutputTestCase::TimeIntputOutputTestCase ()
+  : TestCase ("Input,output from,to strings")
+{
+}
+
+void
+TimeIntputOutputTestCase::Check (const std::string & str)
+{
+  std::stringstream ss (str);
+  Time time;
+  ss >> time;
+  ss << time;
+  bool pass = (str == ss.str ()); 
+
+  std::cout << GetParent ()->GetName () << " InputOutput: "
+            << (pass ? "pass " : "FAIL ")
+            << "\"" << str << "\"";
+  if (!pass)
+    {
+      std::cout << ", got " << ss.str ();
+    }
+  std::cout << std::endl;
+}
+
+void
+TimeIntputOutputTestCase::DoRun (void)
+{
+  std::cout << std::endl;
+  std::cout << GetParent ()->GetName () << " InputOutput: " << GetName ()
+	    << std::endl;
+  
+  Check ("2ns");
+  Check ("+3.1us");
+  Check ("-4.2ms");
+  Check ("5.3s");
+  Check ("6.4min");
+  Check ("7.5h");
+  Check ("8.6d");
+  Check ("10.8y");
+
+  Time t (3.141592654e9);  // Pi seconds
+  
+  std::cout << GetParent ()->GetName () << " InputOutput: "
+            << "example: raw:   " << t
+            << std::endl;
+  
+  std::cout << GetParent ()->GetName () << " InputOutput: "
+            << std::fixed << std::setprecision (9)
+            << "example: in s:  " << t.As (Time::S)
+            << std::endl;
+    
+  std::cout << GetParent ()->GetName () << " InputOutput: "
+            << std::setprecision (6)
+            << "example: in ms: " << t.As (Time::MS)
+            << std::endl;
+
+  std::cout << GetParent ()->GetName () << " InputOutput: "
+            << "example: Get ns: " << t.GetNanoSeconds ()
+            << std::endl;
+
+  std::cout << std::endl;
+}
+    
 static class TimeTestSuite : public TestSuite
 {
 public:
   TimeTestSuite ()
     : TestSuite ("time", UNIT)
   {
-    AddTestCase (new TimeSimpleTestCase (Time::US));
-    AddTestCase (new TimesWithSignsTestCase ());
+    AddTestCase (new TimesWithSignsTestCase (), TestCase::QUICK);
+    AddTestCase (new TimeIntputOutputTestCase (), TestCase::QUICK);
+    // This should be last, since it changes the resolution
+    AddTestCase (new TimeSimpleTestCase (), TestCase::QUICK);
   }
 } g_timeTestSuite;
 
-} // namespace ns3
+

@@ -25,8 +25,7 @@
 #include "ns3/nstime.h"
 #include "ns3/node-container.h"
 
-namespace ns3 {
-namespace aodv {
+using namespace ns3;
 
 /**
  * \ingroup aodv
@@ -165,7 +164,7 @@ public:
   ~ChainRegressionTest ();
 
 private:
-  /// XXX It is important to have pointers here
+  /// \internal It is important to have pointers here
   NodeContainer * m_nodes;
 
   /// PCAP file names prefix
@@ -188,8 +187,5 @@ private:
   /// Go
   void DoRun ();
 };
-
-}
-}
 
 #endif /* AODV_REGRESSION_H */

@@ -18,7 +18,8 @@
  * Author: Nicola Baldo <nbaldo@cttc.es>
  */
 #include "building-position-allocator.h"
-#include "ns3/buildings-mobility-model.h"
+#include <ns3/mobility-building-info.h>
+#include "ns3/mobility-model.h"
 #include "ns3/buildings-helper.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/double.h"
@@ -32,9 +33,9 @@
 
 #include "ns3/building-list.h"
 
-NS_LOG_COMPONENT_DEFINE ("BuildingPositionAllocator");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("BuildingPositionAllocator");
 
 NS_OBJECT_ENSURE_REGISTERED (RandomBuildingPositionAllocator);
 
@@ -76,13 +77,13 @@ RandomBuildingPositionAllocator::GetNext () const
     {
       if (m_buildingListWithoutReplacement.empty ())
         {
-            for (BuildingList::Iterator bit = BuildingList::Begin (); bit != BuildingList::End (); ++bit)
-              {
-                m_buildingListWithoutReplacement.push_back (*bit);
-              }
+          for (BuildingList::Iterator bit = BuildingList::Begin (); bit != BuildingList::End (); ++bit)
+            {
+              m_buildingListWithoutReplacement.push_back (*bit);
+            }
         }
       uint32_t n = m_rand->GetInteger (0, m_buildingListWithoutReplacement.size () - 1);
-      b = m_buildingListWithoutReplacement.at (n);      
+      b = m_buildingListWithoutReplacement.at (n);
       m_buildingListWithoutReplacement.erase (m_buildingListWithoutReplacement.begin () + n);
     }
 
@@ -151,8 +152,8 @@ RandomRoomPositionAllocator::GetNext () const
         }
     }
   uint32_t n = m_rand->GetInteger (0,m_roomListWithoutReplacement.size () - 1);
-  RoomInfo r = m_roomListWithoutReplacement.at (n);      
-  m_roomListWithoutReplacement.erase (m_roomListWithoutReplacement.begin () + n);  
+  RoomInfo r = m_roomListWithoutReplacement.at (n);
+  m_roomListWithoutReplacement.erase (m_roomListWithoutReplacement.begin () + n);
   NS_LOG_LOGIC ("considering building " << r.b->GetId () << " room (" << r.roomx << ", " << r.roomy << ", " << r.floor << ")");
 
   Ptr<RandomBoxPositionAllocator> pa = CreateObject<RandomBoxPositionAllocator> ();
@@ -176,7 +177,7 @@ RandomRoomPositionAllocator::GetNext () const
   double x = m_rand->GetValue (x1, x2);
   double y = m_rand->GetValue (y1, y2);
   double z = m_rand->GetValue (z1, z2);
-  
+
   return Vector (x, y, z);
 }
 
@@ -209,9 +210,9 @@ SameRoomPositionAllocator::SameRoomPositionAllocator (NodeContainer c)
     {
       Ptr<MobilityModel> mm = (*it)->GetObject<MobilityModel> ();
       NS_ASSERT_MSG (mm, "no mobility model aggregated to this node");
-      Ptr<BuildingsMobilityModel> bmm = DynamicCast<BuildingsMobilityModel> (mm);
-      NS_ASSERT_MSG (bmm, "mobility model aggregated to this node is not a BuildingsMobilityModel");
-      BuildingsHelper::MakeConsistent (bmm);
+      Ptr<MobilityBuildingInfo> bmm = mm->GetObject <MobilityBuildingInfo> ();
+      NS_ASSERT_MSG (bmm, "MobilityBuildingInfo has not been aggregated to this node mobility model");
+      BuildingsHelper::MakeConsistent (mm);
     }
 }
 
@@ -233,14 +234,14 @@ SameRoomPositionAllocator::GetNext () const
     {
       m_nodeIt  = m_nodes.Begin ();
     }
-  
+
   NS_ASSERT_MSG (m_nodeIt != m_nodes.End (), "no node in container");
 
   NS_LOG_LOGIC ("considering node " << (*m_nodeIt)->GetId ());
   Ptr<MobilityModel> mm = (*m_nodeIt)->GetObject<MobilityModel> ();
   NS_ASSERT_MSG (mm, "no mobility model aggregated to this node");
-  Ptr<BuildingsMobilityModel> bmm = DynamicCast<BuildingsMobilityModel> (mm);
-  NS_ASSERT_MSG (bmm, "mobility model aggregated to this node is not a BuildingsMobilityModel");
+  Ptr<MobilityBuildingInfo> bmm = mm->GetObject<MobilityBuildingInfo> ();
+  NS_ASSERT_MSG (bmm, "MobilityBuildingInfo has not been aggregated to this node mobility model");
 
   ++m_nodeIt;
   uint32_t roomx = bmm->GetRoomNumberX ();
@@ -270,7 +271,7 @@ SameRoomPositionAllocator::GetNext () const
   double x = m_rand->GetValue (x1, x2);
   double y = m_rand->GetValue (y1, y2);
   double z = m_rand->GetValue (z1, z2);
-  
+
   return Vector (x, y, z);
 }
 
@@ -281,6 +282,67 @@ SameRoomPositionAllocator::AssignStreams (int64_t stream)
   return 1;
 }
 
+NS_OBJECT_ENSURE_REGISTERED (FixedRoomPositionAllocator);
 
 
-} // namespace ns3
+FixedRoomPositionAllocator::FixedRoomPositionAllocator (
+  uint32_t x,
+  uint32_t y,
+  uint32_t z,
+  Ptr<Building> pbtr)
+{
+  m_rand = CreateObject<UniformRandomVariable> ();
+  roomx = x;
+  roomy = y;
+  floor = z;
+  bptr = pbtr;
+}
+
+TypeId
+FixedRoomPositionAllocator::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::FixedRoomPositionAllocator")
+    .SetParent<PositionAllocator> ()
+    .SetGroupName ("Mobility")
+    .AddConstructor<SameRoomPositionAllocator> ();
+  return tid;
+}
+
+Vector
+FixedRoomPositionAllocator::GetNext () const
+{
+
+  NS_LOG_LOGIC ("considering building " << bptr->GetId () << " room (" << roomx << ", " << roomy << ", " << floor << ")");
+
+  Ptr<RandomBoxPositionAllocator> pa = CreateObject<RandomBoxPositionAllocator> ();
+
+  Box box = bptr->GetBoundaries ();
+  double rdx =  (box.xMax - box.xMin) / bptr->GetNRoomsX ();
+  double rdy =  (box.yMax - box.yMin) / bptr->GetNRoomsY ();
+  double rdz =  (box.zMax - box.zMin) / bptr->GetNFloors ();
+  double x1 = box.xMin + rdx * (roomx - 1);
+  double x2 = box.xMin + rdx * roomx;
+  double y1 = box.yMin + rdy * (roomy -1);
+  double y2 = box.yMin + rdy * roomy;
+  double z1 = box.zMin + rdz * (floor - 1);
+  double z2 = box.zMin + rdz * floor;
+  NS_LOG_LOGIC ("randomly allocating position in "
+                << " (" << x1 << "," << x2 << ") "
+                << "x (" << y1 << "," << y2 << ") "
+                << "x (" << z1 << "," << z2 << ") ");
+
+  double x = m_rand->GetValue (x1, x2);
+  double y = m_rand->GetValue (y1, y2);
+  double z = m_rand->GetValue (z1, z2);
+  return Vector (x, y, z);
+}
+
+
+int64_t
+FixedRoomPositionAllocator::AssignStreams (int64_t stream)
+{
+  m_rand->SetStream (stream);
+  return 1;
+}
+
+}  // namespace ns3

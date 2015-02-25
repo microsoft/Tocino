@@ -31,11 +31,15 @@ namespace ns3 {
  *
  * \brief tag a set of bytes in a packet
  *
- * New kinds of tags can be created by subclassing this base class.
+ * New kinds of tags can be created by subclassing from this abstract base class.
  */
 class Tag : public ObjectBase
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
 
   /**

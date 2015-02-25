@@ -25,16 +25,18 @@
 #include "ns3/spectrum-test.h"
 
 #include "ns3/lte-phy-tag.h"
-#include "ns3/lte-sinr-chunk-processor.h"
+#include "ns3/lte-chunk-processor.h"
 
 
 #include <ns3/hybrid-buildings-propagation-loss-model.h>
 #include <ns3/node-container.h>
 #include <ns3/mobility-helper.h>
+#include <ns3/buildings-helper.h>
 #include <ns3/lte-helper.h>
 #include <ns3/single-model-spectrum-channel.h>
 #include "ns3/string.h"
 #include "ns3/double.h"
+#include <ns3/boolean.h>
 #include <ns3/building.h>
 #include <ns3/enum.h>
 #include <ns3/net-device-container.h>
@@ -49,10 +51,9 @@
 #include "lte-test-ue-phy.h"
 #include "lte-test-pathloss-model.h"
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("LtePathlossModelTest");
-
-namespace ns3 {
-
 
 /**
  * Test 1.1 Pathloss compound test
@@ -77,8 +78,6 @@ LteTestPathlossDlSchedCallback (LtePathlossModelSystemTestCase *testcase, std::s
 LtePathlossModelTestSuite::LtePathlossModelTestSuite ()
   : TestSuite ("lte-pathloss-model", SYSTEM)
 {
- 
-  
   // LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME | LOG_LEVEL_ALL);
   // LogComponentEnable ("LteHelper", logLevel);
   // LogComponentEnable ("LtePathlossModelTest", logLevel);
@@ -138,12 +137,12 @@ LtePathlossModelTestSuite::LtePathlossModelTestSuite ()
   };
 
 
-  double txPowerDbm = 30; // default eNB TX power over whole bandwdith
-  double txPowerLin = pow (10, (txPowerDbm - 30)/10);
+  double txPowerDbm = 30; // default eNB TX power over whole bandwidth
+  double txPowerLin = std::pow (10, (txPowerDbm - 30)/10);
   double ktDbm = -174;    // reference LTE noise PSD
-  double noisePowerDbm = ktDbm + 10 * log10 (25 * 180000); // corresponds to kT*bandwidth in linear units
+  double noisePowerDbm = ktDbm + 10 * std::log10 (25 * 180000); // corresponds to kT*bandwidth in linear units
   double receiverNoiseFigureDb = 9.0; // default UE noise figure
-  double noiseLin = pow (10, (noisePowerDbm-30+receiverNoiseFigureDb)/10);
+  double noiseLin = std::pow (10, (noisePowerDbm-30+receiverNoiseFigureDb)/10);
 
   // reference values obtained with the octave script src/lte/test/reference/lte_pathloss.m
 
@@ -156,12 +155,20 @@ LtePathlossModelTestSuite::LtePathlossModelTestSuite ()
     //     double lossDb = txPowerDbm - snrEfficiencyMcs[i].snrDb - noisePowerDbm - receiverNoiseFigureDb;
     double sinrLin = (txPowerLin/(pow(10, loss[i]/10))) / noiseLin;
     //     double sinrDb = txPowerDbm- noisePowerDbm - receiverNoiseFigureDb - loss[i];
-    double sinrDb = 10*log10(sinrLin);
+    double sinrDb = 10 * std::log10 (sinrLin);
     NS_LOG_INFO (" Ptx " << txPowerDbm << " Pn " << noisePowerDbm << " Fn " << receiverNoiseFigureDb << " Pl " << loss[i] << " dist " << dist[i]);
+
+    int mcs = -1;
+    int numSnrEfficiencyMcsEntries = sizeof (snrEfficiencyMcs) / sizeof (SnrEfficiencyMcs);
+    for (int j = 0; j < numSnrEfficiencyMcsEntries && snrEfficiencyMcs[j].snrDb < sinrDb; ++j)
+      {
+        mcs = snrEfficiencyMcs[j].mcsIndex;
+      }
+
     std::ostringstream name;
     name << " snr= " << sinrDb << " dB, "
-    << " mcs= " << snrEfficiencyMcs[i].mcsIndex;
-    AddTestCase (new LtePathlossModelSystemTestCase (name.str (),  sinrDb, dist[i], snrEfficiencyMcs[i].mcsIndex));
+         << " mcs= " << snrEfficiencyMcs[i].mcsIndex;
+    AddTestCase (new LtePathlossModelSystemTestCase (name.str (),  sinrDb, dist[i], mcs), TestCase::QUICK);
   }
 
 
@@ -198,27 +205,19 @@ LtePathlossModelSystemTestCase::DoRun (void)
   /**
   * Simulation Topology
   */
-//   LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME | LOG_LEVEL_ALL);
-//   LogComponentEnable ("LteAmc", LOG_LEVEL_ALL);
-//   LogComponentEnable ("LtePhy", LOG_LEVEL_ALL);
-//   LogComponentEnable ("LteEnbPhy", LOG_LEVEL_ALL);
-//   LogComponentEnable ("LteUePhy", LOG_LEVEL_ALL);
-//   LogComponentEnable ("SingleModelSpectrumChannel", LOG_LEVEL_ALL);
-  LogComponentEnable ("BuildingsPropagationLossModel", LOG_LEVEL_ALL);
-  LogComponentEnable ("HybridBuildingsPropagationLossModel", LOG_LEVEL_ALL);
-//   LogComponentEnable ("LteHelper", LOG_LEVEL_ALL);
+  //Disable Uplink Power Control
+  Config::SetDefault ("ns3::LteUePhy::EnableUplinkPowerControl", BooleanValue (false));
 
-//   
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
   //   lteHelper->EnableLogComponents ();
   lteHelper->EnableMacTraces ();
   lteHelper->EnableRlcTraces ();
   lteHelper->SetAttribute ("PathlossModel", StringValue ("ns3::HybridBuildingsPropagationLossModel"));
 
-  // set frequency. This is important because it changes the behavior of the pathloss model
+  // set frequency. This is important because it changes the behavior of the path loss model
   lteHelper->SetEnbDeviceAttribute ("DlEarfcn", UintegerValue (200));
+  lteHelper->SetUeDeviceAttribute ("DlEarfcn", UintegerValue (200));
 
-  
   // remove shadowing component
   lteHelper->SetPathlossModelAttribute ("ShadowSigmaOutdoor", DoubleValue (0.0));
   lteHelper->SetPathlossModelAttribute ("ShadowSigmaIndoor", DoubleValue (0.0));
@@ -233,8 +232,10 @@ LtePathlossModelSystemTestCase::DoRun (void)
   
   // Install Mobility Model
   MobilityHelper mobility;
-  mobility.SetMobilityModel ("ns3::BuildingsMobilityModel");
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (allNodes);
+  BuildingsHelper::Install (allNodes);
+
   
   // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
@@ -243,9 +244,9 @@ LtePathlossModelSystemTestCase::DoRun (void)
   enbDevs = lteHelper->InstallEnbDevice (enbNodes);
   ueDevs = lteHelper->InstallUeDevice (ueNodes);
   
-  Ptr<BuildingsMobilityModel> mm_enb = enbNodes.Get (0)->GetObject<BuildingsMobilityModel> ();
+  Ptr<MobilityModel> mm_enb = enbNodes.Get (0)->GetObject<MobilityModel> ();
   mm_enb->SetPosition (Vector (0.0, 0.0, 30.0));
-  Ptr<BuildingsMobilityModel> mm_ue = ueNodes.Get (0)->GetObject<BuildingsMobilityModel> ();
+  Ptr<MobilityModel> mm_ue = ueNodes.Get (0)->GetObject<MobilityModel> ();
   mm_ue->SetPosition (Vector (m_distance, 0.0, 1.0));
   
   Ptr<LteEnbNetDevice> lteEnbDev = enbDevs.Get (0)->GetObject<LteEnbNetDevice> ();
@@ -262,25 +263,24 @@ LtePathlossModelSystemTestCase::DoRun (void)
   // Attach a UE to a eNB
   lteHelper->Attach (ueDevs, enbDevs.Get (0));
 
-  
   // Activate an EPS bearer
   enum EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer (q);
-  lteHelper->ActivateEpsBearer (ueDevs, bearer, EpcTft::Default ());
+  lteHelper->ActivateDataRadioBearer (ueDevs, bearer);
   
   // Use testing chunk processor in the PHY layer
   // It will be used to test that the SNR is as intended
   //Ptr<LtePhy> uePhy = ueDevs.Get (0)->GetObject<LteUeNetDevice> ()->GetPhy ()->GetObject<LtePhy> ();
-  Ptr<LteTestSinrChunkProcessor> testSinr = Create<LteTestSinrChunkProcessor> (uePhy);
-  uePhy->GetDownlinkSpectrumPhy ()->AddSinrChunkProcessor (testSinr);
+  Ptr<LteTestSinrChunkProcessor> testSinr = Create<LteTestSinrChunkProcessor> ();
+  uePhy->GetDownlinkSpectrumPhy ()->AddCtrlSinrChunkProcessor (testSinr);
    
 //   Config::Connect ("/NodeList/0/DeviceList/0/LteEnbMac/DlScheduling",
 //                    MakeBoundCallback (&LteTestPathlossDlSchedCallback, this));
                    
-  Simulator::Stop (Seconds (0.005));
+  Simulator::Stop (Seconds (0.035));
   Simulator::Run ();
   
-  double calculatedSinrDb = 10.0 * log10 (testSinr->GetSinr ()->operator[] (0));
+  double calculatedSinrDb = 10.0 * std::log10 (testSinr->GetSinr ()->operator[] (0));
   NS_LOG_INFO ("Distance " << m_distance << " Calculated SINR " << calculatedSinrDb << " ref " << m_snrDb);
   Simulator::Destroy ();
   NS_TEST_ASSERT_MSG_EQ_TOL (calculatedSinrDb, m_snrDb, 0.001, "Wrong SINR !");
@@ -299,19 +299,12 @@ LtePathlossModelSystemTestCase::DlScheduling (uint32_t frameNo, uint32_t subfram
     NS_LOG_INFO ("SNR\tRef_MCS\tCalc_MCS");
   }
   
-  /**
-  * Note:
-  *    For first 4 subframeNo in the first frameNo, the MCS cannot be properly evaluated,
-  *    because CQI feedback is still not available at the eNB.
-  */
-  if ( (frameNo > 1) || (subframeNo > 4) )
+  
+  // need to allow for RRC connection establishment + SRS transmission
+  if (Simulator::Now () > MilliSeconds (21))
   {
     NS_LOG_INFO (m_snrDb << "\t" << m_mcsIndex << "\t" << (uint16_t)mcsTb1);
     
     NS_TEST_ASSERT_MSG_EQ ((uint16_t)mcsTb1, m_mcsIndex, "Wrong MCS index");
   }
 }
-                                         
-
-} // namespace ns3
-

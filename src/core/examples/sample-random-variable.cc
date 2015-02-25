@@ -16,11 +16,10 @@
 #include "ns3/simulator.h"
 #include "ns3/nstime.h"
 #include "ns3/command-line.h"
-#include "ns3/random-variable.h"
+#include "ns3/random-variable-stream.h"
 #include <iostream>
 
 using namespace ns3;
-using namespace std;
 
 /*
  * This program can be run from waf such as "./waf --run sample-random-variable"
@@ -56,8 +55,8 @@ int main (int argc, char *argv[])
 
   // SeedManager::SetRun (3);
 
-  UniformVariable uv;
+  Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable> ();
 
-  cout << uv.GetValue () << endl;
+  std::cout << uv->GetValue () << std::endl;
 
 }

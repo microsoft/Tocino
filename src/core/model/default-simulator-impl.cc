@@ -28,11 +28,15 @@
 #include "assert.h"
 #include "log.h"
 
-#include <math.h>
+#include <cmath>
 
-NS_LOG_COMPONENT_DEFINE ("DefaultSimulatorImpl");
 
 namespace ns3 {
+
+// Note:  Logging in this file is largely avoided due to the
+// number of calls that are made to these functions and the possibility
+// of causing recursions leading to stack overflow
+NS_LOG_COMPONENT_DEFINE ("DefaultSimulatorImpl");
 
 NS_OBJECT_ENSURE_REGISTERED (DefaultSimulatorImpl);
 
@@ -48,6 +52,7 @@ DefaultSimulatorImpl::GetTypeId (void)
 
 DefaultSimulatorImpl::DefaultSimulatorImpl ()
 {
+  NS_LOG_FUNCTION (this);
   m_stop = false;
   // uids are allocated from 4.
   // uid 0 is "invalid" events
@@ -65,11 +70,13 @@ DefaultSimulatorImpl::DefaultSimulatorImpl ()
 
 DefaultSimulatorImpl::~DefaultSimulatorImpl ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
 DefaultSimulatorImpl::DoDispose (void)
 {
+  NS_LOG_FUNCTION (this);
   while (!m_events->IsEmpty ())
     {
       Scheduler::Event next = m_events->RemoveNext ();
@@ -81,6 +88,7 @@ DefaultSimulatorImpl::DoDispose (void)
 void
 DefaultSimulatorImpl::Destroy ()
 {
+  NS_LOG_FUNCTION (this);
   while (!m_destroyEvents.empty ()) 
     {
       Ptr<EventImpl> ev = m_destroyEvents.front ().PeekEventImpl ();
@@ -96,6 +104,7 @@ DefaultSimulatorImpl::Destroy ()
 void
 DefaultSimulatorImpl::SetScheduler (ObjectFactory schedulerFactory)
 {
+  NS_LOG_FUNCTION (this << schedulerFactory);
   Ptr<Scheduler> scheduler = schedulerFactory.Create<Scheduler> ();
 
   if (m_events != 0)
@@ -173,6 +182,7 @@ DefaultSimulatorImpl::ProcessEventsWithContext (void)
 void
 DefaultSimulatorImpl::Run (void)
 {
+  NS_LOG_FUNCTION (this);
   // Set the current threadId as the main threadId
   m_main = SystemThread::Self();
   ProcessEventsWithContext ();
@@ -191,12 +201,14 @@ DefaultSimulatorImpl::Run (void)
 void 
 DefaultSimulatorImpl::Stop (void)
 {
+  NS_LOG_FUNCTION (this);
   m_stop = true;
 }
 
 void 
 DefaultSimulatorImpl::Stop (Time const &time)
 {
+  NS_LOG_FUNCTION (this << time.GetTimeStep ());
   Simulator::Schedule (time, &Simulator::Stop);
 }
 
@@ -206,6 +218,7 @@ DefaultSimulatorImpl::Stop (Time const &time)
 EventId
 DefaultSimulatorImpl::Schedule (Time const &time, EventImpl *event)
 {
+  NS_LOG_FUNCTION (this << time.GetTimeStep () << event);
   NS_ASSERT_MSG (SystemThread::Equals (m_main), "Simulator::Schedule Thread-unsafe invocation!");
 
   Time tAbsolute = time + TimeStep (m_currentTs);
@@ -226,7 +239,7 @@ DefaultSimulatorImpl::Schedule (Time const &time, EventImpl *event)
 void
 DefaultSimulatorImpl::ScheduleWithContext (uint32_t context, Time const &time, EventImpl *event)
 {
-  NS_LOG_FUNCTION (this << context << time.GetTimeStep () << m_currentTs << event);
+  NS_LOG_FUNCTION (this << context << time.GetTimeStep () << event);
 
   if (SystemThread::Equals (m_main))
     {
@@ -284,6 +297,7 @@ DefaultSimulatorImpl::ScheduleDestroy (EventImpl *event)
 Time
 DefaultSimulatorImpl::Now (void) const
 {
+  // Do not add function logging here, to avoid stack overflow
   return TimeStep (m_currentTs);
 }
 
@@ -343,30 +357,30 @@ DefaultSimulatorImpl::Cancel (const EventId &id)
 }
 
 bool
-DefaultSimulatorImpl::IsExpired (const EventId &ev) const
+DefaultSimulatorImpl::IsExpired (const EventId &id) const
 {
-  if (ev.GetUid () == 2)
+  if (id.GetUid () == 2)
     {
-      if (ev.PeekEventImpl () == 0 ||
-          ev.PeekEventImpl ()->IsCancelled ())
+      if (id.PeekEventImpl () == 0 ||
+          id.PeekEventImpl ()->IsCancelled ())
         {
           return true;
         }
       // destroy events.
       for (DestroyEvents::const_iterator i = m_destroyEvents.begin (); i != m_destroyEvents.end (); i++)
         {
-          if (*i == ev)
+          if (*i == id)
             {
               return false;
             }
         }
       return true;
     }
-  if (ev.PeekEventImpl () == 0 ||
-      ev.GetTs () < m_currentTs ||
-      (ev.GetTs () == m_currentTs &&
-       ev.GetUid () <= m_currentUid) ||
-      ev.PeekEventImpl ()->IsCancelled ()) 
+  if (id.PeekEventImpl () == 0 ||
+      id.GetTs () < m_currentTs ||
+      (id.GetTs () == m_currentTs &&
+       id.GetUid () <= m_currentUid) ||
+      id.PeekEventImpl ()->IsCancelled ()) 
     {
       return true;
     }
@@ -379,8 +393,8 @@ DefaultSimulatorImpl::IsExpired (const EventId &ev) const
 Time 
 DefaultSimulatorImpl::GetMaximumSimulationTime (void) const
 {
-  // XXX: I am fairly certain other compilers use other non-standard
-  // post-fixes to indicate 64 bit constants.
+  /// \todo I am fairly certain other compilers use other non-standard
+  /// post-fixes to indicate 64 bit constants.
   return TimeStep (0x7fffffffffffffffLL);
 }
 
@@ -391,5 +405,3 @@ DefaultSimulatorImpl::GetContext (void) const
 }
 
 } // namespace ns3
-
-

@@ -143,6 +143,20 @@ public:
   void SetClickFile (Ptr<Node> node, std::string clickfile);
 
   /**
+   * \brief Set defines to be used for a group of nodes.
+   * \param c NodeContainer of nodes
+   * \param defines Defines mapping to be used
+   */
+  void SetDefines (NodeContainer c, std::map<std::string, std::string> defines);
+
+  /**
+   * \brief Set defines to be used for a node.
+   * \param node Node for which the defines are to be set
+   * \param defines Defines mapping to be used
+   */
+  void SetDefines (Ptr<Node> node, std::map<std::string, std::string> defines);
+
+  /**
    * \brief Set a Click routing table element for a group of nodes.
    * \param c NodeContainer of nodes
    * \param rt Click Routing Table element name
@@ -158,7 +172,6 @@ public:
 private:
   /**
    * @brief Enable pcap output the indicated Ipv4 and interface pair.
-   * @internal
    *
    * @param prefix Filename prefix to use for pcap files.
    * @param ipv4 Ptr to the Ipv4 interface on which you want to enable tracing.
@@ -171,7 +184,6 @@ private:
 
   /**
    * @brief Enable ascii trace output on the indicated Ipv4 and interface pair.
-   * @internal
    *
    * @param stream An OutputStreamWrapper representing an existing file to use
    *               when writing trace data.
@@ -188,24 +200,12 @@ private:
   void Initialize (void);
   ObjectFactory m_tcpFactory;
 
-  /**
-   * \internal
-   */
   static void CreateAndAggregateObjectFromTypeId (Ptr<Node> node, const std::string typeId);
 
-  /**
-   * \internal
-   */
   static void Cleanup (void);
 
-  /**
-   * \internal
-   */
   bool PcapHooked (Ptr<Ipv4> ipv4);
 
-  /**
-   * \internal
-   */
   bool AsciiHooked (Ptr<Ipv4> ipv4);
 
   /**
@@ -217,6 +217,11 @@ private:
    * \brief Node to Click file mapping
    */
   std::map < Ptr<Node>, std::string  > m_nodeToClickFileMap;
+
+  /**
+   * \brief Node to Click defines mapping
+   */
+  std::map < Ptr<Node>, std::map<std::string, std::string>  > m_nodeToDefinesMap;
 
   /**
    * \brief Node to Routing Table Element mapping

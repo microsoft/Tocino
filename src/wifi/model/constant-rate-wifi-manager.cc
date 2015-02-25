@@ -22,8 +22,13 @@
 
 #include "ns3/string.h"
 #include "ns3/assert.h"
+#include "ns3/log.h"
+
+#define Min(a,b) ((a < b) ? a : b)
 
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("ConstantRateWifiManager");
 
 NS_OBJECT_ENSURE_REGISTERED (ConstantRateWifiManager);
 
@@ -47,15 +52,18 @@ ConstantRateWifiManager::GetTypeId (void)
 
 ConstantRateWifiManager::ConstantRateWifiManager ()
 {
+  NS_LOG_FUNCTION (this);
 }
 ConstantRateWifiManager::~ConstantRateWifiManager ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 
 WifiRemoteStation *
 ConstantRateWifiManager::DoCreateStation (void) const
 {
+  NS_LOG_FUNCTION (this);
   WifiRemoteStation *station = new WifiRemoteStation ();
   return station;
 }
@@ -65,48 +73,58 @@ void
 ConstantRateWifiManager::DoReportRxOk (WifiRemoteStation *station,
                                        double rxSnr, WifiMode txMode)
 {
+  NS_LOG_FUNCTION (this << station << rxSnr << txMode);
 }
 void
 ConstantRateWifiManager::DoReportRtsFailed (WifiRemoteStation *station)
 {
+  NS_LOG_FUNCTION (this << station);
 }
 void
 ConstantRateWifiManager::DoReportDataFailed (WifiRemoteStation *station)
 {
+  NS_LOG_FUNCTION (this << station);
 }
 void
 ConstantRateWifiManager::DoReportRtsOk (WifiRemoteStation *st,
                                         double ctsSnr, WifiMode ctsMode, double rtsSnr)
 {
+  NS_LOG_FUNCTION (this << st << ctsSnr << ctsMode << rtsSnr);
 }
 void
 ConstantRateWifiManager::DoReportDataOk (WifiRemoteStation *st,
                                          double ackSnr, WifiMode ackMode, double dataSnr)
 {
+  NS_LOG_FUNCTION (this << st << ackSnr << ackMode << dataSnr);
 }
 void
 ConstantRateWifiManager::DoReportFinalRtsFailed (WifiRemoteStation *station)
 {
+  NS_LOG_FUNCTION (this << station);
 }
 void
 ConstantRateWifiManager::DoReportFinalDataFailed (WifiRemoteStation *station)
 {
+  NS_LOG_FUNCTION (this << station);
 }
 
-WifiMode
-ConstantRateWifiManager::DoGetDataMode (WifiRemoteStation *st, uint32_t size)
+WifiTxVector
+ConstantRateWifiManager::DoGetDataTxVector (WifiRemoteStation *st, uint32_t size)
 {
-  return m_dataMode;
+  NS_LOG_FUNCTION (this << st << size);
+  return WifiTxVector (m_dataMode, GetDefaultTxPowerLevel (), GetLongRetryCount (st), GetShortGuardInterval (st), Min (GetNumberOfReceiveAntennas (st),GetNumberOfTransmitAntennas()), GetNess (st), GetStbc (st));
 }
-WifiMode
-ConstantRateWifiManager::DoGetRtsMode (WifiRemoteStation *st)
+WifiTxVector
+ConstantRateWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
 {
-  return m_ctlMode;
+  NS_LOG_FUNCTION (this << st);
+  return WifiTxVector (m_ctlMode, GetDefaultTxPowerLevel (), GetShortRetryCount (st), GetShortGuardInterval (st), Min (GetNumberOfReceiveAntennas (st),GetNumberOfTransmitAntennas()), GetNess (st), GetStbc (st));
 }
 
 bool
 ConstantRateWifiManager::IsLowLatency (void) const
 {
+  NS_LOG_FUNCTION (this);
   return true;
 }
 

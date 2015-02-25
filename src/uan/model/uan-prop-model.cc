@@ -27,7 +27,7 @@
 namespace ns3 {
 
 std::ostream &
-operator<< (std::ostream &os, UanPdp &pdp)
+operator<< (std::ostream &os, const UanPdp &pdp)
 {
   os << pdp.GetNTaps () << '|';
   os << pdp.GetResolution ().GetSeconds () << '|';
@@ -64,7 +64,7 @@ operator>> (std::istream &is, UanPdp &pdp)
 
   std::complex<double> amp;
   pdp.m_taps = std::vector<Tap> (ntaps);
-  for (uint32_t i = 0; i < ntaps; i++)
+  for (uint32_t i = 0; i < ntaps && !is.eof (); i++)
     {
       is >> amp >> c1;
       if (c1 != '|')
@@ -213,9 +213,9 @@ UanPdp::SumTapsFromMaxC (Time delay, Time duration) const
 
   for (uint32_t i = 0; i < GetNTaps (); i++)
     {
-      if (abs (m_taps[i].GetAmp ()) > maxAmp)
+      if (std::abs (m_taps[i].GetAmp ()) > maxAmp)
         {
-          maxAmp = abs (m_taps[i].GetAmp ());
+          maxAmp = std::abs (m_taps[i].GetAmp ());
           maxTapIndex = i;
         }
     }
@@ -236,7 +236,7 @@ UanPdp::SumTapsFromMaxNc (Time delay, Time duration) const
       NS_ASSERT_MSG (GetNTaps () == 1, "Attempted to sum taps over time interval in "
                      "UanPdp with resolution 0 and multiple taps");
 
-      return abs (m_taps[0].GetAmp ());
+      return std::abs (m_taps[0].GetAmp ());
     }
 
   uint32_t numTaps =  static_cast<uint32_t> (duration.GetSeconds () / m_resolution.GetSeconds () + 0.5);
@@ -245,9 +245,9 @@ UanPdp::SumTapsFromMaxNc (Time delay, Time duration) const
 
   for (uint32_t i = 0; i < GetNTaps (); i++)
     {
-      if (abs (m_taps[i].GetAmp ()) > maxAmp)
+      if (std::abs (m_taps[i].GetAmp ()) > maxAmp)
         {
-          maxAmp = abs (m_taps[i].GetAmp ());
+          maxAmp = std::abs (m_taps[i].GetAmp ());
           maxTapIndex = i;
         }
     }
@@ -259,7 +259,7 @@ UanPdp::SumTapsFromMaxNc (Time delay, Time duration) const
   for (uint32_t i = start; i < end; i++)
 
     {
-      sum += abs (m_taps[i].GetAmp ());
+      sum += std::abs (m_taps[i].GetAmp ());
     }
   return sum;
 }
@@ -273,7 +273,7 @@ UanPdp::SumTapsNc (Time begin, Time end) const
 
       if (begin <= Seconds (0.0) && end >= Seconds (0.0))
         {
-          return abs (m_taps[0].GetAmp ());
+          return std::abs (m_taps[0].GetAmp ());
         }
       else
         {
@@ -288,7 +288,7 @@ UanPdp::SumTapsNc (Time begin, Time end) const
   double sum = 0;
   for (uint32_t i = stIndex; i < endIndex; i++)
     {
-      sum += abs (m_taps[i].GetAmp ());
+      sum += std::abs (m_taps[i].GetAmp ());
     }
   return sum;
 

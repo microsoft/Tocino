@@ -33,8 +33,17 @@ class FfMacCschedSapUser;
 class FfMacSchedSapUser;
 class FfMacCschedSapProvider;
 class FfMacSchedSapProvider;
+class LteFfrSapProvider;
+class LteFfrSapUser;
 
 /**
+ * \ingroup lte
+ * \defgroup ff-api FF MAC Schedulers
+ */
+     
+/**
+ * \ingroup ff-api
+ *
  * This abstract base class identifies the interface by means of which
  * the helper object can plug on the MAC a scheduler implementation based on the
  * FF MAC Sched API.
@@ -44,6 +53,22 @@ class FfMacSchedSapProvider;
 class FfMacScheduler : public Object
 {
 public:
+  /**
+  * The type of UL CQI to be filtered (ALL means accept all the CQI,
+  * where a new CQI of any type overwrite the old one, even of another type)
+  *
+  */
+  enum UlCqiFilter_t
+  {
+    SRS_UL_CQI,
+    PUSCH_UL_CQI,
+    ALL_UL_CQI
+  };
+  /**
+  * constructor
+  *
+  */
+  FfMacScheduler ();
   /**
    * destructor
    *
@@ -82,6 +107,26 @@ public:
    * \return the Provider part of the FfMacSchedSap provided by the Scheduler
    */
   virtual FfMacSchedSapProvider* GetFfMacSchedSapProvider () = 0;
+
+  //FFR SAPs
+  /**
+   *
+   * Set the Provider part of the LteFfrSap that this Scheduler will
+   * interact with
+   *
+   * \param s
+   */
+  virtual void SetLteFfrSapProvider (LteFfrSapProvider* s) = 0;
+
+  /**
+   *
+   * \return the User part of the LteFfrSap provided by the FfrAlgorithm
+   */
+  virtual LteFfrSapUser* GetLteFfrSapUser () = 0;
+  
+protected:
+    
+  UlCqiFilter_t m_ulCqiFilter;
 
 };
 

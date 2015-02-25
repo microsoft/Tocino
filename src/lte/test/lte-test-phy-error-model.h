@@ -21,11 +21,12 @@
 #ifndef LENA_TEST_PHY_ERROR_MODEL_H
 #define LENA_TEST_PHY_ERROR_MODEL_H
 
-#include "ns3/simulator.h"
-#include "ns3/test.h"
+#include <ns3/simulator.h>
+#include <ns3/test.h>
+#include <ns3/nstime.h>
 
 
-namespace ns3 {
+using namespace ns3;
 
 
 /**
@@ -35,35 +36,54 @@ namespace ns3 {
  * implemented obtained by using different SINR values and different numbers of 
  * UEs. The test consists on ...
  */
-class LenaPhyErrorModelTestCase : public TestCase
+class LenaDataPhyErrorModelTestCase : public TestCase
 {
 public:
-  LenaPhyErrorModelTestCase (uint16_t nUser, uint16_t dist, uint16_t tbSize, double refBer, uint16_t bernQuantile);
-  virtual ~LenaPhyErrorModelTestCase ();
+  LenaDataPhyErrorModelTestCase (uint16_t nUser, uint16_t dist,
+                                 double blerRef, uint16_t toleranceRxPackets,
+                                 Time statsStartTime, uint32_t rngRun);
+  virtual ~LenaDataPhyErrorModelTestCase ();
 
 private:
   virtual void DoRun (void);
-  static std::string BuildNameString (uint16_t nUser, uint16_t dist);
+  static std::string BuildNameString (uint16_t nUser, uint16_t dist, uint32_t rngRun);
   uint16_t m_nUser;
   uint16_t m_dist;
-  uint16_t m_tbSize;
-  double m_berRef;
-  uint16_t m_bernQuantile;
+  double m_blerRef;
+  uint16_t m_toleranceRxPackets;
+  Time m_statsStartTime; ///< Extra time in the beginning of simulation to allow RRC connection establishment + SRS
+  uint32_t m_rngRun;
 
 };
 
 
 
-class LenaTestPhyErrorModelrSuite : public TestSuite
+class LenaDlCtrlPhyErrorModelTestCase : public TestCase
 {
 public:
-  LenaTestPhyErrorModelrSuite ();
+  LenaDlCtrlPhyErrorModelTestCase (uint16_t nEnb, uint16_t dist,
+                                   double blerRef, uint16_t toleranceRxPackets,
+                                   Time statsStartTime, uint32_t rngRun);
+  virtual ~LenaDlCtrlPhyErrorModelTestCase ();
+
+private:
+  virtual void DoRun (void);
+  static std::string BuildNameString (uint16_t nUser, uint16_t dist, uint32_t rngRun);
+  uint16_t m_nEnb;
+  uint16_t m_dist;
+  double m_blerRef;
+  uint16_t m_toleranceRxPackets;
+  Time m_statsStartTime; ///< Extra time in the beginning of simulation to allow RRC connection establishment + SRS
+  uint32_t m_rngRun;
+
 };
 
 
 
-
-} // namespace ns3
-
+class LenaTestPhyErrorModelSuite : public TestSuite
+{
+public:
+  LenaTestPhyErrorModelSuite ();
+};
 
 #endif /* LENA_TEST_PHY_ERROR_MODEL_H */

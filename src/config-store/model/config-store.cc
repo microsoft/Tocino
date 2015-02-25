@@ -15,13 +15,12 @@
 #include <fstream>
 #include <iostream>
 #include <unistd.h>
-#include <stdlib.h>
+#include <cstdlib>
 
-
-NS_LOG_COMPONENT_DEFINE ("ConfigStore");
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("ConfigStore");
 
 NS_OBJECT_ENSURE_REGISTERED (ConfigStore);
 

@@ -20,9 +20,9 @@
 #include "ns3/trace-source-accessor.h"
 #include "queue.h"
 
-NS_LOG_COMPONENT_DEFINE ("Queue");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("Queue");
 
 NS_OBJECT_ENSURE_REGISTERED (Queue);
 
@@ -32,11 +32,14 @@ Queue::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::Queue")
     .SetParent<Object> ()
     .AddTraceSource ("Enqueue", "Enqueue a packet in the queue.",
-                     MakeTraceSourceAccessor (&Queue::m_traceEnqueue))
+                     MakeTraceSourceAccessor (&Queue::m_traceEnqueue),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("Dequeue", "Dequeue a packet from the queue.",
-                     MakeTraceSourceAccessor (&Queue::m_traceDequeue))
+                     MakeTraceSourceAccessor (&Queue::m_traceDequeue),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("Drop", "Drop a packet stored in the queue.",
-                     MakeTraceSourceAccessor (&Queue::m_traceDrop))
+                     MakeTraceSourceAccessor (&Queue::m_traceDrop),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -49,12 +52,12 @@ Queue::Queue() :
   m_nTotalDroppedBytes (0),
   m_nTotalDroppedPackets (0)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 Queue::~Queue()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 
@@ -124,7 +127,7 @@ Queue::Peek (void) const
 uint32_t 
 Queue::GetNPackets (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC ("returns " << m_nPackets);
   return m_nPackets;
 }
@@ -132,7 +135,7 @@ Queue::GetNPackets (void) const
 uint32_t
 Queue::GetNBytes (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC (" returns " << m_nBytes);
   return m_nBytes;
 }
@@ -140,7 +143,7 @@ Queue::GetNBytes (void) const
 bool
 Queue::IsEmpty (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC ("returns " << (m_nPackets == 0));
   return m_nPackets == 0;
 }
@@ -148,7 +151,7 @@ Queue::IsEmpty (void) const
 uint32_t
 Queue::GetTotalReceivedBytes (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC ("returns " << m_nTotalReceivedBytes);
   return m_nTotalReceivedBytes;
 }
@@ -156,7 +159,7 @@ Queue::GetTotalReceivedBytes (void) const
 uint32_t
 Queue::GetTotalReceivedPackets (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC ("returns " << m_nTotalReceivedPackets);
   return m_nTotalReceivedPackets;
 }
@@ -164,7 +167,7 @@ Queue::GetTotalReceivedPackets (void) const
 uint32_t
 Queue:: GetTotalDroppedBytes (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC ("returns " << m_nTotalDroppedBytes);
   return m_nTotalDroppedBytes;
 }
@@ -172,7 +175,7 @@ Queue:: GetTotalDroppedBytes (void) const
 uint32_t
 Queue::GetTotalDroppedPackets (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_LOGIC ("returns " << m_nTotalDroppedPackets);
   return m_nTotalDroppedPackets;
 }
@@ -180,7 +183,7 @@ Queue::GetTotalDroppedPackets (void) const
 void 
 Queue::ResetStatistics (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_nTotalReceivedBytes = 0;
   m_nTotalReceivedPackets = 0;
   m_nTotalDroppedBytes = 0;

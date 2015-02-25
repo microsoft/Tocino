@@ -3,7 +3,7 @@
 #include "ns3/log.h"
 #include "ns3/node.h"
 #include "ns3/packet.h"
-#include "ns3/random-variable.h"
+#include "ns3/random-variable-stream.h"
 #include "ns3/rng-seed-manager.h"
 #include "ns3/simulator.h"
 

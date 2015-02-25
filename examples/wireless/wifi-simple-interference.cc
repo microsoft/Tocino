@@ -92,23 +92,28 @@
 #include <vector>
 #include <string>
 
-NS_LOG_COMPONENT_DEFINE ("WifiSimpleInterference");
-
 using namespace ns3;
 
-std::string PrintReceivedPacket (Ptr<Socket> socket)
+NS_LOG_COMPONENT_DEFINE ("WifiSimpleInterference");
+
+static inline std::string PrintReceivedPacket (Ptr<Socket> socket)
 {
   Address addr;
-  socket->GetSockName (addr);
-  InetSocketAddress iaddr = InetSocketAddress::ConvertFrom (addr);
 
   std::ostringstream oss;
-  oss << "Received one packet!  Socket: " << iaddr.GetIpv4 () << " port: " << iaddr.GetPort ();
+
+  while (socket->Recv ())
+    {
+      socket->GetSockName (addr);
+      InetSocketAddress iaddr = InetSocketAddress::ConvertFrom (addr);
+
+      oss << "Received one packet!  Socket: " << iaddr.GetIpv4 () << " port: " << iaddr.GetPort ();
+    }
 
   return oss.str ();
 }
 
-void ReceivePacket (Ptr<Socket> socket)
+static void ReceivePacket (Ptr<Socket> socket)
 {
   NS_LOG_UNCOND (PrintReceivedPacket (socket));
 }

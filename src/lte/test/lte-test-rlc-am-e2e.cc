@@ -37,10 +37,9 @@
 #include "lte-test-entities.h"
 
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("LteRlcAmE2eTest");
-
-namespace ns3 {
-
 
 /**
  * Test x.x.x RLC AM: End-to-end flow
@@ -63,8 +62,17 @@ LteRlcAmE2eTestSuite::LteRlcAmE2eTestSuite ()
       for ( uint32_t s = 0 ; s < (sizeof (seeds) / sizeof (uint32_t)) ; s++ )
         {
           std::ostringstream name;
-          name << " Losses = " << losses[l] << "%. Seed = " << seeds[s];
-          AddTestCase (new LteRlcAmE2eTestCase (name.str (), seeds[s], losses[l]));
+          name << " Losses = " << losses[l] * 100 << "%. Seed = " << seeds[s];
+          TestCase::TestDuration testDuration;
+          if (l == 1 && s == 0)
+            {
+              testDuration = TestCase::QUICK;
+            }
+          else
+            {
+              testDuration = TestCase::EXTENSIVE;
+            }
+          AddTestCase (new LteRlcAmE2eTestCase (name.str (), seeds[s], losses[l]), testDuration);
         }
     }
 }
@@ -212,6 +220,3 @@ LteRlcAmE2eTestCase::DoRun (void)
 
   Simulator::Destroy ();
 }
-
-} // namespace ns3
-

@@ -35,6 +35,7 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoServerApplication");
+
 NS_OBJECT_ENSURE_REGISTERED (UdpEchoServer);
 
 TypeId
@@ -53,12 +54,12 @@ UdpEchoServer::GetTypeId (void)
 
 UdpEchoServer::UdpEchoServer ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 UdpEchoServer::~UdpEchoServer()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_socket = 0;
   m_socket6 = 0;
 }
@@ -66,14 +67,14 @@ UdpEchoServer::~UdpEchoServer()
 void
 UdpEchoServer::DoDispose (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   Application::DoDispose ();
 }
 
 void 
 UdpEchoServer::StartApplication (void)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   if (m_socket == 0)
     {
@@ -124,7 +125,7 @@ UdpEchoServer::StartApplication (void)
 void 
 UdpEchoServer::StopApplication ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   if (m_socket != 0) 
     {
@@ -141,6 +142,8 @@ UdpEchoServer::StopApplication ()
 void 
 UdpEchoServer::HandleRead (Ptr<Socket> socket)
 {
+  NS_LOG_FUNCTION (this << socket);
+
   Ptr<Packet> packet;
   Address from;
   while ((packet = socket->RecvFrom (from)))
@@ -155,7 +158,7 @@ UdpEchoServer::HandleRead (Ptr<Socket> socket)
         {
           NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server received " << packet->GetSize () << " bytes from " <<
                        Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << " port " <<
-                       InetSocketAddress::ConvertFrom (from).GetPort ());
+                       Inet6SocketAddress::ConvertFrom (from).GetPort ());
         }
 
       packet->RemoveAllPacketTags ();
@@ -174,7 +177,7 @@ UdpEchoServer::HandleRead (Ptr<Socket> socket)
         {
           NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server sent " << packet->GetSize () << " bytes to " <<
                        Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << " port " <<
-                       InetSocketAddress::ConvertFrom (from).GetPort ());
+                       Inet6SocketAddress::ConvertFrom (from).GetPort ());
         }
     }
 }

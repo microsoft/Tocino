@@ -30,9 +30,9 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("WifiNetDevice");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("WifiNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED (WifiNetDevice);
 
@@ -96,12 +96,12 @@ WifiNetDevice::DoDispose (void)
 }
 
 void
-WifiNetDevice::DoStart (void)
+WifiNetDevice::DoInitialize (void)
 {
-  m_phy->Start ();
-  m_mac->Start ();
-  m_stationManager->Start ();
-  NetDevice::DoStart ();
+  m_phy->Initialize ();
+  m_mac->Initialize ();
+  m_stationManager->Initialize ();
+  NetDevice::DoInitialize ();
 }
 
 void
@@ -121,6 +121,7 @@ WifiNetDevice::CompleteConfig (void)
   m_mac->SetLinkUpCallback (MakeCallback (&WifiNetDevice::LinkUp, this));
   m_mac->SetLinkDownCallback (MakeCallback (&WifiNetDevice::LinkDown, this));
   m_stationManager->SetupPhy (m_phy);
+  m_stationManager->SetupMac (m_mac);
   m_configComplete = true;
 }
 

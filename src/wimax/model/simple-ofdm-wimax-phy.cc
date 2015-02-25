@@ -33,9 +33,11 @@
 #include "simple-ofdm-wimax-channel.h"
 #include "ns3/trace-source-accessor.h"
 #include <string>
-#include <math.h>
-NS_LOG_COMPONENT_DEFINE ("SimpleOfdmWimaxPhy");
+#include <cmath>
+
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("SimpleOfdmWimaxPhy");
 
 NS_OBJECT_ENSURE_REGISTERED (SimpleOfdmWimaxPhy);
 
@@ -88,33 +90,42 @@ TypeId SimpleOfdmWimaxPhy::GetTypeId (void)
                                        &SimpleOfdmWimaxPhy::SetTraceFilePath),
                    MakeStringChecker ())
 
-    .AddTraceSource ("Rx", "Receive trace", MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_traceRx))
-
-    .AddTraceSource ("Tx", "Transmit trace", MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_traceTx))
+    .AddTraceSource ("Rx", "Receive trace",
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_traceRx),
+                     "ns3::PacketBurst::Traced::Ptr")
+    .AddTraceSource ("Tx", "Transmit trace",
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_traceTx),
+                     "ns3::PacketBurst::TracedCallback")
 
     .AddTraceSource ("PhyTxBegin",
                      "Trace source indicating a packet has begun transmitting over the channel medium",
-                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyTxBeginTrace))
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyTxBeginTrace),
+                     "ns3::PacketBurst::TracedCallback")
 
     .AddTraceSource ("PhyTxEnd",
                      "Trace source indicating a packet has been completely transmitted over the channel",
-                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyTxEndTrace))
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyTxEndTrace),
+                     "ns3::PacketBurst::TracedCallback")
 
     .AddTraceSource ("PhyTxDrop",
                      "Trace source indicating a packet has been dropped by the device during transmission",
-                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyTxDropTrace))
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyTxDropTrace),
+                     "ns3::PacketBurst::TracedCallback")
 
     .AddTraceSource ("PhyRxBegin",
                      "Trace source indicating a packet has begun being received from the channel medium by the device",
-                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyRxBeginTrace))
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyRxBeginTrace),
+                     "ns3::PacketBurst::TracedCallback")
 
     .AddTraceSource ("PhyRxEnd",
                      "Trace source indicating a packet has been completely received from the channel medium by the device",
-                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyRxEndTrace))
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyRxEndTrace),
+                     "ns3::PacketBurst::TracedCallback")
 
     .AddTraceSource ("PhyRxDrop",
                      "Trace source indicating a packet has been dropped by the device during reception",
-                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyRxDropTrace));
+                     MakeTraceSourceAccessor (&SimpleOfdmWimaxPhy::m_phyRxDropTrace),
+                     "ns3::PacketBurst::TracedCallback");
   return tid;
 }
 
@@ -240,6 +251,7 @@ void
 SimpleOfdmWimaxPhy::Send (SendParams *params)
 {
   OfdmSendParams *o_params = dynamic_cast<OfdmSendParams*> (params);
+  NS_ASSERT (o_params !=0);
   Send (o_params->GetBurst (),
         (WimaxPhy::ModulationType) o_params->GetModulationType (),
         o_params->GetDirection ());
@@ -283,6 +295,7 @@ SimpleOfdmWimaxPhy::StartSendDummyFecBlock (bool isFirstBlock,
     }
 
   SimpleOfdmWimaxChannel *channel = dynamic_cast<SimpleOfdmWimaxChannel*> (PeekPointer (GetChannel ()));
+  NS_ASSERT (channel != 0);
 
   if (m_nrRemainingBlocksToSend==1)
     {
@@ -344,7 +357,7 @@ SimpleOfdmWimaxPhy::StartReceive (uint32_t burstSize,
 {
 
   uint8_t drop = 0;
-  double Nwb = -114 + m_noiseFigure + 10 * log (GetBandwidth () / 1000000000.0) / 2.303;
+  double Nwb = -114 + m_noiseFigure + 10 * std::log (GetBandwidth () / 1000000000.0) / 2.303;
   double SNR = rxPower - Nwb;
 
   SNRToBlockErrorRateRecord * record = m_snrToBlockErrorRateManager->GetSNRToBlockErrorRateRecord (SNR, modulationType);
@@ -477,8 +490,8 @@ SimpleOfdmWimaxPhy::ConvertBurstToBits (Ptr<const PacketBurst> burst)
   for (std::list<Ptr<Packet> >::iterator iter = packets.begin (); iter != packets.end (); ++iter)
     {
       Ptr<Packet> packet = *iter;
-      uint8_t *pstart = (uint8_t*) malloc (packet->GetSize ());
-      memset (pstart, 0, packet->GetSize ());
+      uint8_t *pstart = (uint8_t*) std::malloc (packet->GetSize ());
+      std::memset (pstart, 0, packet->GetSize ());
       packet->CopyData (pstart, packet->GetSize ());
       bvec temp (8);
       temp.resize (0, 0);
@@ -492,7 +505,7 @@ SimpleOfdmWimaxPhy::ConvertBurstToBits (Ptr<const PacketBurst> burst)
             }
           j++;
         }
-      free (pstart);
+      std::free (pstart);
     }
 
   return buffer;
@@ -521,7 +534,7 @@ SimpleOfdmWimaxPhy::ConvertBitsToBurst (bvec buffer)
       for (int l = 0; l < 8; l++)
         {
           bool bin = buffer.at (i + l);
-          temp += (uint8_t)(bin * pow (2, (7 - l)));
+          temp += (uint8_t)(bin * std::pow (2.0, (7 - l)));
         }
 
       *(pstart + j) = temp;
@@ -584,7 +597,7 @@ bvec
 SimpleOfdmWimaxPhy::RecreateBuffer ()
 {
 
-  bvec buffer (m_blockSize * m_nrBlocks);
+  bvec buffer (m_blockSize * (unsigned long)m_nrBlocks);
   bvec block (m_blockSize);
   uint32_t i = 0;
   for (uint32_t j = 0; j < m_nrBlocks; j++)
@@ -711,14 +724,14 @@ SimpleOfdmWimaxPhy::DoGetNrSymbols (uint32_t size, WimaxPhy::ModulationType modu
 {
   Time transmissionTime = Seconds ((double)(GetNrBlocks (size, modulationType) * GetFecBlockSize (modulationType))
                                    / DoGetDataRate (modulationType));
-  return (uint64_t) ceil (transmissionTime.GetSeconds () / GetSymbolDuration ().GetSeconds ());
+  return (uint64_t) std::ceil (transmissionTime.GetSeconds () / GetSymbolDuration ().GetSeconds ());
 }
 
 uint64_t
 SimpleOfdmWimaxPhy::DoGetNrBytes (uint32_t symbols, WimaxPhy::ModulationType modulationType) const
 {
   Time transmissionTime = Seconds (symbols * GetSymbolDuration ().GetSeconds ());
-  return (uint64_t) floor ((transmissionTime.GetSeconds () * DoGetDataRate (modulationType)) / 8);
+  return (uint64_t) std::floor ((transmissionTime.GetSeconds () * DoGetDataRate (modulationType)) / 8);
 }
 
 uint32_t
@@ -819,51 +832,51 @@ SimpleOfdmWimaxPhy::DoGetFrameDurationCode (void) const
 {
   uint16_t duration = 0;
   duration = (uint16_t)(GetFrameDuration ().GetSeconds () * 10000);
+  uint8_t retval = 0;
   switch (duration)
     {
     case 25:
       {
-        return FRAME_DURATION_2_POINT_5_MS;
+        retval = FRAME_DURATION_2_POINT_5_MS;
         break;
       }
     case 40:
       {
-        return FRAME_DURATION_4_MS;
+        retval = FRAME_DURATION_4_MS;
         break;
       }
     case 50:
       {
-        return FRAME_DURATION_5_MS;
+        retval = FRAME_DURATION_5_MS;
         break;
       }
     case 80:
       {
-        return FRAME_DURATION_8_MS;
+        retval = FRAME_DURATION_8_MS;
         break;
       }
     case 100:
       {
-        return FRAME_DURATION_10_MS;
+        retval = FRAME_DURATION_10_MS;
         break;
       }
     case 125:
       {
-        return FRAME_DURATION_12_POINT_5_MS;
+        retval = FRAME_DURATION_12_POINT_5_MS;
         break;
       }
     case 200:
       {
-        return FRAME_DURATION_20_MS;
+        retval = FRAME_DURATION_20_MS;
         break;
       }
     default:
       {
         NS_FATAL_ERROR ("Invalid frame duration = " << duration);
-        return 0;
+        retval = 0;
       }
     }
-  NS_FATAL_ERROR ("Invalid frame duration = " << duration);
-  return 0;
+  return retval;
 }
 
 Time

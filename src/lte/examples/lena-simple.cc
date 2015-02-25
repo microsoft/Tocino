@@ -24,6 +24,7 @@
 #include "ns3/mobility-module.h"
 #include "ns3/lte-module.h"
 #include "ns3/config-store.h"
+#include <ns3/buildings-helper.h>
 //#include "ns3/gtk-config-store.h"
 
 using namespace ns3;
@@ -46,10 +47,9 @@ int main (int argc, char *argv[])
   cmd.Parse (argc, argv);
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
-  lteHelper->EnableTraces ();
 
   // Uncomment to enable logging
-  //lteHelper->EnableLogComponents ();
+//  lteHelper->EnableLogComponents ();
 
   // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
@@ -59,10 +59,12 @@ int main (int argc, char *argv[])
 
   // Install Mobility Model
   MobilityHelper mobility;
-  mobility.SetMobilityModel ("ns3::BuildingsMobilityModel");
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (enbNodes);
-  mobility.SetMobilityModel ("ns3::BuildingsMobilityModel");
+  BuildingsHelper::Install (enbNodes);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (ueNodes);
+  BuildingsHelper::Install (ueNodes);
 
   // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
@@ -76,18 +78,18 @@ int main (int argc, char *argv[])
   // Attach a UE to a eNB
   lteHelper->Attach (ueDevs, enbDevs.Get (0));
 
-  // Activate an EPS bearer
+  // Activate a data radio bearer
   enum EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer (q);
-  lteHelper->ActivateEpsBearer (ueDevs, bearer, EpcTft::Default ());
+  lteHelper->ActivateDataRadioBearer (ueDevs, bearer);
+  lteHelper->EnableTraces ();
 
-
-  Simulator::Stop (Seconds (0.005));
+  Simulator::Stop (Seconds (1.05));
 
   Simulator::Run ();
 
-  //GtkConfigStore config;
-  //config.ConfigureAttributes ();
+  // GtkConfigStore config;
+  // config.ConfigureAttributes ();
 
   Simulator::Destroy ();
   return 0;

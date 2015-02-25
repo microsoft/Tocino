@@ -26,8 +26,9 @@
 #include "ns3/log.h"
 #include "wimax-tlv.h"
 
-NS_LOG_COMPONENT_DEFINE ("MACMESSAGES");
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("MACMESSAGES");
 
 NS_OBJECT_ENSURE_REGISTERED (ManagementMessageType);
 
@@ -104,7 +105,7 @@ ManagementMessageType::Deserialize (Buffer::Iterator start)
   return i.GetDistanceFrom (start);
 }
 
-// ----------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED (RngReq);
 
@@ -218,7 +219,7 @@ RngReq::Deserialize (Buffer::Iterator start)
   return i.GetDistanceFrom (start);
 }
 
-// ----------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED (RngRsp);
 
@@ -495,7 +496,7 @@ RngRsp::Deserialize (Buffer::Iterator start)
   return i.GetDistanceFrom (start);
 }
 
-// ----------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED (DsaReq);
 
@@ -579,16 +580,6 @@ DsaReq::Print (std::ostream &os) const
   os << " transaction id = " << (uint32_t) m_transactionId << ", m_sfid = " << m_sfid << ", cid = " << m_cid;
 }
 
-/*
- *  0             7             15            23
- * +-------------+-------------+-------------+
- * |Mngt msg type|       Transaction ID      |
- * +-------------+-------------+-------------+
- * |            Service Flow TLV             |
- * +~~~~~~~~~~~~~+~~~~~~~~~~~~~+~~~~~~~~~~~~~+
- *
- */
-
 uint32_t
 DsaReq::GetSerializedSize (void) const
 {
@@ -629,7 +620,7 @@ DsaReq::SetServiceFlow (ServiceFlow sf)
   m_serviceFlow = sf;
 }
 
-// ----------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED (DsaRsp);
 
@@ -737,15 +728,7 @@ DsaRsp::GetSerializedSize (void) const
   return 2 + 1 + m_serviceFlow.ToTlv ().GetSerializedSize ();
 }
 
-/*
- *  0             7             15            23
- * +-------------+-------------+-------------+
- * |Mngt msg type|       Transaction ID      |
- * +-------------+-------------+-------------+
- * | Conf Code   | Service Flow TLV          |
- * +~~~~~~~~~~~~~+~~~~~~~~~~~~~+~~~~~~~~~~~~~+
- *
- */
+
 void
 DsaRsp::Serialize (Buffer::Iterator start) const
 {
@@ -769,7 +752,7 @@ DsaRsp::Deserialize (Buffer::Iterator start)
   return size + 3;
 }
 
-// ----------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED (DsaAck);
 

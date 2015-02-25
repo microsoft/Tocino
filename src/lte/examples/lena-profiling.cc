@@ -59,7 +59,7 @@ main (int argc, char *argv[])
   double nodeHeight = 1.5;
   double roomHeight = 3;
   double roomLength = 8;
-  uint32_t nRooms = ceil (sqrt (nEnbPerFloor));
+  uint32_t nRooms = std::ceil (std::sqrt (nEnbPerFloor));
   uint32_t nEnb;
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
@@ -74,7 +74,7 @@ main (int argc, char *argv[])
   else
     {
       lteHelper->SetAttribute ("PathlossModel",
-                               StringValue ("ns3::BuildingsPropagationLossModel"));
+                               StringValue ("ns3::HybridBuildingsPropagationLossModel"));
       nEnb = nFloors * nEnbPerFloor;
     }
 
@@ -91,7 +91,7 @@ main (int argc, char *argv[])
     }
 
   MobilityHelper mobility;
-  mobility.SetMobilityModel ("ns3::BuildingsMobilityModel");
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   std::vector<Vector> enbPosition;
   Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
   Ptr<Building> building;
@@ -112,6 +112,7 @@ main (int argc, char *argv[])
         }
       mobility.SetPositionAllocator (positionAlloc);
       mobility.Install (enbNodes);
+      BuildingsHelper::Install (enbNodes);
 
       // Position of UEs attached to eNB
       for (uint32_t i = 0; i < nEnb; i++)
@@ -129,20 +130,23 @@ main (int argc, char *argv[])
               mobility.SetPositionAllocator (positionAlloc);
             }
           mobility.Install (ueNodes.at(i));
+          BuildingsHelper::Install (ueNodes.at(i));
         }
 
     }
   else
     {
-      building = CreateObject<Building> (0.0, nRooms * roomLength,
-                                         0.0, nRooms * roomLength,
-                                         0.0, nFloors* roomHeight);
+      building = CreateObject<Building> ();
+      building->SetBoundaries (Box (0.0, nRooms * roomLength,
+                                    0.0, nRooms * roomLength,
+                                    0.0, nFloors* roomHeight));
       building->SetBuildingType (Building::Residential);
       building->SetExtWallsType (Building::ConcreteWithWindows);
       building->SetNFloors (nFloors);
       building->SetNRoomsX (nRooms);
       building->SetNRoomsY (nRooms);
       mobility.Install (enbNodes);
+      BuildingsHelper::Install (enbNodes);
       uint32_t plantedEnb = 0;
       for (uint32_t floor = 0; floor < nFloors; floor++)
         {
@@ -156,25 +160,22 @@ main (int argc, char *argv[])
                             nodeHeight + roomHeight * floor);
                   positionAlloc->Add (v);
                   enbPosition.push_back (v);
-                  Ptr<BuildingsMobilityModel> mmEnb = enbNodes.Get (plantedEnb)->GetObject<BuildingsMobilityModel> ();
+                  Ptr<MobilityModel> mmEnb = enbNodes.Get (plantedEnb)->GetObject<MobilityModel> ();
                   mmEnb->SetPosition (v);
 
                   // Positioning UEs attached to eNB
                   mobility.Install (ueNodes.at(plantedEnb));
+                  BuildingsHelper::Install (ueNodes.at(plantedEnb));
                   for (uint32_t ue = 0; ue < nUe; ue++)
                     {
-                      Ptr<BuildingsMobilityModel> mmUe = ueNodes.at(plantedEnb).Get (ue)->GetObject<BuildingsMobilityModel> ();
+                      Ptr<MobilityModel> mmUe = ueNodes.at(plantedEnb).Get (ue)->GetObject<MobilityModel> ();
                       Vector vUe (v.x, v.y, v.z);
                       mmUe->SetPosition (vUe);
                     }
                 }
             }
         }
-
-
     }
-
-
 
 
   // Create Devices and install them in the Nodes (eNB and UE)
@@ -188,7 +189,7 @@ main (int argc, char *argv[])
       lteHelper->Attach (ueDev, enbDevs.Get (i));
       enum EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
       EpsBearer bearer (q);
-      lteHelper->ActivateEpsBearer (ueDev, bearer, EpcTft::Default ());
+      lteHelper->ActivateDataRadioBearer (ueDev, bearer);
     }
 
 

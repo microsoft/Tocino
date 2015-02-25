@@ -1,4 +1,5 @@
 .. include:: replace.txt
+.. highlight:: cpp
 
 Tracing
 -------
@@ -26,7 +27,7 @@ output, as in, ::
   int main ()
   {
     ...
-    std::cout << ``The value of x is `` << x << std::endl;
+    std::cout << "The value of x is " << x << std::endl;
     ...
   } 
 
@@ -109,11 +110,11 @@ The Simplest Example
 
 It will be useful to go walk a quick example just to reinforce what we've
 said.::
-
-  #include ``ns3/object.h''
-  #include ``ns3/uinteger.h''
-  #include ``ns3/traced-value.h''
-  #include ``ns3/trace-source-accessor.h''
+ 
+  #include "ns3/object.h"
+  #include "ns3/uinteger.h"
+  #include "ns3/traced-value.h""
+  #include "ns3/trace-source-accessor.h"
   
   #include <iostream>
   
@@ -167,7 +168,7 @@ callback process.::
   void
   IntTrace (Int oldValue, Int newValue)
   {
-    std::cout << ``Traced `` << oldValue << `` to `` << newValue << std::endl;
+    std::cout << "Traced " << oldValue << " to " << newValue << std::endl;
   }
 
 This is the definition of the trace sink. It corresponds directly to a callback
@@ -199,7 +200,7 @@ context for now since it is not important yet.
 
 Finally, the line,::
 
-   myObject->m_myInt = 1234;
+  myObject->m_myInt = 1234;
 
 should be interpreted as an invocation of ``operator=`` on the member variable
 ``m_myInt`` with the integer :math:`1234` passed as a parameter. It turns out
@@ -243,7 +244,7 @@ provided.
 The first thing to do is to read the path backward. The last segment of the path
 must be an ``Attribute`` of an ``Object``. In fact, if you had a pointer to the
 ``Object`` that has the "CongestionWindow" ``Attribute`` handy (call it
-``theObject``), you could write this just like the previous example:::
+``theObject``), you could write this just like the previous example::
 
   void CwndTracer (uint32_t oldval, uint32_t newval) {}
 
@@ -269,7 +270,7 @@ aggregation model. The next path segment begins with the "$" character which
 indicates a ``GetObject`` call should be made looking for the type that follows.
 When a node is initialized by an ``InternetStackHelper`` a number of interfaces
 are aggregated to the node. One of these is the TCP level four protocol. The
-runtime type of this protocol object is "ns3::TcpL4Protocol". When the
+runtime type of this protocol object is ``ns3::TcpL4Protocol''. When the
 ``GetObject`` is executed, it returns a pointer to the object of this type.
 
 The ``TcpL4Protocol`` class defines an Attribute called "SocketList" which is a
@@ -313,7 +314,7 @@ different trace events and writing them to files. In previous sections,
 primarily "Building Topologies," we have seen several varieties of the trace
 helper methods designed for use inside other (device) helpers.
 
-Perhaps you will recall seeing some of these variations:::
+Perhaps you will recall seeing some of these variations::
 
   pointToPoint.EnablePcapAll ("second");
   pointToPoint.EnablePcap ("second", p2pNodes.Get (0)->GetId (), 0);
@@ -342,14 +343,15 @@ stack helpers. Naturally, the trace files should follow a
 The trace helpers therefore fall naturally into a two-dimensional taxonomy.
 There are subtleties that prevent all four classes from behaving identically,
 but we do strive to make them all work as similarly as possible; and whenever
-possible there are analogs for all methods in all classes.::
+possible there are analogs for all methods in all classes.
 
-                   | pcap | ascii |
-  -----------------+------+-------|
-  Device Helper    |      |       |
-  -----------------+------+-------|
-  Protocol Helper  |      |       |
-  -----------------+------+-------|
+  +-----------------+---------+---------+
+  |                 |  pcap   |  ascii  |
+  +=================+=========+=========+
+  | Device Helper   | |check| | |check| |
+  +-----------------+---------+---------+
+  | Protocol Helper | |check| | |check| |
+  +-----------------+---------+---------+
 
 We use an approach called a ``mixin`` to add tracing functionality to our helper
 classes. A ``mixin`` is a class that provides functionality to that is
@@ -393,11 +395,16 @@ Pcap Tracing Device Helper Methods
 
 ::
 
-  void EnablePcap (std::string prefix, Ptr<NetDevice> nd, bool promiscuous = false, bool explicitFilename = false);
-  void EnablePcap (std::string prefix, std::string ndName, bool promiscuous = false, bool explicitFilename = false);
-  void EnablePcap (std::string prefix, NetDeviceContainer d, bool promiscuous = false);
-  void EnablePcap (std::string prefix, NodeContainer n, bool promiscuous = false);
-  void EnablePcap (std::string prefix, uint32_t nodeid, uint32_t deviceid, bool promiscuous = false);
+  void EnablePcap (std::string prefix, Ptr<NetDevice> nd,
+                   bool promiscuous = false, bool explicitFilename = false);
+  void EnablePcap (std::string prefix, std::string ndName,
+                   bool promiscuous = false, bool explicitFilename = false);
+  void EnablePcap (std::string prefix, NetDeviceContainer d,
+                   bool promiscuous = false);
+  void EnablePcap (std::string prefix, NodeContainer n,
+                   bool promiscuous = false);
+  void EnablePcap (std::string prefix, uint32_t nodeid, uint32_t deviceid,
+                   bool promiscuous = false);
   void EnablePcapAll (std::string prefix, bool promiscuous = false);
 
 In each of the methods shown above, there is a default parameter called
@@ -502,7 +509,7 @@ enable pcap tracing on a single device.
 
 For example, in order to arrange for a device helper to create a single
 promiscuous pcap capture file of a specific name (``my-pcap-file.pcap``) on a
-given device, one could:::
+given device, one could::
 
   Ptr<NetDevice> nd;
   ...
@@ -593,7 +600,7 @@ suffix ".tr" instead of ".pcap".
 
 If you want to enable ascii tracing on more than one net device and have all
 traces sent to a single file, you can do that as well by using an object to
-refer to a single file:::
+refer to a single file::
 
   Ptr<NetDevice> nd1;
   Ptr<NetDevice> nd2;
@@ -625,7 +632,7 @@ belong to exactly one ``Node``.  For example,::
 This would result in two files named ``prefix-client-eth0.tr`` and
 ``prefix-server-eth0.tr`` with traces for each device in the respective trace
 file. Since all of the EnableAscii functions are overloaded to take a stream
-wrapper, you can use that form as well:::
+wrapper, you can use that form as well::
 
   Names::Add ("client" ...);
   Names::Add ("client/eth0" ...);
@@ -653,7 +660,7 @@ since the found net device must belong to exactly one ``Node``.  For example,::
 
 This would result in a number of ascii trace files being created, each of which
 follows the <prefix>-<node id>-<device id>.tr convention. Combining all of the
-traces into a single file is accomplished similarly to the examples above:::
+traces into a single file is accomplished similarly to the examples above::
 
   NetDeviceContainer d = ...;
   ...
@@ -761,7 +768,7 @@ and ``NetDevice``- centric versions of the device versions. Instead of
 ``Node`` and ``NetDevice`` pair constraints, we use protocol and interface
 constraints.
 
-Note that just like in the device version, there are six methods:::
+Note that just like in the device version, there are six methods::
 
   void EnablePcapIpv4 (std::string prefix, Ptr<Ipv4> ipv4, uint32_t interface);
   void EnablePcapIpv4 (std::string prefix, std::string ipv4Name, uint32_t interface);
@@ -941,7 +948,7 @@ suffix ".tr" instead of ".pcap".
 If you want to enable ascii tracing on more than one interface and have all
 traces sent to a single file, you can do that as well by using an object to
 refer to a single file. We have already something similar to this in the "cwnd"
-example above:::
+example above::
 
   Ptr<Ipv4> protocol1 = node1->GetObject<Ipv4> ();
   Ptr<Ipv4> protocol2 = node2->GetObject<Ipv4> ();
@@ -971,7 +978,7 @@ between protocol instances and nodes, For example,::
 This would result in two files named "prefix-nnode1Ipv4-i1.tr" and 
 "prefix-nnode2Ipv4-i1.tr" with traces for each interface in the respective 
 trace file. Since all of the EnableAscii functions are overloaded to take a 
-stream wrapper, you can use that form as well:::
+stream wrapper, you can use that form as well::
 
   Names::Add ("node1Ipv4" ...);
   Names::Add ("node2Ipv4" ...);
@@ -1004,7 +1011,7 @@ one-to-one correspondence between each protocol and its node. For example,::
 
 This would result in a number of ascii trace files being created, each of which
 follows the <prefix>-n<node id>-i<interface>.tr convention. Combining all of the
-traces into a single file is accomplished similarly to the examples above:::
+traces into a single file is accomplished similarly to the examples above::
 
   NodeContainer nodes;
   ...

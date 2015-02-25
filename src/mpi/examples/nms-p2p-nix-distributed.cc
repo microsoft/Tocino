@@ -37,6 +37,7 @@
 #include <cstdlib>
 #include <sys/time.h>
 #include <fstream>
+#include <vector>
 
 #include "ns3/core-module.h"
 #include "ns3/internet-module.h"
@@ -49,11 +50,6 @@
 #include "ns3/ipv4-list-routing-helper.h"
 #include "ns3/ipv4-nix-vector-helper.h"
 
-#ifdef NS3_MPI
-#include <mpi.h>
-#endif
-
-using namespace std;
 using namespace ns3;
 
 typedef struct timeval TIMER_TYPE;
@@ -67,12 +63,24 @@ int
 main (int argc, char *argv[])
 {
 #ifdef NS3_MPI
-  // Enable MPI with the command line arguments
+
+  typedef std::vector<NodeContainer> vectorOfNodeContainer;
+  typedef std::vector<vectorOfNodeContainer> vectorOfVectorOfNodeContainer;
+  typedef std::vector<vectorOfVectorOfNodeContainer> vectorOfVectorOfVectorOfNodeContainer;  
+
+  typedef std::vector<Ipv4InterfaceContainer> vectorOfIpv4InterfaceContainer;
+  typedef std::vector<vectorOfIpv4InterfaceContainer> vectorOfVectorOfIpv4InterfaceContainer;
+  typedef std::vector<vectorOfVectorOfIpv4InterfaceContainer> vectorOfVectorOfVectorOfIpv4InterfaceContainer;
+ 
+  typedef std::vector<NetDeviceContainer> vectorOfNetDeviceContainer;
+  typedef std::vector<vectorOfNetDeviceContainer> vectorOfVectorOfNetDeviceContainer;
+
+  // Enable parallel simulator with the command line arguments
   MpiInterface::Enable (&argc, &argv);
 
   TIMER_TYPE t0, t1, t2;
   TIMER_NOW (t0);
-  cout << " ==== DARPA NMS CAMPUS NETWORK SIMULATION ====" << endl;
+  std::cout << " ==== DARPA NMS CAMPUS NETWORK SIMULATION ====" << std::endl;
 
   GlobalValue::Bind ("SimulatorImplementationType",
                      StringValue ("ns3::DistributedSimulatorImpl"));
@@ -95,27 +103,42 @@ main (int argc, char *argv[])
 
   if (nCN < 2)
     {
-      cout << "Number of total CNs (" << nCN << ") lower than minimum of 2"
-           << endl;
+      std::cout << "Number of total CNs (" << nCN << ") lower than minimum of 2"
+           << std::endl;
       return 1;
     }
   if (systemCount > nCN)
     {
-      cout << "Number of total CNs (" << nCN << ") should be >= systemCount ("
-           << systemCount << ")." << endl;
+      std::cout << "Number of total CNs (" << nCN << ") should be >= systemCount ("
+           << systemCount << ")." << std::endl;
       return 1;
     }
 
-  cout << "Number of CNs: " << nCN << ", LAN nodes: " << nLANClients << endl;
+  std::cout << "Number of CNs: " << nCN << ", LAN nodes: " << nLANClients << std::endl;
+  
 
-  NodeContainer nodes_net0[nCN][3], nodes_net1[nCN][6], nodes_netLR[nCN],
-                nodes_net2[nCN][14], nodes_net2LAN[nCN][7][nLANClients],
-                nodes_net3[nCN][9], nodes_net3LAN[nCN][5][nLANClients];
+
+  vectorOfNodeContainer nodes_netLR(nCN);
+  vectorOfVectorOfNodeContainer nodes_net0(nCN,vectorOfNodeContainer(3));
+  vectorOfVectorOfNodeContainer nodes_net1(nCN,vectorOfNodeContainer(6));
+  vectorOfVectorOfNodeContainer nodes_net2(nCN,vectorOfNodeContainer(14));
+  vectorOfVectorOfNodeContainer nodes_net3(nCN,vectorOfNodeContainer(9));
+     
+  vectorOfVectorOfVectorOfNodeContainer nodes_net2LAN(nCN,vectorOfVectorOfNodeContainer(7,vectorOfNodeContainer(nLANClients)));
+  vectorOfVectorOfVectorOfNodeContainer nodes_net3LAN(nCN,vectorOfVectorOfNodeContainer(5,vectorOfNodeContainer(nLANClients)));
+  
   PointToPointHelper p2p_2gb200ms, p2p_1gb5ms, p2p_100mb1ms;
   InternetStackHelper stack;
-  Ipv4InterfaceContainer ifs, ifs0[nCN][3], ifs1[nCN][6], ifs2[nCN][14],
-                         ifs3[nCN][9], ifs2LAN[nCN][7][nLANClients],
-                         ifs3LAN[nCN][5][nLANClients];
+  
+  Ipv4InterfaceContainer ifs;  
+
+  vectorOfVectorOfIpv4InterfaceContainer ifs0(nCN,vectorOfIpv4InterfaceContainer(3));
+  vectorOfVectorOfIpv4InterfaceContainer ifs1(nCN,vectorOfIpv4InterfaceContainer(6));
+  vectorOfVectorOfIpv4InterfaceContainer ifs2(nCN,vectorOfIpv4InterfaceContainer(14));
+  vectorOfVectorOfIpv4InterfaceContainer ifs3(nCN,vectorOfIpv4InterfaceContainer(9));
+  vectorOfVectorOfVectorOfIpv4InterfaceContainer ifs2LAN(nCN,vectorOfVectorOfIpv4InterfaceContainer(7,vectorOfIpv4InterfaceContainer(nLANClients)));
+  vectorOfVectorOfVectorOfIpv4InterfaceContainer ifs3LAN(nCN,vectorOfVectorOfIpv4InterfaceContainer(5,vectorOfIpv4InterfaceContainer(nLANClients)));
+  
   Ipv4AddressHelper address;
   std::ostringstream oss;
   p2p_1gb5ms.SetDeviceAttribute ("DataRate", StringValue ("1Gbps"));
@@ -140,9 +163,9 @@ main (int argc, char *argv[])
   // Create Campus Networks
   for (uint32_t z = 0; z < nCN; ++z)
     {
-      cout << "Creating Campus Network " << z << ":" << endl;
+      std::cout << "Creating Campus Network " << z << ":" << std::endl;
       // Create Net0
-      cout << "  SubNet [ 0";
+      std::cout << "  SubNet [ 0";
       for (int i = 0; i < 3; ++i)
         {
           Ptr<Node> node = CreateObject<Node> (z % systemCount);
@@ -158,7 +181,7 @@ main (int argc, char *argv[])
           ndc0[i] = p2p_1gb5ms.Install (nodes_net0[z][i]);
         }
       // Create Net1
-      cout << " 1";
+      std::cout << " 1";
       for (int i = 0; i < 6; ++i)
         {
           Ptr<Node> node = CreateObject<Node> (z % systemCount);
@@ -190,7 +213,7 @@ main (int argc, char *argv[])
       address.SetBase (oss.str ().c_str (), "255.255.255.0");
       ifs = address.Assign (ndc0_1);
       // Create Net2
-      cout << " 2";
+      std::cout << " 2";
       for (int i = 0; i < 14; ++i)
         {
           Ptr<Node> node = CreateObject<Node> (z % systemCount);
@@ -216,7 +239,7 @@ main (int argc, char *argv[])
         {
           ndc2[i] = p2p_1gb5ms.Install (nodes_net2[z][i]);
         }
-      NetDeviceContainer ndc2LAN[7][nLANClients];
+      vectorOfVectorOfNetDeviceContainer ndc2LAN(7, vectorOfNetDeviceContainer(nLANClients));
       for (int i = 0; i < 7; ++i)
         {
           oss.str ("");
@@ -233,7 +256,7 @@ main (int argc, char *argv[])
             }
         }
       // Create Net3
-      cout << " 3 ]" << endl;
+      std::cout << " 3 ]" << std::endl;
       for (int i = 0; i < 9; ++i)
         {
           Ptr<Node> node = CreateObject<Node> (z % systemCount);
@@ -254,7 +277,7 @@ main (int argc, char *argv[])
         {
           ndc3[i] = p2p_1gb5ms.Install (nodes_net3[z][i]);
         }
-      NetDeviceContainer ndc3LAN[5][nLANClients];
+      vectorOfVectorOfNetDeviceContainer ndc3LAN(5, vectorOfNetDeviceContainer(nLANClients));
       for (int i = 0; i < 5; ++i)
         {
           oss.str ("");
@@ -270,7 +293,7 @@ main (int argc, char *argv[])
               ifs3LAN[z][i][j] = address.Assign (ndc3LAN[i][j]);
             }
         }
-      cout << "  Connecting Subnets..." << endl;
+      std::cout << "  Connecting Subnets..." << std::endl;
       // Create Lone Routers (Node 4 & 5)
       Ptr<Node> node1 = CreateObject<Node> (z % systemCount);
       Ptr<Node> node2 = CreateObject<Node> (z % systemCount);
@@ -325,7 +348,7 @@ main (int argc, char *argv[])
       address.SetBase (oss.str ().c_str (), "255.255.255.0");
       ifs = address.Assign (ndc3_5b);
       // Assign IP addresses
-      cout << "  Assigning IP addresses..." << endl;
+      std::cout << "  Assigning IP addresses..." << std::endl;
       for (int i = 0; i < 3; ++i)
         {
           oss.str ("");
@@ -366,8 +389,8 @@ main (int argc, char *argv[])
   // Create Ring Links
   if (nCN > 1)
     {
-      cout << "Forming Ring Topology..." << endl;
-      NodeContainer nodes_ring[nCN];
+      std::cout << "Forming Ring Topology..." << std::endl;
+      vectorOfNodeContainer nodes_ring(nCN);
       for (uint32_t z = 0; z < nCN - 1; ++z)
         {
           nodes_ring[z].Add (nodes_net0[z][0].Get (0));
@@ -375,7 +398,7 @@ main (int argc, char *argv[])
         }
       nodes_ring[nCN - 1].Add (nodes_net0[nCN - 1][0].Get (0));
       nodes_ring[nCN - 1].Add (nodes_net0[0][0].Get (0));
-      NetDeviceContainer ndc_ring[nCN];
+      vectorOfNetDeviceContainer ndc_ring(nCN);
       for (uint32_t z = 0; z < nCN; ++z)
         {
           ndc_ring[z] = p2p_2gb200ms.Install (nodes_ring[z]);
@@ -387,7 +410,7 @@ main (int argc, char *argv[])
     }
 
   // Create Traffic Flows
-  cout << "Creating UDP Traffic Flows:" << endl;
+  std::cout << "Creating UDP Traffic Flows:" << std::endl;
   Config::SetDefault ("ns3::OnOffApplication::MaxBytes",
                       UintegerValue (nBytes));
   Config::SetDefault ("ns3::OnOffApplication::OnTime",
@@ -408,7 +431,7 @@ main (int argc, char *argv[])
 
           OnOffHelper client ("ns3::UdpSocketFactory", Address ());
           AddressValue remoteAddress (InetSocketAddress (ifs1[0][2].GetAddress (0), 9999));
-          cout << "Remote Address is " << ifs1[0][2].GetAddress (0) << endl;
+          std::cout << "Remote Address is " << ifs1[0][2].GetAddress (0) << std::endl;
           client.SetAttribute ("Remote", remoteAddress);
 
           ApplicationContainer clientApp;
@@ -431,7 +454,7 @@ main (int argc, char *argv[])
           AddressValue remoteAddress
             (InetSocketAddress (ifs1[1][0].GetAddress (0), 9999));
 
-          cout << "Remote Address is " << ifs1[1][0].GetAddress (0) << endl;
+          std::cout << "Remote Address is " << ifs1[1][0].GetAddress (0) << std::endl;
           client.SetAttribute ("Remote", remoteAddress);
 
           ApplicationContainer clientApp;
@@ -452,7 +475,7 @@ main (int argc, char *argv[])
               x = 0;
             }
           // Subnet 2 LANs
-          cout << "  Campus Network " << z << " Flows [ Net2 ";
+          std::cout << "  Campus Network " << z << " Flows [ Net2 ";
           for (int i = 0; i < 7; ++i)
             {
               for (uint32_t j = 0; j < nLANClients; ++j)
@@ -512,7 +535,7 @@ main (int argc, char *argv[])
                 }
             }
           // Subnet 3 LANs
-          cout << "Net3 ]" << endl;
+          std::cout << "Net3 ]" << std::endl;
           for (int i = 0; i < 5; ++i)
             {
               for (uint32_t j = 0; j < nLANClients; ++j)
@@ -574,40 +597,40 @@ main (int argc, char *argv[])
         }
     }
 
-  cout << "Created " << NodeList::GetNNodes () << " nodes." << endl;
+  std::cout << "Created " << NodeList::GetNNodes () << " nodes." << std::endl;
   TIMER_TYPE routingStart;
   TIMER_NOW (routingStart);
 
   if (nix)
     {
-      cout << "Using Nix-vectors..." << endl;
+      std::cout << "Using Nix-vectors..." << std::endl;
     }
   else
     {
       // Calculate routing tables
-      cout << "Populating Routing tables..." << endl;
+      std::cout << "Populating Routing tables..." << std::endl;
       Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
     }
 
   TIMER_TYPE routingEnd;
   TIMER_NOW (routingEnd);
-  cout << "Routing tables population took "
-       << TIMER_DIFF (routingEnd, routingStart) << endl;
+  std::cout << "Routing tables population took "
+       << TIMER_DIFF (routingEnd, routingStart) << std::endl;
 
-  cout << "Running simulator..." << endl;
+  std::cout << "Running simulator..." << std::endl;
   TIMER_NOW (t1);
   Simulator::Stop (Seconds (100.0));
   Simulator::Run ();
   TIMER_NOW (t2);
-  cout << "Simulator finished." << endl;
+  std::cout << "Simulator finished." << std::endl;
   Simulator::Destroy ();
-  // Exit the MPI execution environment
+  // Exit the parallel execution environment
   MpiInterface::Disable ();
   double d1 = TIMER_DIFF (t1, t0), d2 = TIMER_DIFF (t2, t1);
-  cout << "-----" << endl << "Runtime Stats:" << endl;
-  cout << "Simulator init time: " << d1 << endl;
-  cout << "Simulator run time: " << d2 << endl;
-  cout << "Total elapsed time: " << d1 + d2 << endl;
+  std::cout << "-----" << std::endl << "Runtime Stats:" << std::endl;
+  std::cout << "Simulator init time: " << d1 << std::endl;
+  std::cout << "Simulator run time: " << d2 << std::endl;
+  std::cout << "Total elapsed time: " << d1 + d2 << std::endl;
   return 0;
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");

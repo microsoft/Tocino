@@ -39,9 +39,9 @@
 #include "connection-manager.h"
 #include "bandwidth-manager.h"
 
-NS_LOG_COMPONENT_DEFINE ("WimaxNetDevice");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("WimaxNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED (WimaxNetDevice);
 
@@ -120,9 +120,15 @@ TypeId WimaxNetDevice::GetTypeId (void)
                    MakePointerAccessor (&WimaxNetDevice::m_broadcastConnection),
                    MakePointerChecker<WimaxConnection> ())
 
-    .AddTraceSource ("Rx", "Receive trace", MakeTraceSourceAccessor (&WimaxNetDevice::m_traceRx))
+    .AddTraceSource ("Rx",
+                     "Receive trace",
+                     MakeTraceSourceAccessor (&WimaxNetDevice::m_traceRx),
+                     "ns3::Packet::TracedCallback")
 
-    .AddTraceSource ("Tx", "Transmit trace", MakeTraceSourceAccessor (&WimaxNetDevice::m_traceTx));
+    .AddTraceSource ("Tx",
+                     "Transmit trace",
+                     MakeTraceSourceAccessor (&WimaxNetDevice::m_traceTx),
+                     "ns3::Packet::TracedCallback");
   return tid;
 }
 
@@ -633,7 +639,7 @@ WimaxNetDevice::GetMulticast (Ipv6Address addr) const
 void
 WimaxNetDevice::AddLinkChangeCallback (Callback<void> callback)
 {
-  /* TODO: Add a callback invoked whenever the link
+  /* \todo Add a callback invoked whenever the link
    * status changes to UP. This callback is typically used
    * by the IP/ARP layer to flush the ARP cache and by IPv6 stack
    * to flush NDISC cache whenever the link goes up.

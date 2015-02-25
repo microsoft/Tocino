@@ -49,8 +49,8 @@
 #include "ns3/dsr-main-helper.h"
 #include "ns3/dsr-helper.h"
 
-namespace ns3 {
-namespace dsr {
+using namespace ns3;
+using namespace dsr;
 
 // -----------------------------------------------------------------------------
 // / Unit test for DSR Fixed Size Header
@@ -508,16 +508,14 @@ class DsrTestSuite : public TestSuite
 public:
   DsrTestSuite () : TestSuite ("routing-dsr", UNIT)
   {
-    AddTestCase (new DsrFsHeaderTest);
-    AddTestCase (new DsrRreqHeaderTest);
-    AddTestCase (new DsrRrepHeaderTest);
-    AddTestCase (new DsrSRHeaderTest);
-    AddTestCase (new DsrRerrHeaderTest);
-    AddTestCase (new DsrAckReqHeaderTest);
-    AddTestCase (new DsrAckHeaderTest);
-    AddTestCase (new DsrCacheEntryTest);
-    AddTestCase (new DsrSendBuffTest);
+    AddTestCase (new DsrFsHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrRreqHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrRrepHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrSRHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrRerrHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrAckReqHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrAckHeaderTest, TestCase::QUICK);
+    AddTestCase (new DsrCacheEntryTest, TestCase::QUICK);
+    AddTestCase (new DsrSendBuffTest, TestCase::QUICK);
   }
 } g_dsrTestSuite;
-} // namespace dsr
-} // namespace ns3

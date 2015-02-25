@@ -18,7 +18,7 @@
  * Author: Gustavo Carneiro  <gjc@inescporto.pt>
  */
 
-#include <stdlib.h>
+#include <cstdlib>
 #include "pyviz.h"
 #include "ns3/simulator.h"
 #include "ns3/config.h"
@@ -35,6 +35,7 @@
 #include <sstream>
 
 NS_LOG_COMPONENT_DEFINE ("PyViz");
+
 #define NUM_LAST_PACKETS 10
 
 static
@@ -459,7 +460,7 @@ PyViz::TraceDevQueueDrop (std::string context, Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (context << packet->GetUid ());
   std::vector<std::string> splitPath = PathSplit (context);
-  int nodeIndex = atoi (splitPath[1].c_str ());
+  int nodeIndex = std::atoi (splitPath[1].c_str ());
   Ptr<Node> node = NodeList::GetNode (nodeIndex);
 
   if (m_nodesOfInterest.find (nodeIndex) == m_nodesOfInterest.end ())
@@ -519,8 +520,8 @@ PyViz::TraceNetDevTxCommon (std::string const &context, Ptr<const Packet> packet
   NS_LOG_FUNCTION (context << packet->GetUid () << *packet);
 
   std::vector<std::string> splitPath = PathSplit (context);
-  int nodeIndex = atoi (splitPath[1].c_str ());
-  int devIndex = atoi (splitPath[3].c_str ());
+  int nodeIndex = std::atoi (splitPath[1].c_str ());
+  int devIndex = std::atoi (splitPath[3].c_str ());
   Ptr<Node> node = NodeList::GetNode (nodeIndex);
   Ptr<NetDevice> device = node->GetDevice (devIndex);
 
@@ -651,8 +652,8 @@ PyViz::TraceNetDevRxCommon (std::string const &context, Ptr<const Packet> packet
 
   NS_LOG_FUNCTION (context << uid);
   std::vector<std::string> splitPath = PathSplit (context);
-  int nodeIndex = atoi (splitPath[1].c_str ());
-  int devIndex = atoi (splitPath[3].c_str ());
+  int nodeIndex = std::atoi (splitPath[1].c_str ());
+  int devIndex = std::atoi (splitPath[3].c_str ());
 
   // ---- statistics
   NetDeviceStatistics &stats = FindNetDeviceStatistics (nodeIndex, devIndex);

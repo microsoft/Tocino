@@ -20,9 +20,7 @@
 #include "byte-tag-list.h"
 #include "ns3/log.h"
 #include <vector>
-#include <string.h>
-
-NS_LOG_COMPONENT_DEFINE ("ByteTagList");
+#include <cstring>
 
 #define USE_FREE_LIST 1
 #define FREE_LIST_SIZE 1000
@@ -30,23 +28,40 @@ NS_LOG_COMPONENT_DEFINE ("ByteTagList");
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("ByteTagList");
+
+/**
+ * \ingroup packet
+ *
+ * \brief Internal representation of the byte tags stored in a packet.
+ *
+ * This structure is only used by ByteTagList and should not be accessed directly.
+ */
 struct ByteTagListData {
-  uint32_t size;
-  uint32_t count;
-  uint32_t dirty;
-  uint8_t data[4];
+  uint32_t size;   //!< size of the data
+  uint32_t count;  //!< use counter (for smart deallocation)
+  uint32_t dirty;  //!< number of bytes actually in use
+  uint8_t data[4]; //!< data
 };
 
 #ifdef USE_FREE_LIST
+/**
+ * \ingroup packet
+ *
+ * \brief Container class for struct ByteTagListData
+ *
+ * Internal use only.
+ */
 static class ByteTagListDataFreeList : public std::vector<struct ByteTagListData *>
 {
 public:
   ~ByteTagListDataFreeList ();
-} g_freeList;
-static uint32_t g_maxSize = 0;
+} g_freeList; //!< Container for struct ByteTagListData
+static uint32_t g_maxSize = 0; //!< maximum data size (used for allocation)
 
 ByteTagListDataFreeList::~ByteTagListDataFreeList ()
 {
+  NS_LOG_FUNCTION (this);
   for (ByteTagListDataFreeList::iterator i = begin ();
        i != end (); i++)
     {
@@ -59,11 +74,13 @@ ByteTagListDataFreeList::~ByteTagListDataFreeList ()
 ByteTagList::Iterator::Item::Item (TagBuffer buf_)
   : buf (buf_)
 {
+  NS_LOG_FUNCTION (this << &buf_);
 }
 
 bool
 ByteTagList::Iterator::HasNext (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_current < m_end;
 }
 struct ByteTagList::Iterator::Item
@@ -83,6 +100,7 @@ ByteTagList::Iterator::Next (void)
 void
 ByteTagList::Iterator::PrepareForNext (void)
 {
+  NS_LOG_FUNCTION (this);
   while (m_current < m_end)
     {
       TagBuffer buf = TagBuffer (m_current, m_end);
@@ -106,12 +124,14 @@ ByteTagList::Iterator::Iterator (uint8_t *start, uint8_t *end, int32_t offsetSta
     m_offsetStart (offsetStart),
     m_offsetEnd (offsetEnd)
 {
+  NS_LOG_FUNCTION (this << &start << &end << offsetStart << offsetEnd);
   PrepareForNext ();
 }
 
 uint32_t 
 ByteTagList::Iterator::GetOffsetStart (void) const
 {
+  NS_LOG_FUNCTION (this);
   return m_offsetStart;
 }
 
@@ -135,7 +155,6 @@ ByteTagList::ByteTagList (const ByteTagList &o)
 ByteTagList &
 ByteTagList::operator = (const ByteTagList &o)
 {
-  NS_LOG_FUNCTION (this << &o);
   if (this == &o)
     {
       return *this;
@@ -173,7 +192,7 @@ ByteTagList::Add (TypeId tid, uint32_t bufferSize, int32_t start, int32_t end)
            (m_data->count != 1 && m_data->dirty != m_used))
     {
       struct ByteTagListData *newData = Allocate (spaceNeeded);
-      memcpy (&newData->data, &m_data->data, m_used);
+      std::memcpy (&newData->data, &m_data->data, m_used);
       Deallocate (m_data);
       m_data = newData;
     }

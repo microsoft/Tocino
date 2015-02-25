@@ -26,16 +26,18 @@
 #include <iostream>
 #include <algorithm>
 
-#include <string.h>
+#include <cstring>
 
 #include "ns3/fatal-error.h"
 #include "ns3/log.h"
+
 #include "pending-data.h"
 
-NS_LOG_COMPONENT_DEFINE ("PendingData");
 
 namespace ns3
 {
+
+NS_LOG_COMPONENT_DEFINE ("PendingData");
 
 PendingData::PendingData () : size (0), data (0),
                               msgSize (0), responseSize (0)
@@ -101,14 +103,7 @@ void PendingData::Clear ()
 void PendingData::Add (uint32_t s, const uint8_t* d)
 {
   NS_LOG_FUNCTION (this << s);
-  if (d == 0)
-    {
-      data.push_back (Create<Packet> (d,s));
-    }
-  else
-    {
-      data.push_back (Create<Packet> (s));
-    }
+  data.push_back (Create<Packet> (d,s));
   size += s;
 }
 
@@ -129,7 +124,7 @@ uint32_t PendingData::SizeFromSeq (const SequenceNumber32& seqFront, const Seque
 uint32_t PendingData::SizeFromOffset (uint32_t offset)
 { // Find out how much data is available from offset
   NS_LOG_FUNCTION (this << offset);
-  // XXX should this return zero, or error out?
+  /// \todo should this return zero, or error out?
   if (offset > size) return 0;     // No data at requested offset
   return size - offset;            // Available data after offset
 }

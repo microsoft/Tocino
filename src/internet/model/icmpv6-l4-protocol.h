@@ -26,6 +26,8 @@
 #include <list>
 
 #include "ns3/ipv6-address.h"
+#include "ns3/random-variable-stream.h"
+
 #include "icmpv6-header.h"
 #include "ip-l4-protocol.h"
 
@@ -190,6 +192,15 @@ public:
   void SendMessage (Ptr<Packet> packet, Ipv6Address src, Ipv6Address dst, uint8_t ttl);
 
   /**
+   * \brief Helper function used during delayed solicitation. Calls SendMessage internally
+   * \param packet the packet to send which contains ICMPv6 header
+   * \param src source address
+   * \param dst destination address
+   * \param ttl next hop limit
+   */
+  void DelayedSendMessage (Ptr<Packet> packet, Ipv6Address src, Ipv6Address dst, uint8_t ttl);
+
+  /**
    * \brief Send a packet via ICMPv6.
    * \param packet the packet to send
    * \param dst destination address
@@ -274,12 +285,13 @@ public:
   /**
    * \brief Send an ICMPv6 Redirection.
    * \param redirectedPacket the redirected packet
-   * \param dst destination IPv6 address
+   * \param src IPv6 address to send the redirect from
+   * \param dst IPv6 address to send the redirect to
    * \param redirTarget IPv6 target address for Icmpv6Redirection
    * \param redirDestination IPv6 destination address for Icmpv6Redirection
    * \param redirHardwareTarget L2 target address for Icmpv6OptionRdirected
    */
-  void SendRedirection (Ptr<Packet> redirectedPacket, Ipv6Address dst, Ipv6Address redirTarget, Ipv6Address redirDestination, Address redirHardwareTarget);
+  void SendRedirection (Ptr<Packet> redirectedPacket, Ipv6Address src, Ipv6Address dst, Ipv6Address redirTarget, Ipv6Address redirDestination, Address redirHardwareTarget);
 
   /**
    * \brief Forge a Neighbor Solicitation.
@@ -317,7 +329,7 @@ public:
    * \param id ID of the packet
    * \param seq sequence number
    * \param data the data
-   * \return Echo Request packet (without IPv6 header)
+   * \return Echo Request packet (with IPv6 header)
    */
   Ptr<Packet> ForgeEchoRequest (Ipv6Address src, Ipv6Address dst, uint16_t id, uint16_t seq, Ptr<Packet> data);
 
@@ -326,6 +338,7 @@ public:
    * \param p the packet
    * \param header the IPv4 header
    * \param interface the interface from which the packet is coming
+   * \returns the receive status
    */
   virtual enum IpL4Protocol::RxStatus Receive (Ptr<Packet> p,
                                                Ipv4Header const &header,
@@ -334,12 +347,12 @@ public:
   /**
    * \brief Receive method.
    * \param p the packet
-   * \param src source address
-   * \param dst destination address
+   * \param header the IPv6 header
    * \param interface the interface from which the packet is coming
+   * \returns the receive status
    */
   virtual enum IpL4Protocol::RxStatus Receive (Ptr<Packet> p,
-                                               Ipv6Address &src, Ipv6Address &dst,
+                                               Ipv6Header const &header,
                                                Ptr<Ipv6Interface> interface);
 
   /**
@@ -352,11 +365,14 @@ public:
 
   /**
    * \brief Lookup in the ND cache for the IPv6 address
+   *
+   * \note Unlike other Lookup method, it does not send NS request!
+   *
    * \param dst destination address
    * \param device device
    * \param cache the neighbor cache
    * \param hardwareDestination hardware address
-   * \note Unlike other Lookup method, it does not send NS request!
+   * \return true if the address is in the ND cache, the hardwareDestination is updated.
    */
   bool Lookup (Ipv6Address dst, Ptr<NetDevice> device, Ptr<NdiscCache> cache, Address* hardwareDestination);
 
@@ -395,6 +411,16 @@ public:
    */
   bool IsAlwaysDad () const;
 
+  /**
+   * Assign a fixed random variable stream number to the random variables
+   * used by this model.  Return the number of streams (possibly zero) that
+   * have been assigned.
+   *
+   * \param stream first stream index to use
+   * \return the number of stream indices assigned by this model
+   */
+  int64_t AssignStreams (int64_t stream);
+
 protected:
   /**
    * \brief Dispose this object.
@@ -402,7 +428,7 @@ protected:
   virtual void DoDispose ();
 
 private:
-  typedef std::list<Ptr<NdiscCache> > CacheList;
+  typedef std::list<Ptr<NdiscCache> > CacheList; //!< container of NdiscCaches
 
   /**
    * \brief The node.
@@ -418,6 +444,11 @@ private:
    * \brief Always do DAD ?
    */
   bool m_alwaysDad;
+
+  /**
+   * \brief Random jitter before sending solicitations
+   */
+  Ptr<RandomVariableStream> m_solicitationJitter;
 
   /**
    * \brief Notify an ICMPv6 reception to upper layers (if requested).
@@ -533,6 +564,7 @@ private:
   /**
    * \brief Get the cache corresponding to the device.
    * \param device the device
+   * \returns the NdiscCache associated with the device
    */
   Ptr<NdiscCache> FindCache (Ptr<NetDevice> device);
 
@@ -543,7 +575,7 @@ private:
   virtual IpL4Protocol::DownTargetCallback GetDownTarget (void) const;
   virtual IpL4Protocol::DownTargetCallback6 GetDownTarget6 (void) const;
 
-  IpL4Protocol::DownTargetCallback6 m_downTarget;
+  IpL4Protocol::DownTargetCallback6 m_downTarget; //!< callback to Ipv6::Send
 
 };
 
