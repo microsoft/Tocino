@@ -7,6 +7,8 @@ Our changes make it possible to simulate direct networks (rings, meshes, tori) u
 
 The name "tocino" is Spanish for bacon.  In 2012 and 2013 Microsoft Research was investigating physically-large direct networks for data center deployment, with the goal of using 100% copper etch in backplanes.  We noticed that "no cable" backwards is "el bacon", hence the name.
 
+Some documentation is available in [src/tocino/doc/tocino.rst](https://github.com/Microsoft/Tocino/blob/master/src/tocino/doc/tocino.rst)
+
 The authors wish to contribute this work back to the community in the hopes that someone may benefit.  Please direct comments / questions to:
 - Mark Santaniello (marksan@microsoft.com)
 - Dave Harper (dharpe@microsoft.com)
