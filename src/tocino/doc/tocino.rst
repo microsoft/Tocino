@@ -58,3 +58,5 @@ Head flits have reserved space for a sequence number and timestamp, both of whic
 The current implementation does not easily scale to a 4th dimension.
 
 Because Tocino is lossless, our NetDevice's Send() function must always return true.  (Returning false seems to be interpreted by |ns3| as a packet drop.)  As a work-around, we have an m_outgoingFlits queue inside the TocinoNetDevice which can effectively grow unbounded.  If |ns3| afforded us a backpressure mechanism other than packet drops, this hack could be removed.
+
+For reasons the developers still do not understand, we were forced to disable the optimization in Buffer::AddAtEnd() (src/network/model/buffer.cc).  With this optimization in place, we experienced heap corruption and crashes.
