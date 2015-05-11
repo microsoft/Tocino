@@ -65,6 +65,7 @@ SOURCES = \
 	$(SRC)/wifi/doc/wifi.rst \
 	$(SRC)/wimax/doc/wimax.rst \
 	$(SRC)/uan/doc/uan.rst \
+	$(SRC)/tocino/doc/tocino.rst \
 	$(SRC)/topology-read/doc/topology.rst \
 	$(SRC)/spectrum/doc/spectrum.rst \
 	$(SRC)/stats/doc/adaptor.rst \
